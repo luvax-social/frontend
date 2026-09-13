@@ -25,6 +25,7 @@ export default function AuthSessionBootstrap() {
       const {
         accessToken,
         refreshToken,
+        isAuthenticated,
         user,
         setAuth,
         setTokens,
@@ -39,6 +40,22 @@ export default function AuthSessionBootstrap() {
         clearLegacyAuthStorage();
 
         if (SELF_AUTHENTICATING_PATHS.has(window.location.pathname)) {
+          return;
+        }
+
+        // Nothing to restore: no in-memory token and no persisted marker that a session ever
+        // existed on this browser. Without this, every first-time visitor issued a refresh call
+        // that could only 401, which the browser records as a failed request on the very first
+        // screen anyone sees and which spends the refresh budget on anonymous traffic.
+        //
+        // The marker is the load-bearing half. The in-memory token alone must never gate this,
+        // for the reason set out below: it is deliberately never persisted, so it is absent after
+        // every full page load even for a valid session. isAuthenticated is persisted, so a
+        // returning visitor holding a live HttpOnly refresh cookie still reaches the call and is
+        // restored. The residual case is a visitor whose site data was cleared while the cookie
+        // survived; they are signed out here and sign in again, which is the same outcome
+        // clearing site data produces everywhere else.
+        if (!accessToken && !isAuthenticated) {
           return;
         }
 

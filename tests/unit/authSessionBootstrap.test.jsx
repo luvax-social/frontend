@@ -54,14 +54,32 @@ describe('AuthSessionBootstrap', () => {
     }
   );
 
-  it('signs the visitor out on the sign-in screen when no session can be restored', async () => {
+  it('signs the visitor out when a stale marker cannot be restored', async () => {
+    // The persisted marker says a session existed here, so the call must still be made and its
+    // 401 must still sign the visitor out. This is the branch the anonymous skip must not break.
     visit('/login');
+    setSession({ isAuthenticated: true, user: SESSION_USER });
     authApi.refreshSession.mockRejectedValue({ response: { status: 401 } });
 
     render(<AuthSessionBootstrap />);
 
     await waitFor(() => expect(authApi.refreshSession).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(false));
+    expect(useAuthStore.getState().user).toBeNull();
+  });
+
+  it('makes no request for a visitor who has never held a session', async () => {
+    // No in-memory token and no persisted marker: there is nothing to restore, so the call that
+    // could only ever 401 is not made at all. It previously fired on every anonymous cold load,
+    // putting a failed request in the console on the first screen every visitor sees and
+    // spending the refresh budget on anonymous traffic.
+    visit('/');
+
+    render(<AuthSessionBootstrap />);
+
+    await waitFor(() => expect(useAuthStore.getState().isBootstrapping).toBe(false));
+    expect(authApi.refreshSession).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
     expect(useAuthStore.getState().user).toBeNull();
   });
 

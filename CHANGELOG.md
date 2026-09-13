@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- Zod and the React and router runtimes are emitted as their own chunks, taking the entry chunk from 528 kB to 202 kB and clearing the build's chunk-size warning; all three are still fetched in parallel with the entry, so the sign-in form validates on first interaction without an extra round trip.
 - The frontend rule files now describe this repository rather than the backend: `comment_style.md` was a Java document naming Javadoc, `@Transactional` and a pre-commit hook that has never existed here, and `struct.md` described a four-slice scaffold whose whole application lived at one address.
 - `DESIGN.md` records the casing split the product actually uses - lowercase for chrome and short labels, sentence case for anything that reads as a sentence - and names the icon component as a file in this repository rather than a global on `window`.
 - `CONTRIBUTING.md` describes the Vitest suite and the CI workflow that runs it, in place of a claim that no automated test suite was configured.

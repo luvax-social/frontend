@@ -254,6 +254,20 @@ export function formatCount(count) {
 }
 
 /**
+ * Formats a hashtag's post count with the noun that agrees with it.
+ *
+ * Three surfaces render this same figure and two of them hardcoded the plural,
+ * so a hashtag holding one post read "1 posts". Shared here so the three cannot
+ * drift again. A hidden count keeps `formatCount`'s en dash and takes the
+ * plural, which is what reads correctly for an unknown quantity.
+ * @param {?number} count
+ * @returns {string}
+ */
+export function formatPostCount(count) {
+  return `${formatCount(count)} ${count === 1 ? 'post' : 'posts'}`;
+}
+
+/**
  * Copies arbitrary text to the clipboard, falling back to a prompt dialog
  * when the Clipboard API is unavailable.
  * @param {string} text

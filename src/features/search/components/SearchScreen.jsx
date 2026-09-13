@@ -7,6 +7,7 @@ import { ROUTES, routeTo, CHAR_LIMITS } from '@/config/constants';
 import {
   canViewerSeePost,
   extractPageContent,
+  formatPostCount,
   getUserSummary,
   isPageDegraded,
 } from '@/utils/helpers';
@@ -699,7 +700,7 @@ export function SearchScreen() {
                           marginTop: 2,
                         }}
                       >
-                        {tag.postCount} {tag.postCount === 1 ? 'post' : 'posts'}
+                        {formatPostCount(tag.postCount)}
                       </div>
                     </div>
                   </div>

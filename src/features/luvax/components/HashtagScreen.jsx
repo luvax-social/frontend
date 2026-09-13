@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 import { v } from '@/config/tokens';
 import { routeTo } from '@/config/constants';
-import { extractPageContent, formatCount } from '@/utils/helpers';
+import { extractPageContent, formatPostCount } from '@/utils/helpers';
 
 import { LxIcon } from './primitives';
 import { MediaThumb } from './MediaThumb';
@@ -251,7 +251,7 @@ export function HashtagScreen() {
             style={{ fontFamily: v.fontMono, fontSize: 12, color: v.ink3, marginTop: 4 }}
             data-testid="hashtag-post-count"
           >
-            {hashtag ? `${formatCount(hashtag.postCount)} posts` : ' '}
+            {hashtag ? formatPostCount(hashtag.postCount) : ' '}
           </div>
         </div>
       </div>

@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- A hashtag holding a single post now reads "1 post" on the trending rail and the hashtag screen, which both hardcoded the plural; all three surfaces that render the figure now share one helper.
 - A visitor who has never signed in on this browser no longer triggers a session-restore request on every cold load; it could only fail, and it put a failed request in the console on the first screen anyone sees. A stale session marker still triggers the call and is still handled.
 - The commit subject check now fails when it cannot resolve the revision range it was given, instead of reporting that all zero subjects were within the limit and exiting successfully.
 - The pull request check that rejects an over-length commit subject now actually runs; it was invoked in a way that failed with a permission error before the script was ever read, so the gate was red on every pull request for a reason unrelated to commit subjects.

@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- An already signed-in visitor who opens the sign-in, registration, forgotten-password, password-reset or verification address is no longer signed out by the visit; the session is restored from the refresh cookie and the sign-in and registration addresses send them on to their role's landing screen.
 - The dropdown arrow on a support form's select sits on the field's own gutter; the native one ignored the field's padding and read as pushed inward.
 - A verification request now reaches the server. The form sent two evidence fields the endpoint does not declare, and it refuses an undeclared field outright rather than ignoring it, so every submission failed no matter what was typed.
 - A moderator now sees the last two evidence fields of a verification request, which the console had been reading under names the response does not carry.
@@ -76,5 +77,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- Unit coverage for the session bootstrap, pinning that each address restores a cookie-backed session rather than clearing it, and that the OAuth callback is left to complete its own exchange.
 - Unit coverage for the support request schemas, the declared-key request contracts, the ticket lifecycle helpers, and the console's role gating.
 - The verification request body is pinned to the exact field names the endpoint declares, so a name that exists only on the form fails a test rather than every submission.

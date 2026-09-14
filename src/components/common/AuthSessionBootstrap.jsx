@@ -3,14 +3,12 @@ import { useEffect, useRef } from 'react';
 import { authApi } from '@/api/authApi';
 import { clearLegacyAuthStorage, useAuthStore } from '@/store/useAuthStore';
 
-const GUEST_PATHS = new Set([
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
-  '/oauth2/callback',
-]);
+// Paths that establish a session themselves and must not be bootstrapped alongside.
+// The OAuth callback exchanges its own short-lived code and calls setAuth with the
+// result, so a refresh running beside it would either consume the refresh cookie
+// concurrently with that exchange or, on the 401 a first-time Google sign-in
+// returns, clear the session the exchange had just established.
+const SELF_AUTHENTICATING_PATHS = new Set(['/oauth2/callback']);
 
 export default function AuthSessionBootstrap() {
   const didRunRef = useRef(false);
@@ -27,6 +25,7 @@ export default function AuthSessionBootstrap() {
       const {
         accessToken,
         refreshToken,
+        isAuthenticated,
         user,
         setAuth,
         setTokens,
@@ -40,21 +39,36 @@ export default function AuthSessionBootstrap() {
       try {
         clearLegacyAuthStorage();
 
-        const pathname = window.location.pathname;
-        const isGuestPath = GUEST_PATHS.has(pathname);
+        if (SELF_AUTHENTICATING_PATHS.has(window.location.pathname)) {
+          return;
+        }
+
+        // Nothing to restore: no in-memory token and no persisted marker that a session ever
+        // existed on this browser. Without this, every first-time visitor issued a refresh call
+        // that could only 401, which the browser records as a failed request on the very first
+        // screen anyone sees and which spends the refresh budget on anonymous traffic.
+        //
+        // The marker is the load-bearing half. The in-memory token alone must never gate this,
+        // for the reason set out below: it is deliberately never persisted, so it is absent after
+        // every full page load even for a valid session. isAuthenticated is persisted, so a
+        // returning visitor holding a live HttpOnly refresh cookie still reaches the call and is
+        // restored. The residual case is a visitor whose site data was cleared while the cookie
+        // survived; they are signed out here and sign in again, which is the same outcome
+        // clearing site data produces everywhere else.
+        if (!accessToken && !isAuthenticated) {
+          return;
+        }
 
         if (!accessToken) {
-          // Holding no refresh token is no longer the end of the road. The
-          // backend issues the refresh token as an HttpOnly cookie, which the
-          // browser replays automatically and application code cannot read, so
-          // the same call restores a session whether the token survives in
-          // memory or only in the cookie. Guest paths are token-driven pages
-          // that never need a session, so the round trip is skipped there.
-          if (!refreshToken && isGuestPath) {
-            logout();
-            return;
-          }
-
+          // Holding no refresh token is not the end of the road. The backend
+          // issues the refresh token as an HttpOnly cookie, which the browser
+          // replays automatically and application code cannot read, so the same
+          // call restores a session whether the token survives in memory or only
+          // in the cookie. No path may skip this on the strength of an absent
+          // in-memory token: that copy is deliberately never persisted, so after
+          // any full page load it is always absent, and treating that as "no
+          // session" signed out every visitor who arrived on one of these paths
+          // holding a perfectly valid cookie.
           const refreshedSession = await authApi.refreshSession(refreshToken ?? undefined);
 
           if (!refreshedSession.accessToken) {

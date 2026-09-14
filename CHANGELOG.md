@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- A pull request check that rejects any commit whose subject exceeds the 80-character limit, closing the gap that let an over-length subject reach develop while only pull request titles were validated.
 - `scripts/regenerate_struct_figures.sh`, which regenerates the slice inventory, the route table, the dependency list, the npm script list and the environment variable list from `git ls-files` and `package.json`.
 - A back control on the three anonymous support screens, beside the product mark, so a reader who is in the wrong place has an affordance rather than a wordmark to guess at.
 - Support is a settings section, carrying ticket submission, the account's own requests and the verification request, reachable from the side rail and from the settings list.
@@ -28,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- Zod and the React and router runtimes are emitted as their own chunks, taking the entry chunk from 528 kB to 202 kB and clearing the build's chunk-size warning; all three are still fetched in parallel with the entry, so the sign-in form validates on first interaction without an extra round trip.
 - The frontend rule files now describe this repository rather than the backend: `comment_style.md` was a Java document naming Javadoc, `@Transactional` and a pre-commit hook that has never existed here, and `struct.md` described a four-slice scaffold whose whole application lived at one address.
 - `DESIGN.md` records the casing split the product actually uses - lowercase for chrome and short labels, sentence case for anything that reads as a sentence - and names the icon component as a file in this repository rather than a global on `window`.
 - `CONTRIBUTING.md` describes the Vitest suite and the CI workflow that runs it, in place of a claim that no automated test suite was configured.
@@ -45,6 +47,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- A hashtag holding a single post now reads "1 post" on the trending rail and the hashtag screen, which both hardcoded the plural; all three surfaces that render the figure now share one helper.
+- A visitor who has never signed in on this browser no longer triggers a session-restore request on every cold load; it could only fail, and it put a failed request in the console on the first screen anyone sees. A stale session marker still triggers the call and is still handled.
+- The commit subject check now fails when it cannot resolve the revision range it was given, instead of reporting that all zero subjects were within the limit and exiting successfully.
+- The pull request check that rejects an over-length commit subject now actually runs; it was invoked in a way that failed with a permission error before the script was ever read, so the gate was red on every pull request for a reason unrelated to commit subjects.
+- An already signed-in visitor who opens the sign-in, registration, forgotten-password, password-reset or verification address is no longer signed out by the visit; the session is restored from the refresh cookie and the sign-in and registration addresses send them on to their role's landing screen.
 - The dropdown arrow on a support form's select sits on the field's own gutter; the native one ignored the field's padding and read as pushed inward.
 - A verification request now reaches the server. The form sent two evidence fields the endpoint does not declare, and it refuses an undeclared field outright rather than ignoring it, so every submission failed no matter what was typed.
 - A moderator now sees the last two evidence fields of a verification request, which the console had been reading under names the response does not carry.
@@ -76,5 +83,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- Unit coverage for the session bootstrap, pinning that each address restores a cookie-backed session rather than clearing it, and that the OAuth callback is left to complete its own exchange.
 - Unit coverage for the support request schemas, the declared-key request contracts, the ticket lifecycle helpers, and the console's role gating.
 - The verification request body is pinned to the exact field names the endpoint declares, so a name that exists only on the form fails a test rather than every submission.

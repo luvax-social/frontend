@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { v } from '@/config/tokens';
 import { routeTo } from '@/config/constants';
-import { formatCount } from '@/utils/helpers';
+import { formatPostCount } from '@/utils/helpers';
 
 import { LxIcon } from './primitives';
 import { useTrendingHashtags } from '../hooks/useHashtag';
@@ -159,9 +159,7 @@ export function LxTrendingRail({ compact = false }) {
                     measurements in one column. formatCount renders an en dash, which reads as a
                     count the viewer is not allowed to see, so it is wrong here.
                   */}
-                  {typeof entry.postCount === 'number'
-                    ? `${formatCount(entry.postCount)} posts`
-                    : 'new'}
+                  {typeof entry.postCount === 'number' ? formatPostCount(entry.postCount) : 'new'}
                 </span>
               </button>
             </li>

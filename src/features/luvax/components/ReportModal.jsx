@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
+import { TurnstileWidget } from '@/components/common/TurnstileWidget';
+import { useTurnstile } from '@/hooks/useTurnstile';
+import { CAPTCHA_FAILURE_MESSAGE, isCaptchaFailure } from '@/utils/captchaErrors';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { REPORT_REASONS, REPORT_DESCRIPTION_MAX_LENGTH } from '@/services/report.service';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -51,8 +54,14 @@ export function ReportModal({ target, onClose }) {
   const [reason, setReason] = useState(null);
   const [description, setDescription] = useState('');
   const [outcome, setOutcome] = useState(null);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   const submitReport = useSubmitReport();
+
+  // Plain state rather than a form value: this dialog is not a react-hook-form
+  // form, so there is nothing for a Zod schema to read it out of.
+  const setChallengeToken = useCallback((token) => setTurnstileToken(token ?? ''), []);
+  const challenge = useTurnstile(setChallengeToken);
 
   useEscapeKey(Boolean(target), onClose);
 
@@ -66,6 +75,7 @@ export function ReportModal({ target, onClose }) {
       setReason(null);
       setDescription('');
       setOutcome(null);
+      setTurnstileToken('');
       submitReport.reset();
     }
     // submitReport is a stable mutation object from react-query; including it would
@@ -77,18 +87,31 @@ export function ReportModal({ target, onClose }) {
 
   const entityLabel = ENTITY_LABELS[target.entityType] ?? 'post';
   const selectedReason = REPORT_REASONS.find((r) => r.id === reason) ?? null;
-  const failure = submitReport.isError ? describeReportError(submitReport.error) : null;
+  // A refused challenge is its own state: the report is filled in correctly and
+  // the thing that refused is the bot control, so the generic "couldn't be sent"
+  // copy would send the reader looking for a mistake that is not there.
+  const failure = submitReport.isError
+    ? isCaptchaFailure(submitReport.error)
+      ? {
+          tone: 'error',
+          title: 'the challenge was not accepted',
+          message: CAPTCHA_FAILURE_MESSAGE,
+        }
+      : describeReportError(submitReport.error)
+    : null;
   const isDuplicate =
     submitReport.isError && getReportErrorCode(submitReport.error) === REPORT_ERROR_CODES.DUPLICATE;
+  const submitDisabled = submitReport.isPending || !turnstileToken;
 
   const handleSubmit = () => {
-    if (!reason || submitReport.isPending) return;
+    if (!reason || submitReport.isPending || !turnstileToken) return;
     submitReport.mutate(
       {
         reportType: target.entityType,
         reportReason: reason,
         entityId: target.entityId,
         description,
+        turnstileToken,
       },
       {
         onSuccess: () => {
@@ -96,6 +119,10 @@ export function ReportModal({ target, onClose }) {
           onClose?.();
         },
         onError: (error) => {
+          // A challenge token is single-use, so every failure re-arms it, not
+          // only a refused challenge. A duplicate closes the dialog anyway, and
+          // resetting a widget that is about to unmount is harmless.
+          challenge.reset();
           // A duplicate is not a failure the reader can act on: the report they wanted
           // already exists, so close the modal and confirm the state.
           if (getReportErrorCode(error) === REPORT_ERROR_CODES.DUPLICATE) {
@@ -448,10 +475,15 @@ export function ReportModal({ target, onClose }) {
             gap: 6,
           }}
         >
+          {/* Sits immediately above the two submit controls rather than beside
+              the textarea, so the reader never solves a challenge at the top of
+              a scrolled dialog and then has to hunt downward for the button. */}
+          <TurnstileWidget {...challenge.widgetProps} />
+
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={submitReport.isPending}
+            disabled={submitDisabled}
             style={{
               width: '100%',
               fontFamily: v.fontBody,
@@ -463,8 +495,8 @@ export function ReportModal({ target, onClose }) {
               background: v.accent,
               color: v.inkInverse,
               letterSpacing: '-0.01em',
-              cursor: submitReport.isPending ? 'default' : 'pointer',
-              opacity: submitReport.isPending ? 0.7 : 1,
+              cursor: submitDisabled ? 'default' : 'pointer',
+              opacity: submitDisabled ? 0.7 : 1,
             }}
           >
             {submitReport.isPending ? 'Sending...' : 'Submit Report'}
@@ -475,7 +507,7 @@ export function ReportModal({ target, onClose }) {
               setDescription('');
               handleSubmit();
             }}
-            disabled={submitReport.isPending}
+            disabled={submitDisabled}
             style={{
               width: '100%',
               fontFamily: v.fontBody,
@@ -485,11 +517,27 @@ export function ReportModal({ target, onClose }) {
               border: 'none',
               background: 'transparent',
               color: v.ink3,
-              cursor: submitReport.isPending ? 'default' : 'pointer',
+              cursor: submitDisabled ? 'default' : 'pointer',
+              opacity: submitDisabled ? 0.7 : 1,
             }}
           >
             skip and submit without details
           </button>
+          {/* A disabled control always says why: an inert button with no
+              explanation reads as a broken dialog. */}
+          {challenge.ready && !turnstileToken && !challenge.unavailable ? (
+            <div
+              aria-live="polite"
+              style={{
+                fontFamily: v.fontBody,
+                fontSize: 12,
+                color: v.ink3,
+                textAlign: 'center',
+              }}
+            >
+              Complete the challenge above to send.
+            </div>
+          ) : null}
         </div>
       </div>
     );

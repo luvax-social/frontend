@@ -1,15 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 const SCRIPT_ID = 'cf-turnstile-script';
 
+// The managed widget draws at a fixed 300x65. The space is reserved before the
+// script resolves so the card does not jump when it mounts, but the reservation
+// is a max-width rather than a width: at 390px the viewport is narrower than the
+// card's padding allows for 300px, and a fixed width there causes a horizontal
+// scroll on the one screen a signed-out visitor cannot avoid.
+const WIDGET_HEIGHT = 65;
+const WIDGET_MAX_WIDTH = 300;
+
 /**
  * Loads the Turnstile script once, on demand.
  *
  * Kept out of the document head so it costs nothing on any route that does not
- * render the public form, which is every route but one. The promise is cached
- * on the module so a remount does not add a second script tag.
+ * render a challenge, which is most of them. The promise is cached on the
+ * module so a remount does not add a second script tag.
  */
 let scriptPromise = null;
 
@@ -55,21 +63,43 @@ const loadTurnstile = () => {
   return scriptPromise;
 };
 
+const DEFAULT_UNAVAILABLE_MESSAGE =
+  'The challenge is unavailable right now. Reload the page and try again.';
+
 /**
- * The Cloudflare Turnstile challenge for the public support form.
+ * The Cloudflare Turnstile challenge, shared by the authentication forms, the
+ * report dialog and the public support form.
  *
- * Reads `VITE_TURNSTILE_SITE_KEY`. The server verifies the resulting token and
- * fails closed, so a widget that cannot render must not silently let a
- * submission through: the absent-key and script-failure states both report
- * upward and leave the form unsubmittable.
+ * Reads `VITE_TURNSTILE_SITE_KEY`. Carries no copy of its own beyond a neutral
+ * fallback: what an unavailable challenge means differs by surface, because the
+ * server fails open on the authentication and report paths and fails closed on
+ * the public support form, so each caller supplies its own sentence.
  *
- * @param {(token: string|null) => void} props.onToken called with the solved token, or null when it expires
- * @param {(message: string) => void} props.onUnavailable called when the challenge cannot run at all
+ * Exposes `reset()` through a ref. A Turnstile token is single-use, so a form
+ * that submits one and is refused - for any reason, not only a refused
+ * challenge - must re-solve before trying again, and without this the widget id
+ * stayed private and no caller could ask for that.
+ *
+ * @param {(token: string|null) => void} props.onToken called with the solved token, and with null when it expires or is reset
+ * @param {(message: string) => void} [props.onUnavailable] called when the challenge cannot run at all
+ * @param {() => void} [props.onReady] called once the challenge has actually drawn
+ * @param {string} [props.unavailableMessage] the sentence shown in place of the challenge when it cannot run
  */
-export function TurnstileWidget({ onToken, onUnavailable, onReady }) {
+export const TurnstileWidget = forwardRef(function TurnstileWidget(
+  { onToken, onUnavailable, onReady, unavailableMessage = DEFAULT_UNAVAILABLE_MESSAGE },
+  ref
+) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+
+  // The render effect deliberately does not depend on the callbacks: re-running
+  // it would destroy a challenge the reader has already solved. Holding them in
+  // a ref keeps the latest ones reachable anyway, so a caller passing an inline
+  // arrow does not get a handler captured at mount.
+  const handlersRef = useRef({ onToken, onUnavailable, onReady });
+  handlersRef.current = { onToken, onUnavailable, onReady };
+
   // The application's own theme, not the operating system's. `theme: 'auto'`
   // follows prefers-color-scheme, which is not what this product's theme toggle
   // sets - so with the app switched to dark on a light OS the widget rendered as
@@ -87,14 +117,36 @@ export function TurnstileWidget({ onToken, onUnavailable, onReady }) {
     observer.observe(target, { attributes: true, attributeFilter: ['data-theme'] });
     return () => observer.disconnect();
   }, []);
+
   // Derived rather than set from inside the effect: a missing key is knowable
   // at first render, so making it the initial state avoids a second render
   // pass that only exists to record something already true.
   const [status, setStatus] = useState(siteKey ? 'loading' : 'unavailable');
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      /**
+       * Discards the current token and re-arms the challenge.
+       *
+       * Safe to call when nothing has been drawn: a form can call it on every
+       * failed submission without first asking whether there is a widget.
+       */
+      reset() {
+        if (!widgetIdRef.current || !window.turnstile) {
+          return;
+        }
+        window.turnstile.reset(widgetIdRef.current);
+        setStatus('ready');
+        handlersRef.current.onToken?.(null);
+      },
+    }),
+    []
+  );
+
   useEffect(() => {
     if (!siteKey) {
-      onUnavailable?.('The challenge is not configured for this environment.');
+      handlersRef.current.onUnavailable?.('The challenge is not configured for this environment.');
       return undefined;
     }
 
@@ -109,31 +161,35 @@ export function TurnstileWidget({ onToken, onUnavailable, onReady }) {
           sitekey: siteKey,
           callback: (token) => {
             setStatus('solved');
-            onToken?.(token);
+            handlersRef.current.onToken?.(token);
           },
-          // A token is single-use and short-lived. Clearing it on expiry stops
-          // the form submitting one the server would refuse, which would read
-          // to the user as an unexplained failure.
+          // A token is single-use and short-lived, and clears after roughly 300
+          // seconds. Clearing it on expiry stops the form submitting one the
+          // server would refuse, which would read as an unexplained failure.
           'expired-callback': () => {
             setStatus('expired');
-            onToken?.(null);
+            handlersRef.current.onToken?.(null);
           },
           'error-callback': () => {
             setStatus('unavailable');
-            onToken?.(null);
-            onUnavailable?.('The challenge could not be completed. Reload and try again.');
+            handlersRef.current.onToken?.(null);
+            handlersRef.current.onUnavailable?.(
+              'The challenge could not be completed. Reload and try again.'
+            );
           },
           theme: appTheme,
         });
         setStatus('ready');
-        onReady?.();
+        handlersRef.current.onReady?.();
       })
       .catch(() => {
         if (cancelled) {
           return;
         }
         setStatus('unavailable');
-        onUnavailable?.('The challenge could not be loaded. Check your connection and reload.');
+        handlersRef.current.onUnavailable?.(
+          'The challenge could not be loaded. Check your connection and reload.'
+        );
       });
 
     return () => {
@@ -143,21 +199,26 @@ export function TurnstileWidget({ onToken, onUnavailable, onReady }) {
         widgetIdRef.current = null;
       }
     };
-    // The callbacks are captured once on mount by design: re-rendering the
-    // widget on every parent render would reset a challenge the user has
-    // already solved.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey, appTheme]);
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <div ref={containerRef} />
-      {status === 'loading' ? (
-        <div
-          className="lx-skeleton"
-          style={{ height: 65, width: 300, borderRadius: 8, maxWidth: '100%' }}
-        />
-      ) : null}
+      {/* Holds the challenge's height from first paint, so the card does not
+          shift downward when the script resolves and the frame appears. */}
+      <div style={{ minHeight: WIDGET_HEIGHT }}>
+        <div ref={containerRef} />
+        {status === 'loading' ? (
+          <div
+            className="lx-skeleton"
+            style={{
+              height: WIDGET_HEIGHT,
+              width: '100%',
+              maxWidth: WIDGET_MAX_WIDTH,
+              borderRadius: 8,
+            }}
+          />
+        ) : null}
+      </div>
       {status === 'expired' ? (
         <div
           role="status"
@@ -180,12 +241,11 @@ export function TurnstileWidget({ onToken, onUnavailable, onReady }) {
             marginTop: 6,
           }}
         >
-          The challenge is unavailable, so this form cannot be submitted right now. If you were sent
-          a link in an email about a decision on your account, use that link instead.
+          {unavailableMessage}
         </div>
       ) : null}
     </div>
   );
-}
+});
 
 export default TurnstileWidget;

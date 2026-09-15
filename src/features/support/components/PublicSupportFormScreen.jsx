@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { useCreatePublicTicket, usePublicSupportCategories } from '../hooks/useSupport';
 import { publicTicketSchema } from '../utils/supportSchemas';
 import { describeSupportError, isCaptchaFailure, isRateLimited } from '../utils/supportErrors';
 import { Field, Notice, PrimaryButton, SupportPage } from './SupportPrimitives';
-import { TurnstileWidget } from './TurnstileWidget';
+import { TurnstileWidget } from '@/components/common/TurnstileWidget';
 
 /**
  * The anonymous support form, for someone with no account or no session.
@@ -36,6 +36,7 @@ export function PublicSupportFormScreen() {
   // loading and there is nothing above to complete.
   const [challengeReady, setChallengeReady] = useState(false);
   const [sent, setSent] = useState(false);
+  const turnstileRef = useRef(null);
 
   const categories = categoriesQuery.data ?? [];
 
@@ -65,7 +66,15 @@ export function PublicSupportFormScreen() {
       return;
     }
     setFieldErrors({});
-    submit.mutate({ ...parsed.data, turnstileToken }, { onSuccess: () => setSent(true) });
+    submit.mutate(
+      { ...parsed.data, turnstileToken },
+      {
+        onSuccess: () => setSent(true),
+        // A token is single-use whatever refused the submission, so every
+        // failure has to re-arm the challenge before a retry can succeed.
+        onError: () => turnstileRef.current?.reset(),
+      }
+    );
   };
 
   // A failed challenge is its own state, not a validation error: the form is
@@ -180,9 +189,14 @@ export function PublicSupportFormScreen() {
         </Field>
 
         <TurnstileWidget
+          ref={turnstileRef}
           onToken={setTurnstileToken}
           onUnavailable={setChallengeUnavailable}
           onReady={() => setChallengeReady(true)}
+          // The server fails closed on this form alone, so the sentence points
+          // at the one route that still works during an outage. It stays here
+          // rather than in the shared widget because it is true of nothing else.
+          unavailableMessage="The challenge is unavailable, so this form cannot be submitted right now. If you were sent a link in an email about a decision on your account, use that link instead."
         />
 
         <PrimaryButton

@@ -319,7 +319,7 @@ All FE environment variables must use the `VITE_` prefix (required by Vite for c
 | `VITE_GOOGLE_REDIRECT_PATH` | FE route BE redirects back to after OAuth |
 | `VITE_APP_NAME` | Application name displayed in UI |
 | `VITE_APP_ENV` | Environment tag (development / production) |
-| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key for the public support form |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key for the auth forms, the report dialog and the public support form |
 
 Reference: `.env.example` at the repository root.
 

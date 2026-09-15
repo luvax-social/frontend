@@ -64,7 +64,7 @@ Rules:
 | `VITE_GOOGLE_REDIRECT_PATH` | FE callback path after Google OAuth |
 | `VITE_APP_NAME` | Display name of the application |
 | `VITE_APP_ENV` | Deployment environment tag |
-| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key for the public support form |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key for the auth forms, the report dialog and the public support form |
 
 ---
 

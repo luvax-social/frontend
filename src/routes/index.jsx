@@ -29,7 +29,7 @@ import { APP_NOT_FOUND_SCREEN, APP_OVERLAY_SCREENS, APP_SCREENS } from './appScr
 // entry chunk.
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const LuvaxPage = lazy(() => import('@/pages/LuvaxPage'));
-// The three anonymous support screens. Deferred like every other route, and
+// The five anonymous support screens. Deferred like every other route, and
 // deliberately outside ProtectedRoute: the accounts that reach them hold no
 // session and cannot be issued one.
 const AppealLandingScreen = lazy(() =>
@@ -45,6 +45,16 @@ const ConfirmLandingScreen = lazy(() =>
 const PublicSupportFormScreen = lazy(() =>
   import('@/features/support/components/PublicSupportFormScreen').then((m) => ({
     default: m.PublicSupportFormScreen,
+  }))
+);
+const AppealStatusScreen = lazy(() =>
+  import('@/features/support/components/AppealStatusScreen').then((m) => ({
+    default: m.AppealStatusScreen,
+  }))
+);
+const AppealResendScreen = lazy(() =>
+  import('@/features/support/components/AppealResendScreen').then((m) => ({
+    default: m.AppealResendScreen,
   }))
 );
 
@@ -143,6 +153,20 @@ const router = createBrowserRouter([
       {
         path: ROUTES.SUPPORT_PUBLIC,
         element: <PublicSupportFormScreen />,
+      },
+      {
+        // Where the status link from a filed appeal lands. No guard, for the
+        // same reason the appeal itself has none: the appellant holds no
+        // session, and the token they hold reads one ticket and nothing else.
+        path: ROUTES.SUPPORT_APPEAL_STATUS,
+        element: <AppealStatusScreen />,
+      },
+      {
+        // Reached from the sign-in failure copy and from a dead appeal or
+        // status link. Anonymous by necessity: the account asking is the one
+        // that cannot sign in.
+        path: ROUTES.SUPPORT_APPEAL_RESEND,
+        element: <AppealResendScreen />,
       },
       {
         path: ROUTES.OAUTH_CALLBACK,

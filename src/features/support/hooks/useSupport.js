@@ -155,6 +155,57 @@ export const useValidateAppealLink = (token) =>
     refetchOnWindowFocus: false,
   });
 
+/**
+ * Reads one appeal with a status token, for an appellant holding no session.
+ *
+ * A query rather than a mutation: it is a read, the screen runs it on mount,
+ * and it never spends the token. It does not retry a terminal answer - an
+ * unknown or expired token is not a transient failure - nor a rate-limited one.
+ *
+ * @param {string} token the token from the status link, or empty to skip the call
+ * @returns {Object} the TanStack query for the appeal
+ */
+export const useAppealStatus = (token) =>
+  useQuery({
+    queryKey: ['support', 'appeal', 'status', token],
+    queryFn: () => supportApi.readAppealStatus(token),
+    enabled: Boolean(token),
+    retry: false,
+    staleTime: STALE_TIME.SHORT ?? 0,
+    refetchOnWindowFocus: false,
+  });
+
+/**
+ * Asks for a replacement appeal link.
+ *
+ * No cache invalidation and no auth-store access, for the same reason
+ * `useCreateAppeal` has none: this runs for an account that cannot hold a
+ * session.
+ */
+export const useResendAppealLink = () =>
+  useMutation({
+    mutationFn: supportApi.resendAppealLink,
+    retry: false,
+  });
+
+/**
+ * Opens an appeal from a session, against a decision the caller owns.
+ *
+ * The signed-link counterpart to this is `useCreateAppeal`. This one runs for
+ * somebody who never lost access, so it uses the authenticated client and
+ * refreshes the ticket list the new appeal now appears in.
+ */
+export const useCreateInProductAppeal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: supportApi.createInProductAppeal,
+    retry: false,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: supportKeys.ownTickets });
+    },
+  });
+};
+
 /** Submits the anonymous public form. */
 export const useCreatePublicTicket = () =>
   useMutation({

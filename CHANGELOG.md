@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
+- A screen for requesting a replacement appeal link when the moderation email never arrived, reachable from the appeal and status screens.
+- A status link handed over once when an appeal is filed from a moderation email, and an anonymous screen that resolves it, so an appellant with no account to sign in to can follow their own appeal.
+- In-product notifications now name comment, story and message removal, which previously showed no notification at all.
 - A Cloudflare Turnstile challenge on sign-in, registration, forgot password, reset password, resend verification and report submission, alongside the public support form that already carried one.
 - Every submit control behind a challenge stays disabled with a visible reason until it is solved, and returns to that state when the token expires after roughly five minutes.
 - A pull request check that rejects any commit whose subject exceeds the 80-character limit, closing the gap that let an over-length subject reach develop while only pull request titles were validated.
@@ -89,6 +93,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- Coverage for the two new support schemas and for the shared helper that builds the appeal address both in-product entry points use.
 - The challenge token is covered on every schema that carries one, at the boundary the backend enforces.
 - The sign-in form is covered end to end for a wrong password: the challenge is re-armed and the submit control returns to disabled.
 - Unit coverage for the session bootstrap, pinning that each address restores a cookie-backed session rather than clearing it, and that the OAuth callback is left to complete its own exchange.

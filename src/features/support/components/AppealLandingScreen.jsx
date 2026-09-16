@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ROUTES } from '@/config/constants';
 import { v } from '@/config/tokens';
 import { useCreateAppeal, useValidateAppealLink } from '../hooks/useSupport';
 import { appealSchema } from '../utils/supportSchemas';
@@ -87,6 +88,10 @@ export function AppealLandingScreen() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [failure, setFailure] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  // Handed back by the redemption that spends the appeal token. It is the
+  // only thing this reader will hold afterwards: they have no session, and
+  // the credential they arrived with has just been destroyed.
+  const [statusToken, setStatusToken] = useState('');
   const appeal = useCreateAppeal();
   // Checked before the form is offered. Presence of a token string is not
   // validity: any string at all used to render the whole form with an enabled
@@ -123,7 +128,7 @@ export function AppealLandingScreen() {
           us through the public form.
         </Notice>
         <a
-          href="/support/new"
+          href={ROUTES.SUPPORT_PUBLIC}
           style={{ fontFamily: v.fontBody, fontSize: 14, color: v.accentText }}
         >
           Use the public form
@@ -158,7 +163,7 @@ export function AppealLandingScreen() {
           did not, you can still reach us through the public form.
         </Notice>
         <a
-          href="/support/new"
+          href={ROUTES.SUPPORT_PUBLIC}
           style={{ fontFamily: v.fontBody, fontSize: 14, color: v.accentText }}
         >
           Use the public form
@@ -181,6 +186,9 @@ export function AppealLandingScreen() {
   }
 
   if (submitted) {
+    const statusUrl = statusToken
+      ? `${window.location.origin}${ROUTES.SUPPORT_APPEAL_STATUS}?token=${encodeURIComponent(statusToken)}`
+      : '';
     return (
       <SupportPage
         title="Your appeal is with us"
@@ -190,6 +198,47 @@ export function AppealLandingScreen() {
           This link has now been used and will not work again. You do not need to send it a second
           time.
         </Notice>
+
+        {statusUrl ? (
+          <div
+            style={{
+              background: v.surface,
+              border: `1px solid ${v.border}`,
+              borderRadius: 12,
+              padding: '14px 16px',
+              marginTop: 20,
+            }}
+          >
+            <Eyebrow>Keep this link</Eyebrow>
+            <div
+              style={{
+                fontFamily: v.fontBody,
+                fontSize: 14,
+                color: v.ink2,
+                lineHeight: 1.6,
+                marginBottom: 10,
+              }}
+            >
+              It is how you check your appeal later. You have no account to sign in to while this is
+              being decided, so this address is the only way back to it. We will not show it again.
+            </div>
+            {/* A real anchor rather than a router Link: the reader is being
+                asked to copy or bookmark the address, so it has to be a
+                complete one they can right-click, not an in-app transition. */}
+            <a
+              href={statusUrl}
+              style={{
+                fontFamily: v.fontMono,
+                fontSize: 13,
+                color: v.accentText,
+                wordBreak: 'break-all',
+                lineHeight: 1.6,
+              }}
+            >
+              {statusUrl}
+            </a>
+          </div>
+        ) : null}
       </SupportPage>
     );
   }
@@ -210,11 +259,16 @@ export function AppealLandingScreen() {
     appeal.mutate(
       { token, subject: parsed.data.subject, body: parsed.data.body },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           // The credential is spent and the appeal is delivered, so neither the
           // token nor the draft has any further use. Left behind, the draft
           // would reappear in the form on a later visit.
           clearStored();
+          // Deliberately held in component state and never written to storage.
+          // It reads the appeal for ninety days, so it is a credential in its
+          // own right; the reader is given the address and asked to keep it
+          // where they choose rather than having it persisted for them.
+          setStatusToken(result?.statusToken ?? '');
           setSubmitted(true);
         },
         onError: (error) => {

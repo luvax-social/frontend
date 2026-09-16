@@ -109,6 +109,42 @@ export const appealSchema = z.object({
 });
 
 /**
+ * The lost-link recovery form.
+ *
+ * One field. It deliberately does not ask which decision is being appealed:
+ * the whole premise is that the reader has lost the only message that named
+ * one, and the server picks the most recent un-appealed decision itself.
+ *
+ * The Turnstile token is validated separately rather than as a schema field,
+ * following the public form, so a failed challenge reads as its own state
+ * rather than as a validation error on a field the reader filled in correctly.
+ */
+export const appealResendSchema = z.object({
+  contactEmail: z
+    .string()
+    .trim()
+    .min(1, 'Enter the address the email was sent to.')
+    .max(EMAIL_MAX, `Keep the address to ${EMAIL_MAX} characters or fewer.`)
+    .email('That does not look like an email.'),
+});
+
+/**
+ * The in-product appeal, opened from a session against a decision the caller
+ * owns.
+ *
+ * Mirrors `InProductAppealRequest`. The same subject and body rules as the
+ * signed-link form, plus the identifier of the decision. That identifier is not
+ * a credential and is never trusted: the server re-reads the audit row and
+ * compares its target against the caller, so a client that sends someone
+ * else's gets the same answer it gets for one that does not exist.
+ */
+export const inProductAppealSchema = z.object({
+  adminActionId: z.string().trim().min(1, 'We could not tell which decision this is.'),
+  subject: subjectField,
+  body: bodyField,
+});
+
+/**
  * The verification request.
  *
  * The evidence floor is expressed as a whole-object refinement rather than a

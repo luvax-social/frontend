@@ -21,6 +21,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useMediaUpload } from '../hooks/useMediaUpload';
+import { appealPath } from '@/utils/appealEntry';
 import { useMyWarnings, useReportReasonNames } from '../hooks/useAccountStanding';
 import {
   useApproveFollowRequest,
@@ -777,6 +778,7 @@ export function AccountCategory() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const goToSupport = () => navigate(ROUTES.SETTINGS_SUPPORT);
+  const goToAppeal = (adminActionId) => navigate(appealPath(adminActionId));
 
   const {
     data: warningsResponse,
@@ -893,6 +895,18 @@ export function AccountCategory() {
                   <div className="lx-settings-warning-note">{warning.note}</div>
                 ) : null}
                 <div className="lx-settings-warning-when">{formatDate(warning.createdAt)}</div>
+                {/* The in-product route to contest this. Before it existed, the
+                    only way to appeal a warning was a link inside the email
+                    that announced it, so a lost email meant a lost appeal. */}
+                {warning.adminActionId ? (
+                  <button
+                    type="button"
+                    className="lx-settings-textlink"
+                    onClick={() => goToAppeal(warning.adminActionId)}
+                  >
+                    appeal this warning
+                  </button>
+                ) : null}
               </div>
             ))}
           </div>

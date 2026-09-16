@@ -101,8 +101,14 @@ export const REPORT_DESCRIPTION_MAX_LENGTH = 2000;
  * blank rather than sent as an empty string, so a reporter who skips the details step
  * stores a null description instead of "".
  */
-export const submitReport = async ({ reportType, reportReason, entityId, description }) => {
-  const payload = { reportType, reportReason, entityId };
+export const submitReport = async ({
+  reportType,
+  reportReason,
+  entityId,
+  description,
+  turnstileToken,
+}) => {
+  const payload = { reportType, reportReason, entityId, turnstileToken };
   const trimmed = typeof description === 'string' ? description.trim() : '';
   if (trimmed) {
     payload.description = trimmed;

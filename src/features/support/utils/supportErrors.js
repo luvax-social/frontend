@@ -10,9 +10,14 @@
  * shown as a generic 403, and using the server's own prose would throw that
  * away.
  */
+import {
+  CAPTCHA_FAILURE_MESSAGE,
+  getErrorCode,
+  isCaptchaFailure as isSharedCaptchaFailure,
+} from '@/utils/captchaErrors';
 
 /** Reads the backend error code from the envelope the interceptor preserves. */
-export const getSupportErrorCode = (error) => error?.response?.data?.code ?? null;
+export const getSupportErrorCode = getErrorCode;
 
 const MESSAGES = {
   // The viewer took the decision this ticket is appealing. Distinct from a
@@ -29,7 +34,7 @@ const MESSAGES = {
   SUPPORT_TICKET_ALREADY_OPEN: 'You already have an open request.',
   SUPPORT_TICKET_NOT_FOUND: 'That request no longer exists.',
   SUPPORT_TOKEN_INVALID: 'This link is invalid or has already been used.',
-  SUPPORT_CAPTCHA_FAILED: 'The challenge was not accepted. Try it again.',
+  SUPPORT_CAPTCHA_FAILED: CAPTCHA_FAILURE_MESSAGE,
   SUPPORT_DAILY_LIMIT_REACHED: 'Too many requests from here. Try again later.',
   SUPPORT_CATEGORY_NOT_PUBLIC: 'That category cannot be used on this form.',
   VERIFICATION_INSUFFICIENT_EVIDENCE: 'Fill at least three evidence fields.',
@@ -68,8 +73,14 @@ export const isAlreadyOpen = (error) =>
 /** True when a single-use link was already redeemed, or never valid. */
 export const isTokenInvalid = (error) => getSupportErrorCode(error) === 'SUPPORT_TOKEN_INVALID';
 
-/** True when Turnstile refused. A distinct state from a validation failure. */
-export const isCaptchaFailure = (error) => getSupportErrorCode(error) === 'SUPPORT_CAPTCHA_FAILED';
+/**
+ * True when Turnstile refused. A distinct state from a validation failure.
+ *
+ * Delegates to the shared classifier so the auth slice can ask the same question
+ * without importing this module. This path only ever sees the support code, so
+ * what it reports here is unchanged.
+ */
+export const isCaptchaFailure = isSharedCaptchaFailure;
 
 /** True when the public path's rate limit refused. */
 export const isRateLimited = (error) =>

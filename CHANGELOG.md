@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- A Cloudflare Turnstile challenge on sign-in, registration, forgot password, reset password, resend verification and report submission, alongside the public support form that already carried one.
+- Every submit control behind a challenge stays disabled with a visible reason until it is solved, and returns to that state when the token expires after roughly five minutes.
 - A pull request check that rejects any commit whose subject exceeds the 80-character limit, closing the gap that let an over-length subject reach develop while only pull request titles were validated.
 - `scripts/regenerate_struct_figures.sh`, which regenerates the slice inventory, the route table, the dependency list, the npm script list and the environment variable list from `git ls-files` and `package.json`.
 - A back control on the three anonymous support screens, beside the product mark, so a reader who is in the wrong place has an affordance rather than a wordmark to guess at.
@@ -29,6 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- A refused challenge is now named as its own failure on every form rather than reported as a wrong password or a generic error, so the reader is not sent looking for a mistake that is not there.
+- Any failed submission re-arms the challenge, not only a refused one, because the token is single-use and a retry would otherwise send a spent one.
+- The Turnstile site key now governs the authentication forms and the report dialog as well as the public support form; the Google sign-in callback is deliberately left unchallenged.
+- The challenge reserves its own height before the script resolves, so no card shifts when it appears, and it no longer claims a fixed width that overflowed a 390px screen.
 - Zod and the React and router runtimes are emitted as their own chunks, taking the entry chunk from 528 kB to 202 kB and clearing the build's chunk-size warning; all three are still fetched in parallel with the entry, so the sign-in form validates on first interaction without an extra round trip.
 - The frontend rule files now describe this repository rather than the backend: `comment_style.md` was a Java document naming Javadoc, `@Transactional` and a pre-commit hook that has never existed here, and `struct.md` described a four-slice scaffold whose whole application lived at one address.
 - `DESIGN.md` records the casing split the product actually uses - lowercase for chrome and short labels, sentence case for anything that reads as a sentence - and names the icon component as a file in this repository rather than a global on `window`.
@@ -83,6 +89,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- The challenge token is covered on every schema that carries one, at the boundary the backend enforces.
+- The sign-in form is covered end to end for a wrong password: the challenge is re-armed and the submit control returns to disabled.
 - Unit coverage for the session bootstrap, pinning that each address restores a cookie-backed session rather than clearing it, and that the OAuth callback is left to complete its own exchange.
 - Unit coverage for the support request schemas, the declared-key request contracts, the ticket lifecycle helpers, and the console's role gating.
 - The verification request body is pinned to the exact field names the endpoint declares, so a name that exists only on the form fails a test rather than every submission.

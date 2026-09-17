@@ -192,10 +192,7 @@ describe('the lost-link recovery form', () => {
 
   /** React tracks the value setter, so a plain assignment does not reach state. */
   const fireChange = (input, value) => {
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value'
-    ).set;
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
     act(() => {
       setter.call(input, value);
       input.dispatchEvent(new Event('input', { bubbles: true }));

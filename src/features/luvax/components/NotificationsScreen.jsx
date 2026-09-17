@@ -14,11 +14,7 @@ import { useOverlayNavigate } from '../hooks/useOverlayNavigate';
 import { routeTo } from '@/config/constants';
 // Shared with the warning on the settings screen. It lives in src/utils rather than in
 // either slice because both read it, and a feature must not import another's internals.
-import {
-  CONTENT_REMOVAL_TYPES,
-  appealPath,
-  appealableActionId,
-} from '@/utils/appealEntry';
+import { CONTENT_REMOVAL_TYPES, appealPath, appealableActionId } from '@/utils/appealEntry';
 import { toast } from './Toast';
 import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 

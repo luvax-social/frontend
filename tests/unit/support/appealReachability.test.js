@@ -184,9 +184,9 @@ describe('appealPath', () => {
 describe('appealableActionId', () => {
   it('offers an appeal on each of the four removal notices', () => {
     for (const type of CONTENT_REMOVAL_TYPES) {
-      expect(
-        appealableActionId({ type, entityType: 'admin_action', entityId: 'action-1' })
-      ).toBe('action-1');
+      expect(appealableActionId({ type, entityType: 'admin_action', entityId: 'action-1' })).toBe(
+        'action-1'
+      );
     }
   });
 

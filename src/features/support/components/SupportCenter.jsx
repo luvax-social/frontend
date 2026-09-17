@@ -21,7 +21,13 @@ import {
   ticketSchema,
   verificationSchema,
 } from '../utils/supportSchemas';
-import { describeSupportError, isAlreadyOpen } from '../utils/supportErrors';
+import {
+  describeSupportError,
+  isAlreadyOpen,
+  isAppealActionNotFound,
+  isAppealAlreadyFiled,
+  isAppealNotAppealable,
+} from '../utils/supportErrors';
 import {
   VERIFICATION_CATEGORY,
   findBlockingTicket,
@@ -109,6 +115,21 @@ export function SupportCenter() {
   const submitting =
     createTicket.isPending || createVerification.isPending || createAppeal.isPending;
   const failure = createTicket.error || createVerification.error || createAppeal.error;
+
+  // Whether this decision can still be appealed at all, answered by the server
+  // rather than guessed here. The client cannot know whether an appeal already
+  // exists - the warning and the notification both carry the audit row and
+  // nothing about tickets opened against it - so the form is offered, and the
+  // refusal is what closes it. All three codes are terminal for this decision:
+  // a second appeal, an unknown or foreign audit row, and an action type with no
+  // appeal route are none of them retryable, so leaving the control live would
+  // only invite the same refusal again.
+  const appealClosed =
+    isAppeal &&
+    Boolean(failure) &&
+    (isAppealAlreadyFiled(failure) ||
+      isAppealActionNotFound(failure) ||
+      isAppealNotAppealable(failure));
 
   const resetForm = () => {
     setCategory('');
@@ -242,6 +263,7 @@ export function SupportCenter() {
           ) : (
             <TicketForm
               isAppeal={isAppeal}
+              appealClosed={appealClosed}
               category={category}
               setCategory={(next) => {
                 setCategory(next);
@@ -398,6 +420,7 @@ function PastTickets({ tickets, blockingId, pendingVerificationId }) {
 
 function TicketForm({
   isAppeal,
+  appealClosed,
   category,
   setCategory,
   values,
@@ -421,6 +444,10 @@ function TicketForm({
 }) {
   // Verification has its own slot, so it is offered only when that slot is free.
   const verificationBlocked = Boolean(pendingVerification) || alreadyVerified;
+  // Appeal mode has no category selector, because the category is derived from
+  // the decision server-side. The write fields keyed off `category` alone, which
+  // left the appeal form showing its heading and nothing to type into or submit.
+  const canWrite = (isAppeal || Boolean(category)) && !appealClosed;
   const selectable = categories.filter(
     (row) => row.categoryKey !== VERIFICATION_KEY || !verificationBlocked
   );
@@ -505,7 +532,7 @@ function TicketForm({
         />
       ) : null}
 
-      {category && !isVerification ? (
+      {canWrite && !isVerification ? (
         <>
           <Field label="Summary" htmlFor="support-subject" error={fieldErrors.subject}>
             <input
@@ -533,9 +560,9 @@ function TicketForm({
         </>
       ) : null}
 
-      {category ? (
+      {canWrite ? (
         <PrimaryButton disabled={submitting || (isVerification && evidenceRemaining > 0)}>
-          {submitting ? 'sending' : 'Send request'}
+          {submitting ? 'sending' : isAppeal ? 'Send appeal' : 'Send request'}
         </PrimaryButton>
       ) : null}
     </form>

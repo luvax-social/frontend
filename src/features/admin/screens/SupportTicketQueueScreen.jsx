@@ -58,7 +58,7 @@ const columns = [
     render: (row) => (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
         {(row.category ?? '').toLowerCase().replace(/_/g, ' ')}
-        {isAppealTicket(row) ? <StatusBadge status="escalated" size="sm" /> : null}
+        {isAppealTicket(row) ? <StatusBadge status="appeal" size="sm" /> : null}
       </span>
     ),
   },

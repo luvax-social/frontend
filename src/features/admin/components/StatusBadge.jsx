@@ -62,6 +62,11 @@ const STATUS_TONE = {
   // one: nothing is wrong, it is simply waiting.
   claimed: 'positive',
   unclaimed: 'caution',
+  // Not a status. A support ticket carries this alongside its status to say it
+  // contests a moderation decision, which is a different axis from where the
+  // ticket sits in its lifecycle. It takes the attention tone for the same
+  // reason `escalated` does: it is the row a reviewer should look at first.
+  appeal: 'attention',
 };
 
 export function StatusBadge({ status, size = 'md' }) {

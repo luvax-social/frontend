@@ -129,9 +129,17 @@ function GroupHeading({ label }) {
 function NotifRow({ n, onAccept, onDecline, pendingRequestIds }) {
   const navigate = useNavigate();
   const openOverlay = useOverlayNavigate();
+  // An enforcement notice records the platform acting, not a person, so it
+  // carries no actor at all. Decided before the read so the absence is declared
+  // rather than reported as contract drift.
+  const isSystemModeration =
+    CONTENT_REMOVAL_TYPES.has(n.type) ||
+    n.type === 'report_post_removed' ||
+    n.type === 'post_restored' ||
+    n.type === 'report_dismissed';
   // NotificationResponse embeds the actor as a UserSummaryResponse. There is
   // no `n.actorId`, so no per-row profile fetch is needed.
-  const actor = getUserSummary(n, 'actor');
+  const actor = getUserSummary(n, 'actor', { optional: isSystemModeration });
   const timeStr = useRelativeTime(n.createdAt);
 
   const isFollow = n.type === 'follow' || n.type === 'follow_request';
@@ -147,11 +155,6 @@ function NotifRow({ n, onAccept, onDecline, pendingRequestIds }) {
   const actorName = getDisplayName(actor, 'Someone');
   const pendingRequesterId =
     n.type === 'follow_request' && actor?.id && pendingRequestIds?.has(actor.id) ? actor.id : null;
-  const isSystemModeration =
-    CONTENT_REMOVAL_TYPES.has(n.type) ||
-    n.type === 'report_post_removed' ||
-    n.type === 'post_restored' ||
-    n.type === 'report_dismissed';
   const appealActionId = appealableActionId(n);
   const displayName = isSystemModeration ? 'Luvax' : actorName;
   const avatarSrc = actor.avatarUrl;

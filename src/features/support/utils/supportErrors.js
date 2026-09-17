@@ -32,6 +32,14 @@ const MESSAGES = {
   SUPPORT_TICKET_NOT_CLAIMED: 'Claim this ticket before acting on it.',
   SUPPORT_TICKET_INVALID_TRANSITION: 'This ticket has already been answered.',
   SUPPORT_TICKET_ALREADY_OPEN: 'You already have an open request.',
+  // One decision, one appeal, in any status. A rejected appeal is terminal, so
+  // this is also what a second attempt after a refusal is told.
+  SUPPORT_APPEAL_ALREADY_FILED: 'You have already appealed this decision.',
+  // Returned both for an identifier that names nothing and for one belonging to
+  // another account. The wording must cover both without hinting that the second
+  // case exists, or the endpoint becomes an oracle for whose decision an id is.
+  SUPPORT_APPEAL_ACTION_NOT_FOUND: 'We cannot find that decision.',
+  SUPPORT_APPEAL_NOT_APPEALABLE: 'This decision cannot be appealed.',
   SUPPORT_TICKET_NOT_FOUND: 'That request no longer exists.',
   SUPPORT_TOKEN_INVALID: 'This link is invalid or has already been used.',
   SUPPORT_CAPTCHA_FAILED: CAPTCHA_FAILURE_MESSAGE,
@@ -69,6 +77,18 @@ export const isClaimCollision = (error) =>
 /** True when the one-open-ticket rule refused a second request. */
 export const isAlreadyOpen = (error) =>
   getSupportErrorCode(error) === 'SUPPORT_TICKET_ALREADY_OPEN';
+
+/** True when this decision has already been appealed once. */
+export const isAppealAlreadyFiled = (error) =>
+  getSupportErrorCode(error) === 'SUPPORT_APPEAL_ALREADY_FILED';
+
+/** True when the decision behind an appeal entry point is gone or was never the caller's. */
+export const isAppealActionNotFound = (error) =>
+  getSupportErrorCode(error) === 'SUPPORT_APPEAL_ACTION_NOT_FOUND';
+
+/** True when the decision exists but carries no appeal route. */
+export const isAppealNotAppealable = (error) =>
+  getSupportErrorCode(error) === 'SUPPORT_APPEAL_NOT_APPEALABLE';
 
 /** True when a single-use link was already redeemed, or never valid. */
 export const isTokenInvalid = (error) => getSupportErrorCode(error) === 'SUPPORT_TOKEN_INVALID';

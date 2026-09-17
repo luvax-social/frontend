@@ -11,7 +11,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { getSplitSelection, withSelection } from '../lib/splitSelection';
 import { useSupportQueue } from '../hooks/useSupportQueue';
 import { SupportTicketDetailScreen } from './SupportTicketDetailScreen';
-import { TICKET_STATUSES, TICKET_STATUS_LABELS } from '../lib/supportTicketSchema';
+import { TICKET_STATUSES, TICKET_STATUS_LABELS, isAppealTicket } from '../lib/supportTicketSchema';
 
 /**
  * The staff support queue.
@@ -47,7 +47,20 @@ const columns = [
   {
     key: 'category',
     header: 'category',
-    render: (row) => (row.category ?? '').toLowerCase().replace(/_/g, ' '),
+    // The appeal marker sits with the category rather than in a column of its
+    // own, because it qualifies what the ticket is about and an extra column
+    // would take width from the subject, which is the one a reviewer scans.
+    //
+    // Driven by `admin_action_id`, never by `source`: an appeal opened from a
+    // signed-in session arrives as `AUTHENTICATED`, exactly like an ordinary
+    // ticket, so source would show nothing. Never by category either, which the
+    // authenticated form lets the submitter choose.
+    render: (row) => (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {(row.category ?? '').toLowerCase().replace(/_/g, ' ')}
+        {isAppealTicket(row) ? <StatusBadge status="escalated" size="sm" /> : null}
+      </span>
+    ),
   },
   {
     key: 'status',

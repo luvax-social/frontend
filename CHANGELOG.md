@@ -103,6 +103,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- A Playwright end-to-end project covering the anonymous appeal paths, run with `npm run test:e2e`: the lost-link recovery form submits and reaches its one success state, the challenge is re-armed after a refusal so a retry succeeds, and the status screen renders a known appeal, persists no token and answers every dead link identically.
 - Coverage proving the anonymous status screen renders one identical state for an unknown, an expired and a malformed token, that it writes no token to storage, and that it offers no control that could change anything.
 - Coverage proving the captcha is re-armed after every failed link-recovery submission, and that the confirmation is the same whatever the address turned out to be.
 - Coverage proving the staff console tells an appeal from its audit row rather than from its source or its category, while still gating the decision on the rule the server applies.

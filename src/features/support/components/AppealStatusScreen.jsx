@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
 import { v } from '@/config/tokens';
@@ -6,32 +5,6 @@ import { useAppealStatus } from '../hooks/useSupport';
 import { isRateLimited, isTokenInvalid } from '../utils/supportErrors';
 import { Eyebrow, Notice, SupportPage } from './SupportPrimitives';
 import { staffResponseHeading, statusLabel } from '../utils/ticketStatus';
-
-const TOKEN_KEY = 'lx-appeal-status-token';
-
-/**
- * Reads the token the tab kept across a reload.
- *
- * Guarded because sessionStorage throws outright in some privacy modes rather
- * than returning nothing, and this screen has to render for a banned user on
- * whatever browser they happen to hold.
- */
-const readStored = () => {
-  try {
-    return window.sessionStorage.getItem(TOKEN_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-
-const writeStored = (value) => {
-  try {
-    window.sessionStorage.setItem(TOKEN_KEY, value);
-  } catch {
-    // Losing it costs the reader a reload, not the page. They still hold the
-    // link itself, which is the durable copy.
-  }
-};
 
 /**
  * Formats a timestamp in the reader's own timezone.
@@ -64,20 +37,18 @@ const formatWhen = (value) => {
  */
 export function AppealStatusScreen() {
   const [searchParams] = useSearchParams();
-  // Seeded from the address bar, then from the tab's own store, following the
-  // appeal screen exactly. Stripping the token from the URL is right against
-  // referrer and history leakage, but on its own it makes an ordinary reload
-  // destructive.
-  const [token] = useState(() => searchParams.get('token') ?? readStored());
+  // Read from the address and nowhere else. The token is a bearer credential, so
+  // it is never copied into sessionStorage, localStorage or a cookie - the rule
+  // that keeps access tokens out of browser storage applies to it for the same
+  // reason, and it outlives an access token by ninety days.
+  //
+  // It is also not stripped from the address after the first read. The URL is
+  // the credential: it is what the confirmation screen hands over and what the
+  // confirmation mail carries, and the reader is told to keep it and come back
+  // to it. Stripping it without a stored copy would make an ordinary reload
+  // destructive, and storing a copy is exactly what is forbidden.
+  const token = searchParams.get('token') ?? '';
   const status = useAppealStatus(token);
-
-  useEffect(() => {
-    const fromUrl = searchParams.get('token');
-    if (fromUrl) {
-      writeStored(fromUrl);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [searchParams]);
 
   if (!token) {
     return (

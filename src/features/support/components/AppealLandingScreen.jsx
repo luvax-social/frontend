@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
+import { copyToClipboard } from '@/utils/helpers';
 import { v } from '@/config/tokens';
 import { useCreateAppeal, useValidateAppealLink } from '../hooks/useSupport';
 import { appealSchema } from '../utils/supportSchemas';
 import { describeSupportError, isRateLimited, isTokenInvalid } from '../utils/supportErrors';
 import { Eyebrow, Field, Notice, PrimaryButton, SupportPage } from './SupportPrimitives';
 
-const TOKEN_KEY = 'lx-appeal-token';
 const SUBJECT_KEY = 'lx-appeal-subject';
 const BODY_KEY = 'lx-appeal-body';
 
@@ -44,9 +44,9 @@ const writeStored = (key, value) => {
   }
 };
 
-/** Drops the token and the draft once the appeal has been accepted. */
+/** Drops the draft once the appeal has been accepted, or the link is spent. */
 const clearStored = () => {
-  for (const key of [TOKEN_KEY, SUBJECT_KEY, BODY_KEY]) {
+  for (const key of [SUBJECT_KEY, BODY_KEY]) {
     try {
       window.sessionStorage.removeItem(key);
     } catch {
@@ -74,13 +74,18 @@ const clearStored = () => {
  */
 export function AppealLandingScreen() {
   const [searchParams] = useSearchParams();
-  // Seeded from the address bar, then from the tab's own store. Stripping the
-  // token from the URL is right against referrer and history leakage, but on its
-  // own it made an ordinary reload, a restored tab or back-then-forward
-  // destructive: the credential was gone and the composed appeal with it.
-  // sessionStorage is the narrowest place that survives that - same tab only,
-  // dropped when the tab closes, never shared with another tab.
-  const [token, setToken] = useState(() => searchParams.get('token') ?? readStored(TOKEN_KEY));
+  // Read from the address and nowhere else. This is a single-use credential that
+  // authorises opening an appeal, and no credential is copied into
+  // sessionStorage, localStorage or a cookie - the same rule that keeps access
+  // tokens out of browser storage, applied to a token that is strictly more
+  // powerful than the read-only status link this screen hands back.
+  //
+  // It is therefore also not stripped from the address: without a stored copy,
+  // stripping it would make a reload or a restored tab destructive, and the copy
+  // is the part that is forbidden. The draft below is form text rather than a
+  // credential, and is still kept.
+  const [linkSpent, setLinkSpent] = useState(false);
+  const token = linkSpent ? '' : (searchParams.get('token') ?? '');
   const [values, setValues] = useState(() => ({
     subject: readStored(SUBJECT_KEY),
     body: readStored(BODY_KEY),
@@ -92,24 +97,15 @@ export function AppealLandingScreen() {
   // only thing this reader will hold afterwards: they have no session, and
   // the credential they arrived with has just been destroyed.
   const [statusToken, setStatusToken] = useState('');
+  // Confirms the copy happened. The clipboard write is silent otherwise, and
+  // a reader told this is their only way back needs to see that it worked.
+  const [statusCopied, setStatusCopied] = useState(false);
   const appeal = useCreateAppeal();
   // Checked before the form is offered. Presence of a token string is not
   // validity: any string at all used to render the whole form with an enabled
   // button, and the reader learned the link was dead only on submit, with what
   // they had written lost. This read never redeems the token.
   const link = useValidateAppealLink(token);
-
-  // The token is a single-use credential. Taking it out of the address bar
-  // keeps it out of history, out of a shared screenshot, and out of any
-  // Referer header a later navigation would send. It is handed to the tab's own
-  // store first so the reload it survives is the same reload this causes.
-  useEffect(() => {
-    const fromUrl = searchParams.get('token');
-    if (fromUrl) {
-      writeStored(TOKEN_KEY, fromUrl);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, [searchParams]);
 
   // Kept in step as the reader types, so a reload mid-appeal loses nothing.
   useEffect(() => {
@@ -222,6 +218,17 @@ export function AppealLandingScreen() {
               It is how you check your appeal later. You have no account to sign in to while this is
               being decided, so this address is the only way back to it. We will not show it again.
             </div>
+            <div
+              style={{
+                fontFamily: v.fontBody,
+                fontSize: 14,
+                color: v.ink2,
+                lineHeight: 1.6,
+                marginBottom: 10,
+              }}
+            >
+              We have also emailed it to the address your original notice went to.
+            </div>
             {/* A real anchor rather than a router Link: the reader is being
                 asked to copy or bookmark the address, so it has to be a
                 complete one they can right-click, not an in-app transition. */}
@@ -237,6 +244,28 @@ export function AppealLandingScreen() {
             >
               {statusUrl}
             </a>
+            <div style={{ marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  await copyToClipboard(statusUrl, 'copy your appeal status link');
+                  setStatusCopied(true);
+                }}
+                style={{
+                  fontFamily: v.fontBody,
+                  fontSize: 13,
+                  color: v.ink,
+                  background: v.bg,
+                  border: `1px solid ${v.border}`,
+                  borderRadius: 999,
+                  padding: '9px 16px',
+                  minHeight: 44,
+                  cursor: 'pointer',
+                }}
+              >
+                {statusCopied ? 'Copied' : 'Copy link'}
+              </button>
+            </div>
           </div>
         ) : null}
       </SupportPage>
@@ -276,7 +305,7 @@ export function AppealLandingScreen() {
             // Terminal. Clearing the token drops the form and shows the spent
             // state, rather than inviting a retry that can only fail again.
             clearStored();
-            setToken('');
+            setLinkSpent(true);
             setFailure('');
             return;
           }

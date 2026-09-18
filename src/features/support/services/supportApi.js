@@ -70,6 +70,51 @@ export const createAppeal = async ({ token, subject, body }) =>
   unwrap(await publicClient.post('/support/appeal', buildBody({ token, subject, body })));
 
 /**
+ * Opens an appeal from a session, against a decision the caller owns.
+ *
+ * The authenticated counterpart to `createAppeal`. A signed link exists because
+ * its holder has no session; somebody who has one should not have to wait for
+ * an email to reach the same ticket, and must not be stranded when that email
+ * never arrives.
+ *
+ * `adminActionId` is not a credential. The server re-reads the audit row and
+ * compares its target against the caller, and answers a row belonging to
+ * someone else exactly as it answers one that does not exist. The category is
+ * derived server-side from the decision, never sent from here.
+ */
+export const createInProductAppeal = async ({ adminActionId, subject, body }) =>
+  unwrap(await axiosClient.post('/support/appeals', buildBody({ adminActionId, subject, body })));
+
+/**
+ * Reads one appeal with the status token handed back when it was filed.
+ *
+ * Anonymous, read-only, and it never spends the token, so the link can be
+ * followed as often as the appellant likes across the life of the appeal.
+ *
+ * Answers the same shape `getOwnTicket` does. That record has no field for the
+ * staff-only note, the assignee or the escalation reason, so there is nothing
+ * here to filter out on the client.
+ */
+export const readAppealStatus = async (token) =>
+  unwrap(await publicClient.get('/support/appeal/status', { params: { token } }));
+
+/**
+ * Asks for a replacement appeal link to be mailed.
+ *
+ * For the reader whose moderation notice bounced, was filtered, or was deleted.
+ * Before this, that email was the only place the link contesting a specific
+ * decision existed.
+ *
+ * The answer is identical whether or not the address matches an account, so
+ * nothing in the response can be used to decide what to show. The caller must
+ * render the same confirmation either way.
+ */
+export const resendAppealLink = async ({ contactEmail, turnstileToken }) =>
+  unwrap(
+    await publicClient.post('/support/appeal/resend', buildBody({ contactEmail, turnstileToken }))
+  );
+
+/**
  * Asks whether an appeal link is still redeemable, without redeeming it.
  *
  * Read-only, and that is the whole point: the landing screen calls this on

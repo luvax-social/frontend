@@ -1,15 +1,17 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { v } from '@/config/tokens';
-import { routeTo } from '@/config/constants';
 import { isAdminRole } from '@/config/roles';
 import { useAuthStore } from '@/store/useAuthStore';
 
-import { PageHeader } from '../components/PanelPage';
+import { PageHeader, PanelCard } from '../components/PanelPage';
 import { RecordTable } from '../components/RecordTable';
 import { LoadMore } from '../components/LoadMore';
+import { SplitView } from '../components/SplitView';
 import { buildReportColumns } from '../components/reportColumns';
+import { getSplitSelection, withSelection } from '../lib/splitSelection';
+import { ReportDetailScreen } from './ReportDetailScreen';
 import { useMyEscalations } from '../hooks/useMyEscalations';
 import { useVocabularies } from '../hooks/useVocabularies';
 
@@ -34,7 +36,7 @@ import { useVocabularies } from '../hooks/useVocabularies';
  * this one is what this account handed up.
  */
 export function MyEscalationsScreen() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const role = useAuthStore((state) => state.role);
   const isAdmin = isAdminRole(role);
   const { reasonLabel } = useVocabularies();
@@ -51,16 +53,21 @@ export function MyEscalationsScreen() {
 
   const columns = useMemo(() => buildReportColumns(reasonLabel), [reasonLabel]);
 
-  return (
+  const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
+  const openRecord = (id) => setSearchParams(withSelection(searchParams, id));
+  const closeRecord = () => setSearchParams(withSelection(searchParams, null));
+
+  const list = (
     <div>
       <PageHeader title="my escalations" />
 
-      <div className="lx-admin-panel-card">
+      <PanelCard padded={false}>
         <RecordTable
           columns={columns}
           rows={rows}
           keyField="id"
-          onRowClick={(row) => navigate(routeTo.adminReportDetail(row.id))}
+          onRowClick={(row) => openRecord(row.id)}
+          selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
           errorMessage={error?.message}
@@ -80,7 +87,7 @@ export function MyEscalationsScreen() {
             />
           }
         />
-      </div>
+      </PanelCard>
 
       {rows.length > 0 ? (
         <p
@@ -97,4 +104,21 @@ export function MyEscalationsScreen() {
       ) : null}
     </div>
   );
+
+  return (
+    <SplitView
+      list={list}
+      hasSelection={hasSelection}
+      onClose={closeRecord}
+      backLabel="back to my escalations"
+      emptyIcon="alert"
+      emptyTitle="no report open"
+      emptyHint="pick one of your escalations to see what was reported and what became of it."
+      detail={
+        selectedId ? <ReportDetailScreen key={selectedId} reportId={selectedId} embedded /> : null
+      }
+    />
+  );
 }
+
+export default MyEscalationsScreen;

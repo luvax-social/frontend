@@ -52,7 +52,7 @@ const NAV_SECTIONS = [
       {
         key: 'support',
         label: 'support',
-        icon: 'check',
+        icon: 'help',
         to: ROUTES.ADMIN_SUPPORT,
         roles: [ROLES.MODERATOR, ROLES.ADMIN],
       },

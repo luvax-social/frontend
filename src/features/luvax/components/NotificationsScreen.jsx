@@ -12,6 +12,9 @@ import { useNotifications, useMarkAllAsRead } from '../hooks/useNotifications';
 import { useRelativeTime } from '../hooks/useRelativeTime';
 import { useOverlayNavigate } from '../hooks/useOverlayNavigate';
 import { routeTo } from '@/config/constants';
+// Shared with the warning on the settings screen. It lives in src/utils rather than in
+// either slice because both read it, and a feature must not import another's internals.
+import { CONTENT_REMOVAL_TYPES, appealPath, appealableActionId } from '@/utils/appealEntry';
 import { toast } from './Toast';
 import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 
@@ -30,6 +33,9 @@ const NOTIFICATION_TEXT = {
   story_view: 'viewed your story',
   message: 'sent you a message',
   post_removed: 'removed your post',
+  comment_removed: 'removed your comment',
+  story_removed: 'removed your story',
+  message_removed: 'removed your message',
   report_post_removed: 'removed content you reported',
   post_restored: 'restored your post',
   report_dismissed: 'reviewed your report and took no action',
@@ -60,6 +66,8 @@ const TYPE_COLOR = {
 // category so the row can use the per-type icon and colour it was ignoring.
 function notifCategory(type) {
   if (!type) return 'like';
+  // Before the prefix tests, deliberately. See CONTENT_REMOVAL_TYPES.
+  if (CONTENT_REMOVAL_TYPES.has(type)) return 'moderation';
   if (type === 'follow_request') return 'follow_request';
   if (type.startsWith('follow')) return 'follow';
   if (type.startsWith('like')) return 'like';
@@ -67,7 +75,6 @@ function notifCategory(type) {
   if (type.startsWith('mention')) return 'mention';
   if (type.startsWith('story')) return 'story';
   if (
-    type === 'post_removed' ||
     type === 'report_post_removed' ||
     type === 'post_restored' ||
     type === 'report_dismissed' ||
@@ -122,9 +129,17 @@ function GroupHeading({ label }) {
 function NotifRow({ n, onAccept, onDecline, pendingRequestIds }) {
   const navigate = useNavigate();
   const openOverlay = useOverlayNavigate();
+  // An enforcement notice records the platform acting, not a person, so it
+  // carries no actor at all. Decided before the read so the absence is declared
+  // rather than reported as contract drift.
+  const isSystemModeration =
+    CONTENT_REMOVAL_TYPES.has(n.type) ||
+    n.type === 'report_post_removed' ||
+    n.type === 'post_restored' ||
+    n.type === 'report_dismissed';
   // NotificationResponse embeds the actor as a UserSummaryResponse. There is
   // no `n.actorId`, so no per-row profile fetch is needed.
-  const actor = getUserSummary(n, 'actor');
+  const actor = getUserSummary(n, 'actor', { optional: isSystemModeration });
   const timeStr = useRelativeTime(n.createdAt);
 
   const isFollow = n.type === 'follow' || n.type === 'follow_request';
@@ -140,11 +155,7 @@ function NotifRow({ n, onAccept, onDecline, pendingRequestIds }) {
   const actorName = getDisplayName(actor, 'Someone');
   const pendingRequesterId =
     n.type === 'follow_request' && actor?.id && pendingRequestIds?.has(actor.id) ? actor.id : null;
-  const isSystemModeration =
-    n.type === 'post_removed' ||
-    n.type === 'report_post_removed' ||
-    n.type === 'post_restored' ||
-    n.type === 'report_dismissed';
+  const appealActionId = appealableActionId(n);
   const displayName = isSystemModeration ? 'Luvax' : actorName;
   const avatarSrc = actor.avatarUrl;
   const canOpenTarget = !isSystemModeration;
@@ -243,6 +254,37 @@ function NotifRow({ n, onAccept, onDecline, pendingRequestIds }) {
         <div style={{ fontFamily: v.fontMono, fontSize: 10, color: v.ink3, marginTop: 4 }}>
           {timeStr}
         </div>
+        {/* The in-product route to contest this removal. Before it existed the
+            only way to appeal was a link inside the notice email, so a bounced
+            or filtered email meant no route at all. stopPropagation because a
+            system notice's row does not open anything, and this control must
+            not be mistaken for one that does. */}
+        {appealActionId ? (
+          <button
+            type="button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              // The 44px touch target every other control on this screen keeps.
+              minHeight: 44,
+              padding: 0,
+              border: 'none',
+              background: 'none',
+              fontFamily: v.fontBody,
+              fontSize: 12,
+              color: v.accentText,
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+              cursor: 'pointer',
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              navigate(appealPath(appealActionId));
+            }}
+          >
+            appeal this decision
+          </button>
+        ) : null}
       </div>
 
       {n.type === 'follow_request' && pendingRequesterId ? (

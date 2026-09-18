@@ -31,8 +31,33 @@ const APPEAL_CATEGORIES = new Set([
   'APPEAL_CONTENT_REMOVAL',
 ]);
 
-/** Whether a ticket contests a moderation decision. */
-export const isAppealTicket = (ticket) => APPEAL_CATEGORIES.has(ticket?.category);
+/**
+ * Whether a ticket actually contests a recorded moderation decision.
+ *
+ * `admin_action_id` is the only reliable marker, and deliberately not `source`:
+ * an appeal opened from a signed-in session is written with `AUTHENTICATED`,
+ * exactly like an ordinary ticket, so source separates how the ticket arrived
+ * rather than what it is. It is not `category` either, because the authenticated
+ * ticket form takes its category straight from the client, so anyone can file an
+ * ordinary request labelled `APPEAL_BAN` while no decision stands behind it.
+ *
+ * Used for what the console shows. What the console *offers* is gated by
+ * `requiresAdminDecision` below, which is a different question.
+ */
+export const isAppealTicket = (ticket) => Boolean(ticket?.adminActionId);
+
+/**
+ * Whether only an administrator may decide this ticket.
+ *
+ * Mirrors the server, which evaluates `category.isAppeal()` in
+ * `SupportAuthorizationServiceImpl` and refuses a moderator with
+ * `SUPPORT_APPEAL_REQUIRES_ADMIN`. It is deliberately category-based rather than
+ * `admin_action_id`-based, because the console must gate on the rule the server
+ * actually applies. Gating on anything else offers a moderator a decision form
+ * whose every outcome is a refusal, which is the failure this module already
+ * exists to prevent.
+ */
+export const requiresAdminDecision = (ticket) => APPEAL_CATEGORIES.has(ticket?.category);
 
 /** Whether a ticket has been decided and can no longer move. */
 export const isTerminalTicket = (ticket) => !ACTIVE_STATUSES.has(ticket?.status);
@@ -78,6 +103,7 @@ export const ticketCapabilities = (ticket, viewer) => {
   }
 
   const isAppeal = isAppealTicket(ticket);
+  const adminOnly = requiresAdminDecision(ticket);
   const terminal = isTerminalTicket(ticket);
   const claimedByMe = Boolean(ticket.assignedTo) && ticket.assignedTo === viewer.id;
   const claimedBySomeoneElse = Boolean(ticket.assignedTo) && ticket.assignedTo !== viewer.id;
@@ -109,7 +135,7 @@ export const ticketCapabilities = (ticket, viewer) => {
   }
 
   // Claimed by this viewer.
-  const canDecideAppeal = !isAppeal || isAdmin;
+  const canDecideAppeal = !adminOnly || isAdmin;
   return {
     ...base,
     canRespond: canDecideAppeal,

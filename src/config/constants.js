@@ -84,6 +84,14 @@ export const ROUTES = {
   SUPPORT_APPEAL: '/support/appeal',
   SUPPORT_CONFIRM: '/support/confirm',
   SUPPORT_PUBLIC: '/support/new',
+  // Where a status link lands. Anonymous like the three above, and for the
+  // same population: the appeal token is spent by the submission that created
+  // the ticket, so this token is the only thing that can reach it afterwards.
+  SUPPORT_APPEAL_STATUS: '/support/appeal/status',
+  // The lost-link recovery form. Its own address rather than a panel on the
+  // public form, so the sentence on the sign-in failure can link straight to
+  // it instead of asking the reader to find it.
+  SUPPORT_APPEAL_RESEND: '/support/appeal/resend',
 
   ONBOARDING: '/app/onboarding',
   STORY_COMPOSE: '/app/stories/new',

@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
+- A screen for requesting a replacement appeal link when the moderation email never arrived, reachable from the appeal and status screens.
+- A status link handed over once when an appeal is filed from a moderation email, and an anonymous screen that resolves it, so an appellant with no account to sign in to can follow their own appeal.
+- A copy control beside the appeal status link, and a line saying the same link was emailed, so the one credential an appellant leaves with is not something they have to transcribe by hand.
+- A route to the replacement appeal link from the public support form, which is where the sign-in failure copy already sends someone who cannot reach their account.
+- In-product notifications now name comment, story and message removal, which previously showed no notification at all.
 - A Cloudflare Turnstile challenge on sign-in, registration, forgot password, reset password, resend verification and report submission, alongside the public support form that already carried one.
 - Every submit control behind a challenge stays disabled with a visible reason until it is solved, and returns to that state when the token expires after roughly five minutes.
 - A pull request check that rejects any commit whose subject exceeds the 80-character limit, closing the gap that let an over-length subject reach develop while only pull request titles were validated.
@@ -31,6 +37,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- The staff support ticket is now laid out in the titled cards the report detail uses — its state and facts, what the requester wrote, the reply already sent, and the controls each in their own region — instead of one undivided card.
+- Answering a support ticket now names each field and says where its text goes: the reply that reaches the requester and the note that never leaves the panel are labelled as such, on fields visible against the card rather than the same colour as it.
+- The action log opens the action beside the log, with the row it belongs to marked, instead of over a scrim that hid the rows being compared.
+- The escalated queue and my escalations open a report beside the queue, as the report queue and the account list already do, instead of navigating away and discarding the queue's position.
+- The support icon in the admin panel's navigation is now a question mark rather than a checkmark, which read as "done" beside a queue of open tickets.
+- The report detail's status badge now leads its own row above the field grid, matching the account screen's state-then-detail layout instead of sitting inline as one field among several.
 - A refused challenge is now named as its own failure on every form rather than reported as a wrong password or a generic error, so the reader is not sent looking for a mistake that is not there.
 - Any failed submission re-arms the challenge, not only a refused one, because the token is single-use and a retry would otherwise send a spent one.
 - The Turnstile site key now governs the authentication forms and the report dialog as well as the public support form; the Google sign-in callback is deliberately left unchallenged.
@@ -53,6 +65,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- A text area in the panel now shows the focus ring every other control there has; keyboard focus in the support reply, note and escalation fields was previously invisible.
+- A disabled outlined button now reads as disabled in every variant. Only the filled one was styled for it, so "close as rejected" and "escalate" looked clickable while the field they depend on was empty.
+- The panel now reloads once automatically when a route's code chunk fails to load after a new deploy or a dev restart, instead of leaving a dead "something went wrong" page.
+- The report detail's reporter note, resolution note, and reported post/comment text now sit in a raised, bordered block instead of blending into the card's own background.
+- The report queue, escalated queue, my-escalations queue, and report detail screens now use the panel's shared card component the same way the account screens do, instead of a hand-rolled card div.
+- The staff support ticket detail card had no inner padding, so its title, badges, body text and controls sat flush against the card's own border.
+- The in-product appeal form showed its heading and nothing else: the subject field, the body field and the submit control were all conditional on a category selector that appeal mode deliberately does not have, so no appeal could be opened from a warning or a notification.
+- An appeal refused because the decision was already contested, could not be found, or carries no appeal route now says which, instead of a generic failure, and stops offering a control whose every outcome would be the same refusal.
+- The staff queue marks an appeal by the moderation decision it contests rather than by its category, so an appeal opened from a signed-in session is visible as one and an ordinary request labelled with an appeal category is not mistaken for one.
+- The appeal marker in the staff queue reads as an appeal rather than borrowing the word `escalated`, which sat beside a status column showing `open` and read as a contradiction.
+- A moderation notification no longer reports contract drift in development for the actor it is never sent with; the platform takes those actions, so the absence is declared rather than warned about.
 - A hashtag holding a single post now reads "1 post" on the trending rail and the hashtag screen, which both hardcoded the plural; all three surfaces that render the figure now share one helper.
 - A visitor who has never signed in on this browser no longer triggers a session-restore request on every cold load; it could only fail, and it put a failed request in the console on the first screen anyone sees. A stale session marker still triggers the call and is still handled.
 - The commit subject check now fails when it cannot resolve the revision range it was given, instead of reporting that all zero subjects were within the limit and exiting successfully.
@@ -84,11 +107,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The tablet right spacer now matches the left one, so the reading column is centred rather than sitting left of centre.
 - Layout decisions that depend on the viewport width now update when the window is resized within one breakpoint.
 
+### Security
+- Neither the appeal link nor the appeal status link is copied into browser storage any more; both are read from the address only, which is the rule already applied to access tokens and matters more here because an appeal link authorises a write and a status link reads for ninety days.
+
 ### Removed
 - The verification panel in account settings, and the unused service module behind it. Verification is a support category, and the panel was a second door with its own field styling.
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- A Playwright end-to-end project covering the anonymous appeal paths, run with `npm run test:e2e`: the lost-link recovery form submits and reaches its one success state, the challenge is re-armed after a refusal so a retry succeeds, and the status screen renders a known appeal, persists no token and answers every dead link identically.
+- Coverage proving the anonymous status screen renders one identical state for an unknown, an expired and a malformed token, that it writes no token to storage, and that it offers no control that could change anything.
+- Coverage proving the captcha is re-armed after every failed link-recovery submission, and that the confirmation is the same whatever the address turned out to be.
+- Coverage proving the staff console tells an appeal from its audit row rather than from its source or its category, while still gating the decision on the rule the server applies.
+- Coverage for the two new support schemas and for the shared helper that builds the appeal address both in-product entry points use.
 - The challenge token is covered on every schema that carries one, at the boundary the backend enforces.
 - The sign-in form is covered end to end for a wrong password: the challenge is re-armed and the submit control returns to disabled.
 - Unit coverage for the session bootstrap, pinning that each address restores a cookie-backed session rather than clearing it, and that the OAuth callback is left to complete its own exchange.

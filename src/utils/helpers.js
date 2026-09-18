@@ -213,18 +213,26 @@ const ABSENT_USER_SUMMARY = Object.freeze({
  * `userId`, or `userAvatarUrl` on any of those responses, so reading those
  * names yields undefined and, for `author`, hands the raw object to whatever
  * consumes it.
+ * Pass `optional` where the backend legitimately sends no summary, so the drift
+ * warning stays a signal. A moderation notification is the case that matters: the
+ * platform took the action, not a person, so `actor` is null by design and
+ * reporting it as drift would train a reader to ignore the warning that exists to
+ * catch a contract actually moving.
  * @param {object} source the post, comment, or notification
  * @param {'author'|'actor'} [key] which embedded summary to read
+ * @param {{optional?: boolean}} [options] `optional` when an absent summary is expected
  * @returns {{id: ?string, username: ?string, displayName: ?string, avatarUrl: ?string, isVerified: boolean}}
  */
-export function getUserSummary(source, key = 'author') {
+export function getUserSummary(source, key = 'author', { optional = false } = {}) {
   const summary = source?.[key];
 
   if (summary && typeof summary === 'object') {
     return summary;
   }
 
-  warnOnShapeDrift(source, key, 'user summary');
+  if (!optional) {
+    warnOnShapeDrift(source, key, 'user summary');
+  }
   return ABSENT_USER_SUMMARY;
 }
 

@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ROUTES } from '@/config/constants';
 import { v } from '@/config/tokens';
 import { useCreatePublicTicket, usePublicSupportCategories } from '../hooks/useSupport';
 import { publicTicketSchema } from '../utils/supportSchemas';
@@ -214,6 +216,29 @@ export function PublicSupportFormScreen() {
           </div>
         ) : null}
       </form>
+
+      {/* The sign-in failure copy links to this screen, so this is where someone
+          who lost a moderation email arrives. They are not looking for a general
+          support request, and the form above cannot open an appeal, so the route
+          to a replacement link belongs here rather than only on the dead-link
+          screens they never reached. */}
+      <div
+        style={{
+          borderTop: `1px solid ${v.border}`,
+          marginTop: 28,
+          paddingTop: 20,
+          fontFamily: v.fontBody,
+          fontSize: 14,
+          color: v.ink2,
+          lineHeight: 1.6,
+        }}
+      >
+        Were you emailed about a decision on your account and cannot find the message?{' '}
+        <Link to={ROUTES.SUPPORT_APPEAL_RESEND} style={{ color: v.accentText }}>
+          Request a replacement link
+        </Link>
+        .
+      </div>
     </SupportPage>
   );
 }

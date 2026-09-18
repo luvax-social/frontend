@@ -5,17 +5,19 @@ import { v } from '@/config/tokens';
 import { ROUTES } from '@/config/constants';
 import { isAdminRole } from '@/config/roles';
 import { useAuthStore } from '@/store/useAuthStore';
+import { LxIcon } from '@/components/ui/lx-icon';
 import { LxBtn } from '@/features/luvax/components/primitives';
 import { toast } from '@/features/luvax/components/Toast';
 
 import { PageHeader, PanelCard } from '../components/PanelPage';
+import { Field, FieldGrid, NoteBlock } from '../components/DetailPrimitives';
 import { AdminMediaGrid } from '../components/AdminMediaViewer';
 import { StatusBadge } from '../components/StatusBadge';
 import { LocalTime } from '../components/LocalTime';
 import { ReporterName } from '../components/ReporterName';
 import { ReasonConfirmDialog } from '../components/ReasonConfirmDialog';
 import { AccountDisciplinePanel } from '../components/AccountDisciplinePanel';
-import { FailedState } from '../components/ListStates';
+import { FailedState, LoadingState } from '../components/ListStates';
 import { NotAvailable } from '../components/NotAvailable';
 import { useReportDetail, useReportTarget } from '../hooks/useReportDetail';
 import { useReportActions } from '../hooks/useReportActions';
@@ -28,23 +30,6 @@ import {
   restoreConfirmDescription,
   restoreSuccessMessage,
 } from '../lib/contentModeration';
-
-const Field = ({ label, children }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-    <span
-      style={{
-        fontFamily: v.fontMono,
-        fontSize: 11,
-        textTransform: 'uppercase',
-        letterSpacing: '0.06em',
-        color: v.ink2,
-      }}
-    >
-      {label}
-    </span>
-    <span style={{ fontFamily: v.fontBody, fontSize: 14, color: v.ink }}>{children}</span>
-  </div>
-);
 
 function TargetRegion({ target, isLoading, isError }) {
   if (isLoading) {
@@ -98,23 +83,7 @@ function TargetRegion({ target, isLoading, isError }) {
       </Field>
 
       {/* A user target has no text; render no empty content block where text would be. */}
-      {!isUser && hasText ? (
-        <div
-          style={{
-            background: v.surfaceSunken,
-            border: `1px solid ${v.border}`,
-            borderRadius: 10,
-            padding: '12px 14px',
-            fontFamily: v.fontBody,
-            fontSize: 14,
-            color: v.ink,
-            whiteSpace: 'pre-wrap',
-            lineHeight: 1.5,
-          }}
-        >
-          {target.text}
-        </div>
-      ) : null}
+      {!isUser && hasText ? <NoteBlock label="reported text">{target.text}</NoteBlock> : null}
 
       <AdminMediaGrid urls={media} label="reported media" />
     </div>
@@ -177,9 +146,9 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
     return (
       <div>
         <PageHeader title="report" />
-        <div style={{ color: v.ink2, fontFamily: v.fontBody, fontSize: 14, padding: 24 }}>
-          loading report...
-        </div>
+        <PanelCard>
+          <LoadingState rows={3} />
+        </PanelCard>
       </div>
     );
   }
@@ -198,7 +167,9 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
     return (
       <div>
         <PageHeader title="report" />
-        <FailedState message={error?.message} onRetry={refetch} />
+        <PanelCard>
+          <FailedState message={error?.message} onRetry={refetch} />
+        </PanelCard>
       </div>
     );
   }
@@ -246,12 +217,16 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
             <Link
               to={ROUTES.ADMIN_REPORTS}
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
                 fontFamily: v.fontBody,
-                fontSize: 14,
-                color: v.accentText,
+                fontSize: 13,
+                color: v.ink2,
                 textDecoration: 'none',
               }}
             >
+              <LxIcon name="chevronLeft" size={14} color={v.ink2} />
               back to reports
             </Link>
           )
@@ -259,47 +234,49 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
       />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 0 }}>
-        <PanelCard title="report">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-              gap: 16,
-            }}
-          >
-            <Field label="reason">{reasonLabel(report.reportReason)}</Field>
-            <Field label="status">
+        <PanelCard title="details">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Status is the one field on this card shaped like a badge
+                everywhere else in the panel, so it leads here too — the same
+                hierarchy the account screen uses: state up top as a pill,
+                supporting facts below in the grid. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <StatusBadge status={report.status} />
-            </Field>
-            <Field label="type">{report.reportType}</Field>
-            <Field label="reporter">
-              <ReporterName userId={report.reporterId} prefix="@" />
-            </Field>
-            <Field label="reported">
-              <LocalTime value={report.createdAt} />
-            </Field>
-            {report.reviewedAt ? (
-              <Field label="reviewed">
-                <LocalTime value={report.reviewedAt} />
+              <span
+                style={{
+                  fontFamily: v.fontMono,
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: v.ink2,
+                }}
+              >
+                {report.reportType}
+              </span>
+            </div>
+
+            <FieldGrid>
+              <Field label="reason">{reasonLabel(report.reportReason)}</Field>
+              <Field label="reporter">
+                <ReporterName userId={report.reporterId} prefix="@" />
               </Field>
+              <Field label="reported">
+                <LocalTime value={report.createdAt} />
+              </Field>
+              {report.reviewedAt ? (
+                <Field label="reviewed">
+                  <LocalTime value={report.reviewedAt} />
+                </Field>
+              ) : null}
+            </FieldGrid>
+
+            {report.description ? (
+              <NoteBlock label="reporter note">{report.description}</NoteBlock>
+            ) : null}
+            {report.resolutionNote ? (
+              <NoteBlock label="resolution note">{report.resolutionNote}</NoteBlock>
             ) : null}
           </div>
-          {report.description ? (
-            <div style={{ marginTop: 16 }}>
-              <Field label="reporter note">
-                <span style={{ whiteSpace: 'pre-wrap', color: v.ink2 }}>{report.description}</span>
-              </Field>
-            </div>
-          ) : null}
-          {report.resolutionNote ? (
-            <div style={{ marginTop: 16 }}>
-              <Field label="resolution note">
-                <span style={{ whiteSpace: 'pre-wrap', color: v.ink2 }}>
-                  {report.resolutionNote}
-                </span>
-              </Field>
-            </div>
-          ) : null}
         </PanelCard>
 
         <PanelCard title="reported content">

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { ROLES } from '@/config/roles';
 import {
   isAppealTicket,
+  requiresAdminDecision,
   isTerminalTicket,
   ticketCapabilities,
 } from '@/features/admin/lib/supportTicketSchema';
@@ -86,8 +87,11 @@ describe('a ticket claimed by the viewer', () => {
 });
 
 describe('an appeal', () => {
+  // A real appeal carries the audit row it contests. That is what marks it as an
+  // appeal; the category is what decides who may answer it.
   const appeal = ticket({
     category: 'APPEAL_BAN',
+    adminActionId: '8f14e45f-ceea-467a-9e7c-6f1a2b3c4d5e',
     assignedTo: ME,
     status: 'IN_PROGRESS',
   });
@@ -111,18 +115,29 @@ describe('an appeal', () => {
     expect(caps.blockedReason).toBeNull();
   });
 
-  it('recognises all four appeal categories', () => {
+  // Who may decide is a category question, and mirrors the server: it evaluates
+  // `category.isAppeal()` and refuses a moderator with
+  // SUPPORT_APPEAL_REQUIRES_ADMIN.
+  it('reserves all four appeal categories to an administrator', () => {
     for (const category of [
       'APPEAL_BAN',
       'APPEAL_SUSPENSION',
       'APPEAL_WARNING_STRIKE',
       'APPEAL_CONTENT_REMOVAL',
     ]) {
-      expect(isAppealTicket({ category })).toBe(true);
+      expect(requiresAdminDecision({ category })).toBe(true);
     }
     // Verification is deliberately not an appeal: that is what admits a
     // moderator to the verification queue.
-    expect(isAppealTicket({ category: 'VERIFICATION_REQUEST' })).toBe(false);
+    expect(requiresAdminDecision({ category: 'VERIFICATION_REQUEST' })).toBe(false);
+  });
+
+  // What a ticket *is* comes from the audit row instead. The authenticated
+  // ticket form takes its category from the client, so a category on its own
+  // would let anyone label an ordinary request as an appeal.
+  it('marks a ticket as an appeal from its audit row rather than its category', () => {
+    expect(isAppealTicket(appeal)).toBe(true);
+    expect(isAppealTicket({ category: 'APPEAL_BAN', adminActionId: null })).toBe(false);
   });
 });
 

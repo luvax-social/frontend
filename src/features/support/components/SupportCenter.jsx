@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { v } from '@/config/tokens';
 import { routeTo } from '@/config/constants';
 import {
+  useCreateInProductAppeal,
   useCreateTicket,
   useCreateVerificationRequest,
   useOwnTickets,
@@ -15,10 +17,17 @@ import {
   EVIDENCE_FIELDS,
   MIN_EVIDENCE_FIELDS,
   countEvidence,
+  inProductAppealSchema,
   ticketSchema,
   verificationSchema,
 } from '../utils/supportSchemas';
-import { describeSupportError, isAlreadyOpen } from '../utils/supportErrors';
+import {
+  describeSupportError,
+  isAlreadyOpen,
+  isAppealActionNotFound,
+  isAppealAlreadyFiled,
+  isAppealNotAppealable,
+} from '../utils/supportErrors';
 import {
   VERIFICATION_CATEGORY,
   findBlockingTicket,
@@ -75,6 +84,16 @@ export function SupportCenter() {
   const verificationStateQuery = useVerificationState();
   const createTicket = useCreateTicket();
   const createVerification = useCreateVerificationRequest();
+  const createAppeal = useCreateInProductAppeal();
+
+  // An appeal is opened against one decision, and the address carries which.
+  // Reached from a warning on the settings screen and from a content-removal
+  // notification, both of which know the audit row and neither of which has
+  // room for a form. The identifier is not a credential: the server re-reads
+  // the audit row and compares its target against the caller.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const appealActionId = searchParams.get('appeal') ?? '';
+  const isAppeal = Boolean(appealActionId);
 
   const [category, setCategory] = useState('');
   const [values, setValues] = useState({ subject: '', body: '' });
@@ -93,8 +112,24 @@ export function SupportCenter() {
   const filledEvidence = countEvidence(verification);
   const evidenceRemaining = Math.max(0, MIN_EVIDENCE_FIELDS - filledEvidence);
 
-  const submitting = createTicket.isPending || createVerification.isPending;
-  const failure = createTicket.error || createVerification.error;
+  const submitting =
+    createTicket.isPending || createVerification.isPending || createAppeal.isPending;
+  const failure = createTicket.error || createVerification.error || createAppeal.error;
+
+  // Whether this decision can still be appealed at all, answered by the server
+  // rather than guessed here. The client cannot know whether an appeal already
+  // exists - the warning and the notification both carry the audit row and
+  // nothing about tickets opened against it - so the form is offered, and the
+  // refusal is what closes it. All three codes are terminal for this decision:
+  // a second appeal, an unknown or foreign audit row, and an action type with no
+  // appeal route are none of them retryable, so leaving the control live would
+  // only invite the same refusal again.
+  const appealClosed =
+    isAppeal &&
+    Boolean(failure) &&
+    (isAppealAlreadyFiled(failure) ||
+      isAppealActionNotFound(failure) ||
+      isAppealNotAppealable(failure));
 
   const resetForm = () => {
     setCategory('');
@@ -105,6 +140,34 @@ export function SupportCenter() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+
+    if (isAppeal) {
+      // The category is not sent and is not a field. It follows from the action
+      // the audit row records, and is derived server-side for the same reason
+      // the signed-link path takes it from the token: a client-supplied
+      // category would let somebody appeal something they were never entitled
+      // to appeal.
+      const parsed = inProductAppealSchema.safeParse({ ...values, adminActionId: appealActionId });
+      if (!parsed.success) {
+        const next = {};
+        for (const issue of parsed.error.issues) {
+          next[issue.path[0]] = issue.message;
+        }
+        setFieldErrors(next);
+        return;
+      }
+      setFieldErrors({});
+      createAppeal.mutate(parsed.data, {
+        onSuccess: () => {
+          resetForm();
+          // Drops ?appeal= so a reload does not re-offer a form for a decision
+          // that has now been appealed, which the server would refuse anyway.
+          setSearchParams({}, { replace: true });
+          ticketsQuery.refetch();
+        },
+      });
+      return;
+    }
 
     if (isVerification) {
       const parsed = verificationSchema.safeParse(verification);
@@ -199,6 +262,8 @@ export function SupportCenter() {
             </>
           ) : (
             <TicketForm
+              isAppeal={isAppeal}
+              appealClosed={appealClosed}
               category={category}
               setCategory={(next) => {
                 setCategory(next);
@@ -354,6 +419,8 @@ function PastTickets({ tickets, blockingId, pendingVerificationId }) {
 }
 
 function TicketForm({
+  isAppeal,
+  appealClosed,
   category,
   setCategory,
   values,
@@ -377,6 +444,10 @@ function TicketForm({
 }) {
   // Verification has its own slot, so it is offered only when that slot is free.
   const verificationBlocked = Boolean(pendingVerification) || alreadyVerified;
+  // Appeal mode has no category selector, because the category is derived from
+  // the decision server-side. The write fields keyed off `category` alone, which
+  // left the appeal form showing its heading and nothing to type into or submit.
+  const canWrite = (isAppeal || Boolean(category)) && !appealClosed;
   const selectable = categories.filter(
     (row) => row.categoryKey !== VERIFICATION_KEY || !verificationBlocked
   );
@@ -389,32 +460,53 @@ function TicketForm({
         </Notice>
       ) : null}
 
-      <Field label="What is this about" htmlFor="support-category" error={fieldErrors.category}>
-        <select
-          id="support-category"
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-          disabled={categoriesLoading}
-          aria-invalid={Boolean(fieldErrors.category)}
+      {isAppeal ? (
+        /* No category selector. The category follows from the decision being
+           appealed and is derived server-side, so offering a choice here would
+           imply the submitter has one. */
+        <div
+          style={{
+            background: v.surface,
+            border: `1px solid ${v.border}`,
+            borderRadius: 12,
+            padding: '14px 16px',
+            marginBottom: 20,
+          }}
         >
-          <option value="">Choose one</option>
-          {selectable.map((row) => (
-            <option key={row.categoryKey} value={row.categoryKey}>
-              {row.displayName}
-            </option>
-          ))}
-        </select>
-        {categoriesError ? (
-          <div
-            role="alert"
-            style={{ fontFamily: v.fontBody, fontSize: 12, color: v.errorText, marginTop: 5 }}
-          >
-            We could not load the list of topics. Reload the page.
+          <Eyebrow>What you are appealing</Eyebrow>
+          <div style={{ fontFamily: v.fontBody, fontSize: 14, color: v.ink2, lineHeight: 1.5 }}>
+            The decision you opened this from. We have matched it already, so you do not need to
+            describe which one it was. One appeal for each decision.
           </div>
-        ) : null}
-      </Field>
+        </div>
+      ) : (
+        <Field label="What is this about" htmlFor="support-category" error={fieldErrors.category}>
+          <select
+            id="support-category"
+            value={category}
+            onChange={(event) => setCategory(event.target.value)}
+            disabled={categoriesLoading}
+            aria-invalid={Boolean(fieldErrors.category)}
+          >
+            <option value="">Choose one</option>
+            {selectable.map((row) => (
+              <option key={row.categoryKey} value={row.categoryKey}>
+                {row.displayName}
+              </option>
+            ))}
+          </select>
+          {categoriesError ? (
+            <div
+              role="alert"
+              style={{ fontFamily: v.fontBody, fontSize: 12, color: v.errorText, marginTop: 5 }}
+            >
+              We could not load the list of topics. Reload the page.
+            </div>
+          ) : null}
+        </Field>
+      )}
 
-      {category ? (
+      {!isAppeal && category ? (
         <p
           style={{
             fontFamily: v.fontBody,
@@ -440,7 +532,7 @@ function TicketForm({
         />
       ) : null}
 
-      {category && !isVerification ? (
+      {canWrite && !isVerification ? (
         <>
           <Field label="Summary" htmlFor="support-subject" error={fieldErrors.subject}>
             <input
@@ -468,9 +560,9 @@ function TicketForm({
         </>
       ) : null}
 
-      {category ? (
+      {canWrite ? (
         <PrimaryButton disabled={submitting || (isVerification && evidenceRemaining > 0)}>
-          {submitting ? 'sending' : 'Send request'}
+          {submitting ? 'sending' : isAppeal ? 'Send appeal' : 'Send request'}
         </PrimaryButton>
       ) : null}
     </form>

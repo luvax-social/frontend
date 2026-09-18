@@ -1,15 +1,22 @@
 import { useState } from 'react';
+
 import { v } from '@/config/tokens';
 import { useAuthStore } from '@/store/useAuthStore';
+import { LxBtn } from '@/features/luvax/components/primitives';
+
+import { PageHeader, PanelCard } from '../components/PanelPage';
+import { Field, FieldGrid, NoteBlock, detailLabel } from '../components/DetailPrimitives';
 import { LocalTime } from '../components/LocalTime';
 import { StatusBadge } from '../components/StatusBadge';
+import { ReporterName } from '../components/ReporterName';
+import { FailedState, LoadingState } from '../components/ListStates';
 import {
   useSupportTicket,
   useSupportTicketActions,
   useVerificationRequest,
 } from '../hooks/useSupportQueue';
 import * as styles from './supportDetailStyles';
-import { blockedReasonLabel, ticketCapabilities } from '../lib/supportTicketSchema';
+import { blockedReasonLabel, isAppealTicket, ticketCapabilities } from '../lib/supportTicketSchema';
 
 const VERIFICATION_CATEGORY = 'VERIFICATION_REQUEST';
 
@@ -27,9 +34,38 @@ const EVIDENCE_ROWS = [
   ['evidenceNote', 'note to the moderator'],
 ];
 
+const lower = (value) => (value ?? '').toLowerCase().replace(/_/g, ' ');
+
+/**
+ * One labelled control in the actions card.
+ *
+ * The hint sits under the label rather than inside the field as placeholder
+ * text: a placeholder disappears the moment someone starts typing, which is
+ * exactly when "this one reaches the requester, this one never does" matters
+ * most.
+ */
+function FormField({ id, label, hint, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label htmlFor={id} style={detailLabel}>
+        {label}
+      </label>
+      {hint ? (
+        <span style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink2 }}>{hint}</span>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
 /**
  * One support ticket, and whatever this reviewer is actually allowed to do with
  * it.
+ *
+ * Laid out as the report detail is — a titled card per region, facts above
+ * written text, every control in one actions card at the foot — because a
+ * reviewer moves between the two queues all day and the two screens answering
+ * the same questions in different shapes is a cost paid on every switch.
  *
  * The controls mirror the server's rules rather than merely hiding what looks
  * inapplicable. Two refusals are only knowable from the server and are
@@ -55,15 +91,22 @@ export function SupportTicketDetailScreen({ ticketId, onClaimed }) {
   const [announcement, setAnnouncement] = useState('');
 
   if (isLoading) {
-    return <div className="lx-admin-panel-card">loading the ticket.</div>;
+    return (
+      <div>
+        <PageHeader title="ticket" />
+        <PanelCard>
+          <LoadingState rows={3} />
+        </PanelCard>
+      </div>
+    );
   }
   if (isError || !ticket) {
     return (
-      <div className="lx-admin-panel-card">
-        <p>that ticket could not be loaded.</p>
-        <button type="button" className="lx-admin-control" onClick={() => refetch()}>
-          try again
-        </button>
+      <div>
+        <PageHeader title="ticket" />
+        <PanelCard>
+          <FailedState message="that ticket could not be loaded." onRetry={() => refetch()} />
+        </PanelCard>
       </div>
     );
   }
@@ -131,33 +174,11 @@ export function SupportTicketDetailScreen({ ticketId, onClaimed }) {
   // more specific of the two, so it is the one that survives.
   const showAppealNotice = caps.isAppeal && caps.blockedReason !== 'appeal-requires-admin';
 
+  const anyControl = caps.canClaim || caps.canRespond || caps.canEscalate;
+
   return (
-    <div className="lx-admin-panel-card">
-      <header style={{ marginBottom: 18 }}>
-        <h2
-          tabIndex={-1}
-          style={{
-            fontFamily: v.fontDisplay,
-            fontSize: 20,
-            lineHeight: 1.25,
-            letterSpacing: '-0.02em',
-            color: v.ink,
-            margin: 0,
-            fontWeight: 600,
-            outline: 'none',
-          }}
-        >
-          {ticket.subject}
-        </h2>
-        <div style={styles.metaRow}>
-          <StatusBadge status={(ticket.status ?? '').toLowerCase()} />
-          <span>{(ticket.category ?? '').toLowerCase().replace(/_/g, ' ')}</span>
-          <span aria-hidden="true">&middot;</span>
-          <span>{(ticket.source ?? '').toLowerCase().replace(/_/g, ' ')}</span>
-          <span aria-hidden="true">&middot;</span>
-          <LocalTime value={ticket.createdAt} />
-        </div>
-      </header>
+    <div>
+      <PageHeader title={ticket.subject} />
 
       {/*
         The console announced nothing at all: a claim, a decision and a refresh
@@ -201,235 +222,277 @@ export function SupportTicketDetailScreen({ ticketId, onClaimed }) {
         </p>
       ) : null}
 
-      <section style={styles.section}>
-        <h3 style={styles.sectionLabel}>what they wrote</h3>
-        <p style={styles.bodyText}>{ticket.body}</p>
-        {ticket.contactEmail ? (
-          <p style={{ ...styles.mutedText, fontSize: 12, marginTop: 8 }}>
-            reply address: {ticket.contactEmail}
-          </p>
-        ) : null}
-      </section>
+      <PanelCard title="details">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Status leads, as it does on the report detail: it is the one fact
+              here shaped like a badge everywhere else in the panel. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <StatusBadge status={lower(ticket.status)} />
+            {isAppealTicket(ticket) ? <StatusBadge status="appeal" size="sm" /> : null}
+            <span
+              style={{
+                fontFamily: v.fontMono,
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: v.ink2,
+              }}
+            >
+              {lower(ticket.category)}
+            </span>
+          </div>
+
+          <FieldGrid>
+            <Field label="opened">
+              <LocalTime value={ticket.createdAt} />
+            </Field>
+            <Field label="arrived as">{lower(ticket.source)}</Field>
+            {ticket.assignedTo ? (
+              <Field label="claimed by">
+                <ReporterName userId={ticket.assignedTo} prefix="@" />
+              </Field>
+            ) : null}
+            {ticket.contactEmail ? (
+              <Field label="reply address">{ticket.contactEmail}</Field>
+            ) : null}
+          </FieldGrid>
+        </div>
+      </PanelCard>
+
+      <PanelCard title="what they wrote">
+        <NoteBlock>{ticket.body}</NoteBlock>
+      </PanelCard>
 
       {isVerification && verificationRequest ? (
-        <section style={styles.section}>
-          <h3 style={styles.sectionLabel}>the claim</h3>
-          <p style={styles.mutedText}>
-            {verificationRequest.claimedName} in{' '}
-            {(verificationRequest.categoryKey ?? '').replace(/_/g, ' ')}
-          </p>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '12px 0 0' }}>
+        <PanelCard title="the claim">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <FieldGrid>
+              <Field label="claimed name">{verificationRequest.claimedName}</Field>
+              <Field label="category">{lower(verificationRequest.categoryKey)}</Field>
+            </FieldGrid>
             {EVIDENCE_ROWS.map(([field, label]) =>
               verificationRequest[field] ? (
-                <li key={field} style={{ marginBottom: 10 }}>
-                  <div style={{ ...styles.sectionLabel, fontSize: 10, margin: '0 0 2px' }}>
-                    {label}
-                  </div>
-                  <div style={{ ...styles.bodyText, fontSize: 13 }}>
-                    {verificationRequest[field]}
-                  </div>
-                </li>
+                <NoteBlock key={field} label={label}>
+                  {verificationRequest[field]}
+                </NoteBlock>
               ) : null
             )}
-          </ul>
-        </section>
+          </div>
+        </PanelCard>
       ) : null}
 
       {ticket.staffResponse ? (
-        <section style={styles.section}>
-          <h3 style={styles.sectionLabel}>the reply that was sent</h3>
-          <p style={styles.bodyText}>{ticket.staffResponse}</p>
-        </section>
+        <PanelCard title="the reply that was sent">
+          <NoteBlock>{ticket.staffResponse}</NoteBlock>
+        </PanelCard>
       ) : null}
 
       {ticket.internalNote ? (
-        <section style={styles.section}>
-          {/* Staff-only. Absent from the owner-facing DTO and from the mail
-              metadata map, so it cannot reach the requester from anywhere. */}
-          <h3 style={styles.sectionLabel}>internal note (never sent)</h3>
-          <p style={{ ...styles.bodyText, color: v.ink2 }}>{ticket.internalNote}</p>
-        </section>
+        // Staff-only. Absent from the owner-facing DTO and from the mail
+        // metadata map, so it cannot reach the requester from anywhere.
+        <PanelCard title="internal note (never sent)">
+          <NoteBlock tone="muted">{ticket.internalNote}</NoteBlock>
+        </PanelCard>
       ) : null}
 
-      {blocked ? (
-        <p style={styles.notice()} role="status">
-          {blocked}
-        </p>
-      ) : null}
+      {anyControl || blocked ? (
+        <PanelCard title="actions">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {blocked ? (
+              <p style={{ ...styles.notice(), margin: 0 }} role="status">
+                {blocked}
+              </p>
+            ) : null}
 
-      {caps.canClaim ? (
-        <button
-          type="button"
-          className="lx-admin-control"
-          disabled={actions.claim.isPending}
-          // Claiming moves the ticket to in_progress, which is a different
-          // status than the queue was almost certainly filtered by. The parent
-          // follows it rather than letting it vanish from under the reviewer
-          // who claimed it precisely in order to decide it.
-          onClick={() =>
-            runAction(
-              actions.claim,
-              undefined,
-              () => onClaimed?.(),
-              'ticket claimed. you can now reply, reject or escalate it.'
-            )
-          }
-        >
-          {actions.claim.isPending ? 'claiming' : 'claim to review'}
-        </button>
-      ) : null}
-
-      {caps.canRespond ? (
-        <section style={{ ...styles.section, marginTop: 22 }}>
-          <h3 style={styles.sectionLabel}>
-            {isVerification ? 'decide this request' : 'answer this ticket'}
-          </h3>
-          <label
-            style={{ ...styles.sectionLabel, display: 'block' }}
-            htmlFor="support-staff-response"
-          >
-            {isVerification ? 'reason, which reaches the requester' : 'your reply'}
-          </label>
-          <textarea
-            id="support-staff-response"
-            style={styles.textarea()}
-            rows={5}
-            value={staffResponse}
-            onChange={(event) => setStaffResponse(event.target.value)}
-          />
-
-          <label
-            style={{ ...styles.sectionLabel, display: 'block' }}
-            htmlFor="support-internal-note"
-          >
-            internal note, never sent
-          </label>
-          <textarea
-            id="support-internal-note"
-            style={styles.textarea()}
-            rows={3}
-            value={internalNote}
-            onChange={(event) => setInternalNote(event.target.value)}
-          />
-
-          <div style={styles.actionRow}>
-            {isVerification ? (
-              <>
-                <button
-                  type="button"
-                  className="lx-admin-control"
-                  disabled={respondDisabled}
+            {caps.canClaim ? (
+              <div>
+                <LxBtn
+                  variant="primary"
+                  size="sm"
+                  disabled={actions.claim.isPending}
+                  // Claiming moves the ticket to in_progress, which is a
+                  // different status than the queue was almost certainly
+                  // filtered by. The parent follows it rather than letting it
+                  // vanish from under the reviewer who claimed it precisely in
+                  // order to decide it.
                   onClick={() =>
                     runAction(
-                      actions.approveVerification,
-                      {
-                        reason: staffResponse,
-                        internalNote: internalNote || undefined,
-                      },
+                      actions.claim,
                       undefined,
-                      'verification approved. the ticket is closed and the requester has been told.'
+                      () => onClaimed?.(),
+                      'ticket claimed. you can now reply, reject or escalate it.'
                     )
                   }
                 >
-                  approve
-                </button>
-                <button
-                  type="button"
-                  className="lx-admin-control"
-                  disabled={respondDisabled}
-                  onClick={() =>
-                    runAction(
-                      actions.rejectVerification,
-                      {
-                        reason: staffResponse,
-                        internalNote: internalNote || undefined,
-                      },
-                      undefined,
-                      'verification rejected. the ticket is closed and the requester has been told.'
-                    )
+                  {actions.claim.isPending ? 'claiming' : 'claim to review'}
+                </LxBtn>
+              </div>
+            ) : null}
+
+            {caps.canRespond ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <FormField
+                  id="support-staff-response"
+                  label={isVerification ? 'reason' : 'your reply'}
+                  hint={
+                    isVerification
+                      ? 'this reaches the requester with the decision.'
+                      : 'this is sent to the requester and closes the ticket.'
                   }
                 >
-                  reject
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="lx-admin-control"
-                  disabled={respondDisabled}
-                  onClick={() =>
-                    runAction(
-                      actions.respond,
-                      {
-                        staffResponse,
-                        internalNote: internalNote || undefined,
-                        reject: false,
-                      },
-                      undefined,
-                      'reply sent. the ticket is closed.'
-                    )
-                  }
+                  <textarea
+                    id="support-staff-response"
+                    style={styles.textarea()}
+                    rows={6}
+                    value={staffResponse}
+                    onChange={(event) => setStaffResponse(event.target.value)}
+                  />
+                </FormField>
+
+                <FormField
+                  id="support-internal-note"
+                  label="internal note"
+                  hint="kept on the ticket for other staff. never sent."
                 >
-                  answer and close
-                </button>
-                <button
-                  type="button"
-                  className="lx-admin-control"
-                  disabled={respondDisabled}
-                  onClick={() =>
-                    runAction(
-                      actions.respond,
-                      {
-                        staffResponse,
-                        internalNote: internalNote || undefined,
-                        reject: true,
-                      },
-                      undefined,
-                      'ticket closed as declined. the requester has been told.'
-                    )
-                  }
+                  <textarea
+                    id="support-internal-note"
+                    style={styles.textarea()}
+                    rows={3}
+                    value={internalNote}
+                    onChange={(event) => setInternalNote(event.target.value)}
+                  />
+                </FormField>
+
+                <div style={styles.actionRow}>
+                  {isVerification ? (
+                    <>
+                      <LxBtn
+                        variant="primary"
+                        size="sm"
+                        disabled={respondDisabled}
+                        onClick={() =>
+                          runAction(
+                            actions.approveVerification,
+                            {
+                              reason: staffResponse,
+                              internalNote: internalNote || undefined,
+                            },
+                            undefined,
+                            'verification approved. the ticket is closed and the requester has been told.'
+                          )
+                        }
+                      >
+                        approve
+                      </LxBtn>
+                      <LxBtn
+                        variant="ghost"
+                        size="sm"
+                        disabled={respondDisabled}
+                        onClick={() =>
+                          runAction(
+                            actions.rejectVerification,
+                            {
+                              reason: staffResponse,
+                              internalNote: internalNote || undefined,
+                            },
+                            undefined,
+                            'verification rejected. the ticket is closed and the requester has been told.'
+                          )
+                        }
+                      >
+                        reject
+                      </LxBtn>
+                    </>
+                  ) : (
+                    <>
+                      <LxBtn
+                        variant="primary"
+                        size="sm"
+                        disabled={respondDisabled}
+                        onClick={() =>
+                          runAction(
+                            actions.respond,
+                            {
+                              staffResponse,
+                              internalNote: internalNote || undefined,
+                              reject: false,
+                            },
+                            undefined,
+                            'reply sent. the ticket is closed.'
+                          )
+                        }
+                      >
+                        answer and close
+                      </LxBtn>
+                      <LxBtn
+                        variant="ghost"
+                        size="sm"
+                        disabled={respondDisabled}
+                        onClick={() =>
+                          runAction(
+                            actions.respond,
+                            {
+                              staffResponse,
+                              internalNote: internalNote || undefined,
+                              reject: true,
+                            },
+                            undefined,
+                            'ticket closed as declined. the requester has been told.'
+                          )
+                        }
+                      >
+                        close as rejected
+                      </LxBtn>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {caps.canEscalate ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  borderTop: caps.canRespond ? `1px solid ${v.borderSubtle}` : 'none',
+                  paddingTop: caps.canRespond ? 18 : 0,
+                }}
+              >
+                <FormField
+                  id="support-escalation-reason"
+                  label="escalate"
+                  hint="say why this needs an administrator. the ticket leaves your queue."
                 >
-                  close as rejected
-                </button>
-              </>
-            )}
+                  <textarea
+                    id="support-escalation-reason"
+                    style={styles.textarea()}
+                    rows={3}
+                    value={escalationReason}
+                    onChange={(event) => setEscalationReason(event.target.value)}
+                  />
+                </FormField>
+                <div style={styles.actionRow}>
+                  <LxBtn
+                    variant="secondary"
+                    size="sm"
+                    disabled={!escalationReason.trim() || actions.escalate.isPending}
+                    onClick={() =>
+                      runAction(
+                        actions.escalate,
+                        { reason: escalationReason },
+                        undefined,
+                        'ticket escalated to an administrator.'
+                      )
+                    }
+                  >
+                    {actions.escalate.isPending ? 'escalating' : 'escalate'}
+                  </LxBtn>
+                </div>
+              </div>
+            ) : null}
           </div>
-        </section>
-      ) : null}
-
-      {caps.canEscalate ? (
-        <section style={{ ...styles.section, marginTop: 22 }}>
-          <label
-            style={{ ...styles.sectionLabel, display: 'block' }}
-            htmlFor="support-escalation-reason"
-          >
-            escalate: why this needs an administrator
-          </label>
-          <textarea
-            id="support-escalation-reason"
-            style={styles.textarea()}
-            rows={3}
-            value={escalationReason}
-            onChange={(event) => setEscalationReason(event.target.value)}
-          />
-          <button
-            type="button"
-            className="lx-admin-control"
-            disabled={!escalationReason.trim() || actions.escalate.isPending}
-            onClick={() =>
-              runAction(
-                actions.escalate,
-                { reason: escalationReason },
-                undefined,
-                'ticket escalated to an administrator.'
-              )
-            }
-            style={{ marginTop: 12 }}
-          >
-            {actions.escalate.isPending ? 'escalating' : 'escalate'}
-          </button>
-        </section>
+        </PanelCard>
       ) : null}
     </div>
   );

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { isAdminRole } from '@/config/roles';
 import { useAuthStore } from '@/store/useAuthStore';
 
-import { PageHeader } from '../components/PanelPage';
+import { PageHeader, PanelCard } from '../components/PanelPage';
 import { FilterBar } from '../components/FilterBar';
 import { RecordTable } from '../components/RecordTable';
 import { LoadMore } from '../components/LoadMore';
@@ -105,7 +105,7 @@ export function ReportQueueScreen() {
     <div>
       <PageHeader title="reports" />
 
-      <div className="lx-admin-panel-card">
+      <PanelCard padded={false}>
         <FilterBar groups={groups} onChange={setFilter} onClear={clearFilters} isDirty={isDirty} />
         <RecordTable
           columns={columns}
@@ -128,7 +128,7 @@ export function ReportQueueScreen() {
             />
           }
         />
-      </div>
+      </PanelCard>
     </div>
   );
 

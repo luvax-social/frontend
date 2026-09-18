@@ -87,6 +87,14 @@ in descending order of strength:
 
 The header reads `stories · people you may know` in the mono eyebrow style.
 
+**Open deviation — the scrim.** The author name sits on the tile's cover image and needs a scrim
+behind it to hold 4.5:1 contrast. The mockup draws that scrim as a bottom-to-top
+`linear-gradient`, and `DESIGN.md` §4 forbids decorative gradients outright. This one is
+functional rather than decorative — it exists only for legibility — but it is still a gradient and
+needs an explicit ruling. The alternative is a flat `rgba(26,24,22,0.55)` bar behind the name row,
+which obeys the rule literally at some cost to how the tile reads. **Decide before
+implementation; do not let the mockup settle it by default.**
+
 ### D3 — the hashtag card
 
 Three trending hashtags per card. Each row: a 44px rounded thumbnail of the tag's top post, the
@@ -349,6 +357,11 @@ Recorded so the boundary is explicit rather than rediscovered mid-implementation
 - **Mobile layout.** The cards are built responsive, but mobile-specific tuning of tile sizes and
   scroller affordances is a follow-up.
 - **Dismissal persistence across sessions** for cards, as distinct from accounts.
+- **Raising the rail's own metadata contrast.** `LxTrendingRail` and `LxSuggestedList` render mono
+  counts and handles in `--lx-ink-3` (#9B9088) on `--lx-surface` (#F0EDE8), which measures about
+  2.5:1 and is below WCAG AA for text. The new cards use `--lx-ink-2` (#574F47, about 6.3:1) for
+  the equivalent text, so this work does not add to the problem — but fixing the existing rail is
+  a separate change to a shared component and is not in this branch.
 - **Real-time story arrival.** The discovery query refetches on its stale time like everything
   else; §8 of the root `GLOBAL_RULES.md` already records that v1 has no WebSocket delivery for
   this kind of data.

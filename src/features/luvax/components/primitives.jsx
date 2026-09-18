@@ -67,7 +67,14 @@ export function LxBtn({
     danger: { background: 'transparent', color: v.error, border: `1px solid ${v.error}` },
   };
   if (disabled) {
+    // Every variant has to read as disabled, not only the filled one. An
+    // outlined button that keeps its full contrast looks clickable and then
+    // does nothing, which is how a support reviewer ends up clicking "close as
+    // rejected" repeatedly without being told the reply box is what is empty.
     variants.primary = { background: v.surfaceRaised, color: v.ink3, border: 'none' };
+    variants.secondary = { background: v.surface, color: v.ink3, border: `1px solid ${v.border}` };
+    variants.ghost = { background: 'transparent', color: v.ink3, border: `1px solid ${v.border}` };
+    variants.danger = { background: 'transparent', color: v.ink3, border: `1px solid ${v.border}` };
   }
   return (
     <button

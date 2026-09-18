@@ -214,7 +214,7 @@ export const PANEL_CSS = `
 
 /* One focus ring for the whole panel, on a token that stays visible against
    every surface in both themes. */
-.lx-admin-shell :is(a, button, select, input, [tabindex]):focus-visible {
+.lx-admin-shell :is(a, button, select, input, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--lx-accent-text);
   outline-offset: 2px;
   border-radius: var(--radius-sm);

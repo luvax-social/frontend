@@ -1,6 +1,22 @@
+import { useEffect } from 'react';
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router-dom';
 
 import { ROUTES } from '@/config/constants';
+
+const CHUNK_RELOAD_KEY = 'lx-chunk-reload-attempted';
+
+// Vite and native dynamic import() raise slightly different wording for the
+// same failure: the requested chunk's URL no longer serves anything, because
+// the deploy or dev server the page was loaded from moved on since. Neither
+// is a defect in the code that route points to.
+function isChunkLoadError(error) {
+  return (
+    error instanceof Error &&
+    /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed/i.test(
+      error.message
+    )
+  );
+}
 
 /**
  * RouterErrorPage
@@ -21,6 +37,14 @@ export default function RouterErrorPage() {
   const error = useRouteError();
   const navigate = useNavigate();
   const isDev = import.meta.env.DEV;
+  const chunkLoadFailed = isChunkLoadError(error);
+
+  useEffect(() => {
+    if (!chunkLoadFailed) return;
+    if (window.sessionStorage.getItem(CHUNK_RELOAD_KEY)) return;
+    window.sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+    window.location.reload();
+  }, [chunkLoadFailed]);
 
   let title = 'Something went wrong';
   let description = 'An unexpected error occurred. Please try again or return to the home page.';
@@ -39,6 +63,12 @@ export default function RouterErrorPage() {
       title = 'Server error';
       description = 'Something went wrong on our end. Please try again shortly.';
     }
+  } else if (chunkLoadFailed) {
+    // Reached only when the automatic reload above already ran once this
+    // session and the page still can't load this chunk — a stale service
+    // worker, an offline connection, or a build that never finished deploying.
+    title = 'This page needs a refresh';
+    description = 'A newer version of the app is available. Reloading should fix this.';
   }
 
   // Log for developer inspection — never rendered to the user in production.

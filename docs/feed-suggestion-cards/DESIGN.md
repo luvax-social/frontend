@@ -87,13 +87,12 @@ in descending order of strength:
 
 The header reads `stories · people you may know` in the mono eyebrow style.
 
-**Open deviation — the scrim.** The author name sits on the tile's cover image and needs a scrim
-behind it to hold 4.5:1 contrast. The mockup draws that scrim as a bottom-to-top
-`linear-gradient`, and `DESIGN.md` §4 forbids decorative gradients outright. This one is
-functional rather than decorative — it exists only for legibility — but it is still a gradient and
-needs an explicit ruling. The alternative is a flat `rgba(26,24,22,0.55)` bar behind the name row,
-which obeys the rule literally at some cost to how the tile reads. **Decide before
-implementation; do not let the mockup settle it by default.**
+**Approved deviation — the scrim.** The author name sits on the tile's cover image and needs a
+scrim behind it to hold 4.5:1 contrast. That scrim is a bottom-to-top `linear-gradient`, which
+`DESIGN.md` §4 forbids for decoration. Approved here as a **functional** exception: it exists only
+for legibility, it carries no hue of its own, and it appears nowhere but behind text on a story
+tile. It is not a licence for gradients elsewhere — any other use still falls under the §4 ban.
+The rejected alternative was a flat `rgba(26,24,22,0.55)` bar behind the name row.
 
 ### D3 — the hashtag card
 

@@ -37,6 +37,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- The staff support ticket is now laid out in the titled cards the report detail uses — its state and facts, what the requester wrote, the reply already sent, and the controls each in their own region — instead of one undivided card.
+- Answering a support ticket now names each field and says where its text goes: the reply that reaches the requester and the note that never leaves the panel are labelled as such, on fields visible against the card rather than the same colour as it.
+- The action log opens the action beside the log, with the row it belongs to marked, instead of over a scrim that hid the rows being compared.
+- The escalated queue and my escalations open a report beside the queue, as the report queue and the account list already do, instead of navigating away and discarding the queue's position.
+- The support icon in the admin panel's navigation is now a question mark rather than a checkmark, which read as "done" beside a queue of open tickets.
+- The report detail's status badge now leads its own row above the field grid, matching the account screen's state-then-detail layout instead of sitting inline as one field among several.
 - A refused challenge is now named as its own failure on every form rather than reported as a wrong password or a generic error, so the reader is not sent looking for a mistake that is not there.
 - Any failed submission re-arms the challenge, not only a refused one, because the token is single-use and a retry would otherwise send a spent one.
 - The Turnstile site key now governs the authentication forms and the report dialog as well as the public support form; the Google sign-in callback is deliberately left unchallenged.
@@ -59,6 +65,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- A text area in the panel now shows the focus ring every other control there has; keyboard focus in the support reply, note and escalation fields was previously invisible.
+- A disabled outlined button now reads as disabled in every variant. Only the filled one was styled for it, so "close as rejected" and "escalate" looked clickable while the field they depend on was empty.
+- The panel now reloads once automatically when a route's code chunk fails to load after a new deploy or a dev restart, instead of leaving a dead "something went wrong" page.
+- The report detail's reporter note, resolution note, and reported post/comment text now sit in a raised, bordered block instead of blending into the card's own background.
+- The report queue, escalated queue, my-escalations queue, and report detail screens now use the panel's shared card component the same way the account screens do, instead of a hand-rolled card div.
+- The staff support ticket detail card had no inner padding, so its title, badges, body text and controls sat flush against the card's own border.
 - The in-product appeal form showed its heading and nothing else: the subject field, the body field and the submit control were all conditional on a category selector that appeal mode deliberately does not have, so no appeal could be opened from a warning or a notification.
 - An appeal refused because the decision was already contested, could not be found, or carries no appeal route now says which, instead of a generic failure, and stops offering a control whose every outcome would be the same refusal.
 - The staff queue marks an appeal by the moderation decision it contests rather than by its category, so an appeal opened from a signed-in session is visible as one and an ordinary request labelled with an appeal category is not mistaken for one.

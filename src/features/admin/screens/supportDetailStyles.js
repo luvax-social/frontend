@@ -1,68 +1,37 @@
 import { v } from '@/config/tokens';
 
 /**
- * The support detail pane's styling.
+ * The support detail pane's remaining local styles.
  *
- * The panel's stylesheet defines layout classes only (`lx-admin-panel-card`,
- * `lx-admin-split`, `lx-admin-control`); everything inside a detail pane is
- * styled inline from the token object, which is what every other detail screen
- * here does. These are shared between the detail screen and its subsections so
- * a label in one section cannot drift from a label in the next.
+ * Everything that has a shape shared with another detail pane — a labelled
+ * fact, a block of written text, a card — comes from `PanelPage` and
+ * `DetailPrimitives` instead, so the support console and the report console
+ * cannot drift apart. What is left here is what only this screen has: the
+ * inline notices and the controls a reviewer types into.
  */
 
-/** The small uppercase section label, matching the panel's other detail panes. */
-export const sectionLabel = {
-  fontFamily: v.fontMono,
-  fontSize: 11,
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: v.ink2,
-  margin: '0 0 6px',
-  fontWeight: 500,
-};
-
-/** Body copy inside a detail section. */
-export const bodyText = {
-  fontFamily: v.fontBody,
-  fontSize: 14,
-  lineHeight: 1.6,
-  color: v.ink,
-  margin: 0,
-  whiteSpace: 'pre-wrap',
-  overflowWrap: 'anywhere',
-};
-
-/** Secondary body copy, for the things that describe rather than quote. */
-export const mutedText = {
-  ...bodyText,
-  color: v.ink2,
-  whiteSpace: 'normal',
-};
-
-/** The metadata row under the title. Gapped, so the chips do not run together. */
-export const metaRow = {
-  display: 'flex',
-  alignItems: 'center',
-  flexWrap: 'wrap',
-  gap: 10,
-  fontFamily: v.fontBody,
-  fontSize: 12,
-  color: v.ink2,
-  marginTop: 6,
-};
-
+/**
+ * A text field a reviewer writes a decision into.
+ *
+ * On `--lx-base` rather than the card's own `--lx-surface-sunken`, which made
+ * an empty field indistinguishable from the card behind it — a reviewer could
+ * not see where to click without hunting for the border. The height is set so
+ * an empty field still reads as somewhere to write several sentences, and the
+ * outline is deliberately not suppressed: the panel's focus ring is what says
+ * which field has the caret.
+ */
 export const textarea = (invalid = false) => ({
   width: '100%',
+  minHeight: 84,
   resize: 'vertical',
   fontFamily: v.fontBody,
   fontSize: 14,
   color: v.ink,
-  background: v.surfaceSunken,
+  background: v.base,
   border: `1px solid ${invalid ? v.error : v.border}`,
   borderRadius: 10,
   padding: '10px 12px',
-  outline: 'none',
-  lineHeight: 1.5,
+  lineHeight: 1.55,
   boxSizing: 'border-box',
 });
 
@@ -86,8 +55,5 @@ export const notice = (tone = 'neutral') => {
   };
 };
 
-/** A detail section, separated by rhythm rather than by rules. */
-export const section = { marginBottom: 20 };
-
 /** The row of actions at the foot of a section. */
-export const actionRow = { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 };
+export const actionRow = { display: 'flex', gap: 8, flexWrap: 'wrap' };

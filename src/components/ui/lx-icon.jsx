@@ -252,6 +252,16 @@ const ICONS = {
       <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
     </>
   ),
+  // A question mark in a circle: the support nav item's icon. `check` read as
+  // "done" rather than "help", which is confusing beside a queue of open
+  // tickets that are anything but done.
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 1.8-2.5 2.4-2.85 3.9" />
+      <circle cx="12" cy="17.2" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
 
   // The eight verification category glyphs. These are drawn for the inside of a 14px badge, which
   // is a harder brief than the rest of this map: at that size the glyph is under 8px across, so

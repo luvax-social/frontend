@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
-import { routeTo } from '@/config/constants';
-
-import { PageHeader } from '../components/PanelPage';
+import { PageHeader, PanelCard } from '../components/PanelPage';
 import { RecordTable } from '../components/RecordTable';
 import { LoadMore } from '../components/LoadMore';
+import { SplitView } from '../components/SplitView';
 import { buildReportColumns } from '../components/reportColumns';
+import { getSplitSelection, withSelection } from '../lib/splitSelection';
+import { ReportDetailScreen } from './ReportDetailScreen';
 import { useReportQueue } from '../hooks/useReportQueue';
 import { useVocabularies } from '../hooks/useVocabularies';
 
@@ -16,9 +17,15 @@ import { useVocabularies } from '../hooks/useVocabularies';
  * status; there is no separate endpoint. The route is administrator-only and
  * unreachable for a moderator, and the navigation badge count comes from the
  * shell rather than from this screen.
+ *
+ * Opening a row fills the right region rather than navigating to the report's
+ * own page, which is what the report queue and the account list already do.
+ * Deciding an escalation is a queue to work through, and leaving the screen for
+ * each one threw away the list, its scroll position and every page it had
+ * loaded, to return to the top of a refetched queue.
  */
 export function EscalatedQueueScreen() {
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { reasonLabel } = useVocabularies();
   const {
     rows,
@@ -33,16 +40,21 @@ export function EscalatedQueueScreen() {
 
   const columns = useMemo(() => buildReportColumns(reasonLabel), [reasonLabel]);
 
-  return (
+  const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
+  const openRecord = (id) => setSearchParams(withSelection(searchParams, id));
+  const closeRecord = () => setSearchParams(withSelection(searchParams, null));
+
+  const list = (
     <div>
       <PageHeader title="escalated" />
 
-      <div className="lx-admin-panel-card">
+      <PanelCard padded={false}>
         <RecordTable
           columns={columns}
           rows={rows}
           keyField="id"
-          onRowClick={(row) => navigate(routeTo.adminReportDetail(row.id))}
+          onRowClick={(row) => openRecord(row.id)}
+          selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
           errorMessage={error?.message}
@@ -58,7 +70,24 @@ export function EscalatedQueueScreen() {
             />
           }
         />
-      </div>
+      </PanelCard>
     </div>
   );
+
+  return (
+    <SplitView
+      list={list}
+      hasSelection={hasSelection}
+      onClose={closeRecord}
+      backLabel="back to the queue"
+      emptyIcon="alert"
+      emptyTitle="no report open"
+      emptyHint="pick an escalation from the queue to see what was reported and close it."
+      detail={
+        selectedId ? <ReportDetailScreen key={selectedId} reportId={selectedId} embedded /> : null
+      }
+    />
+  );
 }
+
+export default EscalatedQueueScreen;

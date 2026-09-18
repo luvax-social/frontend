@@ -61,9 +61,29 @@ export const unlikeStory = async (storyId) => {
   return response.data;
 };
 
+/**
+ * Retrieves active stories from suggested accounts the caller does not follow.
+ *
+ * Calls `GET /stories/discovery` and returns the ApiResponse envelope, like every other function
+ * here. Every privacy rule is applied server-side - private accounts never appear, and blocked,
+ * dismissed and already-followed accounts are excluded - so the client renders what it is handed
+ * without filtering.
+ * @param {number} [limit] - How many authors; the backend defaults to 8 and caps at 20.
+ * @param {AbortSignal} [signal] - Cancels the request when the screen unmounts.
+ * @returns {Promise<Object>} The ApiResponse envelope wrapping a list of tray entries.
+ */
+export const getStoryDiscovery = async (limit, signal) => {
+  const response = await axiosInstance.get(`${STORY_API_PATH}/discovery`, {
+    params: limit ? { limit } : {},
+    signal,
+  });
+  return response.data;
+};
+
 export const storyService = {
   createStory,
   getStoryFeed,
+  getStoryDiscovery,
   recordStoryView,
   deleteStory,
   likeStory,

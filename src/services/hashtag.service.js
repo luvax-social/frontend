@@ -90,3 +90,23 @@ export const hashtagService = {
 };
 
 export default hashtagService;
+
+/**
+ * Trending hashtags, each with the cover image of its newest visible post.
+ *
+ * Calls `GET /hashtags/trending/previews`. One request for the whole card: fetching a preview per
+ * tag through {@link getPostsByHashtag} is the N+1 this endpoint exists to avoid. A tag whose posts
+ * are all text, all removed, or all from private accounts keeps its place with a null `previewUrl`
+ * rather than being dropped.
+ * @param {number} [size] - How many hashtags; the backend defaults to 3 and caps at 10.
+ * @param {string} [scope] - `for-you` for the personalised blend, `platform` otherwise.
+ * @param {AbortSignal} [signal] - Cancels the request when the screen unmounts.
+ * @returns {Promise<Object>} The ApiResponse envelope wrapping a list of trending previews.
+ */
+export const getTrendingPreviews = async (size, scope, signal) => {
+  const params = {};
+  if (size) params.size = size;
+  if (scope) params.scope = scope;
+  const response = await axiosInstance.get('/hashtags/trending/previews', { params, signal });
+  return response.data;
+};

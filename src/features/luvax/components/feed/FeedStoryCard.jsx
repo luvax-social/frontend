@@ -94,9 +94,7 @@ export function FeedStoryCard({ entries = [], viewport = 'desktop', onDismiss })
                 overflow: 'hidden',
                 display: 'block',
                 textDecoration: 'none',
-                background: cover
-                  ? `url(${cover}) center/cover no-repeat`
-                  : v.surfaceSunken,
+                background: cover ? `url(${cover}) center/cover no-repeat` : v.surfaceSunken,
               }}
             >
               <span

@@ -72,9 +72,19 @@ describe('interleaveFeed', () => {
     expect(kinds(interleaveFeed([], all, []))).toEqual(['[stories]']);
   });
 
-  it('gives a dismissed card its slot to the next eligible type', () => {
-    const result = kinds(interleaveFeed(posts(9), all, ['stories-0']));
+  it('gives a dismissed type its slot to the next eligible one, in every slot', () => {
+    const result = kinds(interleaveFeed(posts(20), all, ['stories']));
     expect(result[3]).toBe('[people]');
+    // The point of keying dismissal on the type: it stays gone, rather than returning at the next
+    // slot the way a slot-keyed dismissal would.
+    expect(result.filter((x) => x === '[stories]')).toHaveLength(0);
+  });
+
+  it('keeps rendering the one remaining type when the others are dismissed', () => {
+    const result = kinds(interleaveFeed(posts(9), all, ['stories', 'people'])).filter((x) =>
+      x.startsWith('[')
+    );
+    expect(result).toEqual(['[hashtags]', '[hashtags]']);
   });
 
   it('gives every card a stable key', () => {

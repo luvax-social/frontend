@@ -25,7 +25,9 @@ export const SLOT_STRIDE = 5;
  * @param {Array<Object>} posts - Flattened, filtered posts in display order.
  * @param {Object} availability - `{stories, people, hashtags}`; a type is eligible only when true,
  *   so a loading, failed and empty query all read the same way - the card does not render.
- * @param {Array<string>} dismissed - Card keys the reader has dismissed this session.
+ * @param {Array<string>} dismissed - Card *types* the reader has dismissed this session. Keyed by
+ *   type rather than by slot on purpose: dismissing a card means "not this kind of thing", not "not
+ *   in this position", and a slot-keyed dismissal would bring the same card back five posts later.
  * @returns {Array<Object>} `{kind:'post', post}` and `{kind:'card', type, key}` entries.
  */
 export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
@@ -40,10 +42,11 @@ export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   const place = () => {
     for (let offset = 0; offset < CARD_TYPES.length; offset += 1) {
       const type = CARD_TYPES[(cursor + offset) % CARD_TYPES.length];
-      const key = `${type}-${slot}`;
-      if (availability[type] && !skipped.has(key)) {
+      if (availability[type] && !skipped.has(type)) {
         cursor = (cursor + offset + 1) % CARD_TYPES.length;
-        return { kind: 'card', type, key };
+        // The key carries the slot so React can tell two renderings of the same card type apart;
+        // dismissal does not, for the reason on the parameter above.
+        return { kind: 'card', type, key: `${type}-${slot}` };
       }
     }
     // Nothing eligible. The slot stays empty rather than rendering a shell, and the next slot is

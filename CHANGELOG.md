@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Suggestion cards in the feed: trending hashtags with post previews, suggested accounts showing avatar and banner, and stories from accounts you do not follow. A card appears after every fifth post, rotating between the three kinds, and each kind can be dismissed for the session.
 - An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
 - A screen for requesting a replacement appeal link when the moderation email never arrived, reachable from the appeal and status screens.
 - A status link handed over once when an appeal is filed from a moderation email, and an anonymous screen that resolves it, so an appellant with no account to sign in to can follow their own appeal.
@@ -37,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- The feed no longer shows the right rail; its post column widened from 412 to 560 to use the space. Explore and the hashtag page still show trending hashtags and suggested accounts in the rail.
 - The staff support ticket is now laid out in the titled cards the report detail uses — its state and facts, what the requester wrote, the reply already sent, and the controls each in their own region — instead of one undivided card.
 - Answering a support ticket now names each field and says where its text goes: the reply that reaches the requester and the note that never leaves the panel are labelled as such, on fields visible against the card rather than the same colour as it.
 - The action log opens the action beside the log, with the row it belongs to marked, instead of over a scrim that hid the rows being compared.

@@ -32,6 +32,25 @@ describe('interleaveFeed', () => {
     expect(result).toEqual(['[people]', '[hashtags]']);
   });
 
+  it('repeats a paged type up to its page count, and no further', () => {
+    const result = kinds(interleaveFeed(posts(60), { people: 3, hashtags: false }, [])).filter(
+      (x) => x.startsWith('[')
+    );
+    expect(result).toEqual(['[people]', '[people]', '[people]']);
+  });
+
+  it('numbers each appearance so a paged card knows which page is its own', () => {
+    const items = interleaveFeed(posts(60), { people: 3, hashtags: false }, []).filter(
+      (item) => item.kind === 'card'
+    );
+    expect(items.map((item) => item.occurrence)).toEqual([0, 1, 2]);
+  });
+
+  it('treats a page count of zero as no data', () => {
+    const result = kinds(interleaveFeed(posts(9), { people: 0 }, []));
+    expect(result.filter((x) => x.startsWith('['))).toHaveLength(0);
+  });
+
   it('never repeats a once-only card type however long the feed is', () => {
     const result = kinds(interleaveFeed(posts(60), all, [])).filter((x) => x.startsWith('['));
     expect(result).toHaveLength(new Set(result).size);
@@ -86,7 +105,7 @@ describe('interleaveFeed', () => {
 
   it('gives every card a stable key', () => {
     const items = interleaveFeed(posts(14), all, []).filter((item) => item.kind === 'card');
-    expect(items.map((item) => item.key)).toEqual(['people', 'hashtags']);
+    expect(items.map((item) => item.key)).toEqual(['people-0', 'hashtags-0']);
     expect(new Set(items.map((item) => item.key)).size).toBe(2);
   });
 

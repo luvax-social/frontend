@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -32,27 +32,18 @@ const renderCard = (rows, props = {}) =>
     </MemoryRouter>
   );
 
-/**
- * jsdom reports every element as zero-sized, which makes the scroller look both fully scrolled and
- * not scrollable at once. Giving it a track narrower than its content is what lets the edge state,
- * and therefore the arrows, be exercised at all.
- */
-const stubTrack = ({ clientWidth, scrollWidth }) => {
-  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-    value: clientWidth,
-    configurable: true,
-  });
-  Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
-    value: scrollWidth,
-    configurable: true,
-  });
-};
-
 describe('FeedPeopleCard', () => {
-  beforeEach(() => stubTrack({ clientWidth: 300, scrollWidth: 900 }));
-  afterEach(() => {
-    delete HTMLElement.prototype.clientWidth;
-    delete HTMLElement.prototype.scrollWidth;
+  it('never renders a scroll control; further accounts come from later cards', () => {
+    renderCard([row(), row({ id: 'u2' })]);
+    expect(screen.queryByRole('button', { name: /more suggestions/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /previous suggestions/i })).toBeNull();
+  });
+
+  it('renders exactly the accounts it is handed', () => {
+    renderCard([row(), row({ id: 'u2', username: 'theo', displayName: 'Theo' })]);
+    expect(screen.getByText('Nadia')).toBeTruthy();
+    expect(screen.getByText('Theo')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /^follow$/i })).toHaveLength(2);
   });
 
   it('renders nothing when there are no rows', () => {
@@ -68,26 +59,6 @@ describe('FeedPeopleCard', () => {
   it('no longer renders the suggestion reason', () => {
     renderCard([row()]);
     expect(screen.queryByText(/followed by people you follow/i)).toBeNull();
-  });
-
-  it('offers a forward arrow once there are more rows than fit', () => {
-    renderCard([
-      row(),
-      row({ id: 'u2', username: 'theo' }),
-      row({ id: 'u3', username: 'ines' }),
-      row({ id: 'u4', username: 'mira' }),
-    ]);
-    expect(screen.getByRole('button', { name: /more suggestions/i })).toBeTruthy();
-  });
-
-  it('omits the arrows when everything already fits', () => {
-    renderCard([row()]);
-    expect(screen.queryByRole('button', { name: /more suggestions/i })).toBeNull();
-  });
-
-  it('hides the previous arrow at the start of the list, as the post carousel does', () => {
-    renderCard([row(), row({ id: 'u2' }), row({ id: 'u3' }), row({ id: 'u4' })]);
-    expect(screen.queryByRole('button', { name: /previous suggestions/i })).toBeNull();
   });
 
   it('shows one tile per view on mobile', () => {

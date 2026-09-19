@@ -23,12 +23,15 @@ export const SLOT_STRIDE = 5;
  * Builds the feed's render list.
  *
  * @param {Array<Object>} posts - Flattened, filtered posts in display order.
- * @param {Object} availability - `{people, hashtags}`; a type is eligible only when true, so a
+ * @param {Object} availability - `{people, hashtags}`. A boolean means the type may be used once;
+ *   a number means it may be used that many times, each appearance carrying a different subject. A
  *   loading, failed and empty query all read the same way - the card does not render.
  * @param {Array<string>} dismissed - Card *types* the reader has dismissed this session. Keyed by
  *   type rather than by slot on purpose: dismissing a card means "not this kind of thing", not "not
  *   in this position", and a slot-keyed dismissal would bring the same card back five posts later.
- * @returns {Array<Object>} `{kind:'post', post}` and `{kind:'card', type, key}` entries.
+ * @returns {Array<Object>} `{kind:'post', post}` and `{kind:'card', type, key, occurrence}`
+ *   entries, where `occurrence` is the zero-based index of that type's appearance and is what a
+ *   repeatable card uses to pick which subject it shows.
  */
 export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   const skipped = new Set(dismissed);
@@ -39,22 +42,31 @@ export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   let cursor = 0;
   let slot = 0;
 
-  // A type is used at most once in a feed. Both cards carry the same rows every time they are
-  // built, so a second one would be the same card twice, which is what made the suggestions read
-  // as a loop rather than as recommendations.
-  const used = new Set();
+  // How many times a type may appear. A boolean is the once-only case. A count is the paged case:
+  // the people card shows one page of accounts per appearance, so repeating it carries the next
+  // page rather than the same card twice, and the number of pages is the natural bound.
+  const capacityOf = (type) => {
+    const value = availability[type];
+    if (typeof value === 'number') return Math.max(0, value);
+    return value ? 1 : 0;
+  };
+
+  const used = {};
 
   const place = () => {
     for (let offset = 0; offset < CARD_TYPES.length; offset += 1) {
       const type = CARD_TYPES[(cursor + offset) % CARD_TYPES.length];
-      if (availability[type] && !skipped.has(type) && !used.has(type)) {
+      const taken = used[type] ?? 0;
+      if (taken < capacityOf(type) && !skipped.has(type)) {
         cursor = (cursor + offset + 1) % CARD_TYPES.length;
-        used.add(type);
-        return { kind: 'card', type, key: type };
+        used[type] = taken + 1;
+        // The appearance index rides on the item so a paged card knows which page is its own, and
+        // the key stays unique per appearance for React.
+        return { kind: 'card', type, key: `${type}-${taken}`, occurrence: taken };
       }
     }
-    // Nothing eligible, either because no type has data or because every type has had its turn.
-    // The slot stays empty rather than rendering a shell.
+    // Nothing eligible, either because no type has data or because every type has been used as
+    // often as it may be. The slot stays empty rather than rendering a shell.
     return null;
   };
 

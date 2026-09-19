@@ -190,15 +190,19 @@ import { useTrendingPreviews } from '../hooks/useTrendingPreviews';
 import { FeedPeopleCard } from './feed/FeedPeopleCard';
 import { FeedHashtagCard } from './feed/FeedHashtagCard';
 
+/** How many account-suggestion cards one feed may carry, however many accounts are available. */
+const MAX_PEOPLE_CARDS = 3;
+
 /**
  * One tab's posts with the suggestion cards placed among them.
  *
  * Exported for its own test. The cadence itself lives in `feedInterleave` and is tested there; this
  * component only renders what that function returns, so the two concerns fail separately.
  *
- * `cards` maps a type to its rendered element or null, and `availability` says which types may
- * appear. Null covers loading, error and empty alike: all three mean the same thing here, which is
- * that the card does not render and does not consume its slot.
+ * `cards` maps a type to a factory taking that type's appearance index and returning an element or
+ * null, and `availability` says how many times each type may appear. The factory is what lets the
+ * people card carry a different page of accounts each time; a plain element could only ever be the
+ * same card twice.
  */
 export function FeedInjectedList({
   posts,
@@ -229,7 +233,7 @@ export function FeedInjectedList({
             assumeFollowing={assumeFollowing}
           />
         ) : (
-          <div key={item.key}>{cards[item.type]}</div>
+          <div key={item.key}>{cards[item.type]?.(item.occurrence)}</div>
         )
       )}
     </div>
@@ -312,27 +316,40 @@ function FeedTabPanel({
 
   // Rendered elements rather than raw data, so FeedInjectedList stays ignorant of what each card
   // needs and the "no data means no card" rule is one null check instead of three.
+  // One card shows what fits without scrolling; the rest are carried by later cards rather than by
+  // a control the reader has to find and operate.
+  const perPeopleCard = viewport === 'mobile' ? 1 : 2;
+  const peopleRows = suggestionRows ?? [];
+  const peopleCards = Math.min(Math.ceil(peopleRows.length / perPeopleCard), MAX_PEOPLE_CARDS);
+
   const cards = {
-    people: suggestionRows?.length ? (
-      <FeedPeopleCard
-        rows={suggestionRows}
-        viewport={viewport}
-        onFollow={(id) => followSuggestion.mutate(id)}
-        onDismissUser={(id) => dismissSuggestion.mutate(id)}
-        onDismiss={() => dismissCard('people')}
-      />
-    ) : null,
-    hashtags: trendingRows?.length ? (
-      <FeedHashtagCard
-        rows={trendingRows}
-        viewport={viewport}
-        onDismiss={() => dismissCard('hashtags')}
-      />
-    ) : null,
+    people: (occurrence) => {
+      const page = peopleRows.slice(
+        occurrence * perPeopleCard,
+        occurrence * perPeopleCard + perPeopleCard
+      );
+      return page.length ? (
+        <FeedPeopleCard
+          rows={page}
+          viewport={viewport}
+          onFollow={(id) => followSuggestion.mutate(id)}
+          onDismissUser={(id) => dismissSuggestion.mutate(id)}
+          onDismiss={() => dismissCard('people')}
+        />
+      ) : null;
+    },
+    hashtags: () =>
+      trendingRows?.length ? (
+        <FeedHashtagCard
+          rows={trendingRows}
+          viewport={viewport}
+          onDismiss={() => dismissCard('hashtags')}
+        />
+      ) : null,
   };
 
   const availability = {
-    people: Boolean(suggestionRows?.length),
+    people: peopleCards,
     hashtags: Boolean(trendingRows?.length),
   };
 

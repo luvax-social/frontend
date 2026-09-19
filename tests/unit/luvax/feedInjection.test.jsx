@@ -15,7 +15,7 @@ const renderList = (props) =>
     <MemoryRouter>
       <FeedInjectedList
         posts={posts(9)}
-        cards={{ people: null, hashtags: null }}
+        cards={{ people: () => null, hashtags: () => null }}
         availability={{ people: false, hashtags: false }}
         tweaks={{ density: 'default', showTags: true }}
         viewport="desktop"
@@ -26,6 +26,18 @@ const renderList = (props) =>
   );
 
 describe('FeedInjectedList', () => {
+  it('gives each appearance its own page index', () => {
+    renderList({
+      cards: {
+        people: (i) => <div data-testid={'people-page-' + i} />,
+        hashtags: () => null,
+      },
+      availability: { people: 2, hashtags: false },
+    });
+    expect(screen.getByTestId('people-page-0')).toBeTruthy();
+    expect(screen.getByTestId('people-page-1')).toBeTruthy();
+  });
+
   it('renders every post when no card has data', () => {
     renderList();
     expect(screen.getAllByTestId(/^post-/)).toHaveLength(9);
@@ -33,7 +45,7 @@ describe('FeedInjectedList', () => {
 
   it('places a card among the posts when one has data', () => {
     renderList({
-      cards: { people: <div data-testid="people-card" />, hashtags: null },
+      cards: { people: () => <div data-testid="people-card" />, hashtags: () => null },
       availability: { people: true, hashtags: false },
     });
     expect(screen.getByTestId('people-card')).toBeTruthy();
@@ -43,8 +55,8 @@ describe('FeedInjectedList', () => {
   it('never drops a post to make room for a card', () => {
     renderList({
       cards: {
-        people: <div data-testid="people-card" />,
-        hashtags: <div data-testid="hashtag-card" />,
+        people: () => <div data-testid="people-card" />,
+        hashtags: () => <div data-testid="hashtag-card" />,
       },
       availability: { people: true, hashtags: true },
     });
@@ -54,8 +66,8 @@ describe('FeedInjectedList', () => {
   it('honours a dismissed card type in every slot', () => {
     renderList({
       cards: {
-        people: <div data-testid="people-card" />,
-        hashtags: <div data-testid="hashtag-card" />,
+        people: () => <div data-testid="people-card" />,
+        hashtags: () => <div data-testid="hashtag-card" />,
       },
       availability: { people: true, hashtags: true },
       dismissed: ['people'],

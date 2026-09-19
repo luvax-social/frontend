@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Suggestion cards in the feed: trending hashtags with post previews, and suggested accounts showing avatar, banner and follower count. A card appears after every fifth post, alternating between the two kinds, and each kind can be dismissed for the session.
 - An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
 - A screen for requesting a replacement appeal link when the moderation email never arrived, reachable from the appeal and status screens.
 - A status link handed over once when an appeal is filed from a moderation email, and an anonymous screen that resolves it, so an appellant with no account to sign in to can follow their own appeal.
@@ -37,6 +38,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- Each suggested account carries an options menu instead of a close button, offering follow, stop suggesting this account, block and report, with the two irreversible actions marked in red.
+- Suggestion sections are dismissed from an options menu in the section header rather than from a close button, so hiding a section is one choice among several instead of the only one on offer.
+- The banner, the avatar and the username of a suggested account all open that profile; previously only the username did.
+- Trending hashtag thumbnails are larger, the section carries an options menu, and the explore link is shaped as a button so it reads as one.
+- Suggestion sections are labelled with an icon beside the section name.
+- Suggested account banners are square on mobile, matching the edge-to-edge media of the posts around them.
+- The feed column is back to its original width; widening it for the suggestion cards had made a post with a large image no longer fit in one view.
+- Suggested accounts show two to a row on desktop and one on mobile, with a larger avatar and the account's follower count in place of the explanatory line. Further accounts appear in later cards down the feed rather than behind a scroll control.
+- Suggestion cards sit directly on the feed background with their content edge to edge, matching the posts around them, instead of inside a raised rounded container.
+- The suggested-accounts carousel is paged by arrows overlaid on the track itself, in the same position and style as the post carousel's, rather than by controls in the card header.
+- Each kind of suggestion card now appears at most once in a feed, instead of repeating the same accounts and hashtags every five posts.
+- Trending hashtags are drawn from a deeper pool and rotate per visit rather than always showing the busiest few.
+- The feed no longer shows the right rail. Explore and the hashtag page still show trending hashtags and suggested accounts in the rail.
 - The staff support ticket is now laid out in the titled cards the report detail uses — its state and facts, what the requester wrote, the reply already sent, and the controls each in their own region — instead of one undivided card.
 - Answering a support ticket now names each field and says where its text goes: the reply that reaches the requester and the note that never leaves the panel are labelled as such, on fields visible against the card rather than the same colour as it.
 - The action log opens the action beside the log, with the row it belongs to marked, instead of over a scrim that hid the rows being compared.

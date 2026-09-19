@@ -109,17 +109,19 @@ const MessagesScreen = lazy(() =>
  * - `messages` the fixed full-height pane messages has always rendered in
  * - `bare`     no frame at all
  *
- * `rightRail` reproduces the existing rule that only the feed and explore show
- * the trending rail.
+ * `rightRail` marks the screens that show the trending rail: explore and the
+ * hashtag page. The feed dropped it when its suggestions moved inline.
  */
 export const APP_SCREENS = [
+  // No right rail: the feed carries trending hashtags and suggested accounts inline between its
+  // posts now, so the rail beside it would say the same things twice. Explore and the hashtag page
+  // still show it, because neither has an inline equivalent.
   {
     screen: 'feed',
     index: true,
     path: ROUTES.FEED,
     element: <FeedScreen />,
     chrome: 'shell',
-    rightRail: true,
   },
   {
     screen: 'explore',

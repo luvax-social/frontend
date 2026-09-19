@@ -16,6 +16,7 @@ export const REPORT_TYPES = {
   POST: 'post',
   COMMENT: 'comment',
   USER: 'user',
+  STORY: 'story',
 };
 
 /**

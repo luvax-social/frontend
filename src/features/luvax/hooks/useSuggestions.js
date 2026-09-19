@@ -16,7 +16,7 @@ export const suggestionKeys = {
  * the response here is deliberate: the component's shape is the one the rail renders, and bending
  * a working component to a wire format is the wrong way round.
  */
-const toRow = (item) => {
+export const toRow = (item) => {
   const user = item?.user ?? {};
   const state = item?.viewerState ?? {};
   return {
@@ -26,6 +26,10 @@ const toRow = (item) => {
     avatarUrl: user.avatarUrl,
     verified: Boolean(user.isVerified),
     verifiedCategory: user.verifiedCategory ?? null,
+    // Not on the shared UserSummaryResponse: the suggestions endpoint carries them beside it, so
+    // they sit on the item rather than on item.user.
+    bannerUrl: item?.bannerUrl ?? null,
+    followerCount: item?.followerCount ?? 0,
     // A pending request to a private account is not a follow, and must not render as one.
     isFollowing: Boolean(state.isFollowing),
     isFollowRequested: Boolean(state.isFollowRequested),

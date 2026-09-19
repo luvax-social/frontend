@@ -97,6 +97,22 @@ describe('FeedPeopleCard', () => {
     expect(tile.style.width).toContain('100% - 0px');
   });
 
+  it('renders the avatar at the size the card intends, not a stale one', () => {
+    renderCard([row()]);
+    // The avatar is the element between the banner and the name; a silent no-op edit once left it
+    // at 60px while every other number assumed 96, which opened a hole above the name.
+    const avatar = screen.getByTestId('banner-u1').nextElementSibling.nextElementSibling;
+    expect(avatar.style.width).toBe('96px');
+    expect(avatar.style.height).toBe('96px');
+  });
+
+  it('starts the name clear of the avatar rather than below a gap', () => {
+    renderCard([row()]);
+    const text = screen.getByText('@nadia').parentElement;
+    // avatarTop 38 + avatarSize 96 - bannerH 88 + 10 = 56
+    expect(text.style.paddingTop).toBe('56px');
+  });
+
   it('shows two tiles per view on desktop', () => {
     renderCard([row(), row({ id: 'u2' })]);
     const tile = screen.getByTestId('banner-u1').parentElement;

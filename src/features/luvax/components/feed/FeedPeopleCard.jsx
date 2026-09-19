@@ -52,6 +52,17 @@ export function FeedPeopleCard({
   // plus the gaps between them come to exactly the track width and nothing is clipped.
   const perView = isMobile ? 1 : 2;
   const gap = 10;
+
+  // Derived rather than four independent numbers. The banner height, the avatar box and the text
+  // inset have to agree or the avatar either overlaps the name or leaves a hole above it, and
+  // keeping them as separate literals is how they drifted apart before.
+  const bannerH = isMobile ? 84 : 88;
+  const avatarSize = isMobile ? 92 : 96;
+  const avatarTop = isMobile ? 34 : 38;
+  // How far the avatar hangs below the banner, plus a small gap, is exactly where the name starts.
+  const textTop = avatarTop + avatarSize - bannerH + 10;
+  // Clear of the banner and of the name, level with the space beside the avatar.
+  const arrowTop = bannerH + 22;
   const tileWidth = `calc((100% - ${gap * (perView - 1)}px) / ${perView})`;
 
   const syncEdges = useCallback(() => {
@@ -134,7 +145,7 @@ export function FeedPeopleCard({
                   data-testid={`banner-${row.id}`}
                   data-fallback={row.bannerUrl ? 'false' : 'true'}
                   style={{
-                    height: isMobile ? 84 : 88,
+                    height: bannerH,
                     background: row.bannerUrl
                       ? `url(${row.bannerUrl}) center/cover no-repeat`
                       : v.accentDim,
@@ -168,10 +179,10 @@ export function FeedPeopleCard({
                   style={{
                     position: 'absolute',
                     left: '50%',
-                    top: isMobile ? 40 : 44,
+                    top: avatarTop,
                     transform: 'translateX(-50%)',
-                    width: isMobile ? 66 : 60,
-                    height: isMobile ? 66 : 60,
+                    width: avatarSize,
+                    height: avatarSize,
                     borderRadius: '50%',
                     border: `3px solid ${v.surface}`,
                     boxSizing: 'border-box',
@@ -182,7 +193,7 @@ export function FeedPeopleCard({
                 />
                 <div
                   style={{
-                    padding: isMobile ? '58px 12px 14px' : '60px 14px 14px',
+                    padding: `${textTop}px ${isMobile ? 12 : 14}px 14px`,
                     textAlign: 'center',
                   }}
                 >
@@ -288,7 +299,7 @@ export function FeedPeopleCard({
  * so the two controls in the same column read as the same control. Hidden rather than disabled at
  * each end, which is what the carousel does: a dead button is a target that does nothing.
  */
-function ScrollArrow({ side, onClick }) {
+function ScrollArrow({ side, top, onClick }) {
   return (
     <button
       type="button"
@@ -296,9 +307,10 @@ function ScrollArrow({ side, onClick }) {
       onClick={onClick}
       style={{
         position: 'absolute',
-        // Sits over the banner rather than the centre of the tile: centred, it landed on the
-        // display name and the follower count, which are the two things the card exists to show.
-        top: 38,
+        // Sits just below the banner, beside the avatar: over the banner it covered the artwork,
+        // and centred on the tile it landed on the display name and the follower count, which are
+        // the two things the card exists to show.
+        top,
         [side]: 8,
         transform: 'translateY(-50%)',
         width: 30,

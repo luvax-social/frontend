@@ -14,9 +14,9 @@ import { FeedInjectedCard } from './FeedInjectedCard';
  * scrollers and a third would make the gesture meaningless; this is the card whose silhouette is a
  * list.
  *
- * The 44px thumbnail is a known limitation, accepted in the design: it says what a tag looks like,
- * not what any individual post in it is. If that proves too thin in use, the designed upgrade is
- * two tags with three thumbnails each, not a larger thumbnail here.
+ * The thumbnail says what a tag looks like, not what any individual post in it is. It was 44px and
+ * read as an icon beside the name rather than as a picture; at 58px it carries an image while the
+ * type around it stays the size the rest of the feed uses.
  *
  * @param {Array<Object>} rows - Rows from `useTrendingPreviews`.
  * @param {Function} onDismiss - Removes the whole card for this session.
@@ -30,13 +30,29 @@ export function FeedHashtagCard({ rows = [], onDismiss, viewport = 'desktop' }) 
   return (
     <FeedInjectedCard
       eyebrow="trending now"
-      onDismiss={onDismiss}
-      dismissLabel="Dismiss trending hashtags"
+      icon="hash"
+      menuLabel="Trending options"
+      menuItems={[
+        {
+          id: 'hide',
+          icon: 'eye',
+          label: 'Hide trending for now',
+          onClick: onDismiss,
+        },
+      ]}
       viewport={viewport}
       trailing={
+        // A pill rather than bare accent text. The word sat among two other pieces of small mono
+        // type in the same header and nothing but its colour said it went anywhere.
         <Link
           to={ROUTES.EXPLORE}
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 24,
+            padding: '0 11px',
+            borderRadius: 999,
+            background: v.accentDim,
             fontFamily: v.fontMono,
             fontSize: 10,
             letterSpacing: '0.06em',
@@ -70,9 +86,9 @@ export function FeedHashtagCard({ rows = [], onDismiss, viewport = 'desktop' }) 
                 data-testid={`preview-${row.hashtagId}`}
                 data-fallback={row.previewUrl ? 'false' : 'true'}
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 7,
+                  width: 58,
+                  height: 58,
+                  borderRadius: 8,
                   flexShrink: 0,
                   background: row.previewUrl
                     ? `url(${row.previewUrl}) center/cover no-repeat`

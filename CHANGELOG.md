@@ -38,6 +38,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- Each suggested account carries an options menu instead of a close button, offering follow, stop suggesting this account, block and report, with the two irreversible actions marked in red.
+- Suggestion sections are dismissed from an options menu in the section header rather than from a close button, so hiding a section is one choice among several instead of the only one on offer.
+- The banner, the avatar and the username of a suggested account all open that profile; previously only the username did.
+- Trending hashtag thumbnails are larger, the section carries an options menu, and the explore link is shaped as a button so it reads as one.
+- Suggestion sections are labelled with an icon beside the section name.
+- Suggested account banners are square on mobile, matching the edge-to-edge media of the posts around them.
 - The feed column is back to its original width; widening it for the suggestion cards had made a post with a large image no longer fit in one view.
 - Suggested accounts show two to a row on desktop and one on mobile, with a larger avatar and the account's follower count in place of the explanatory line. Further accounts appear in later cards down the feed rather than behind a scroll control.
 - Suggestion cards sit directly on the feed background with their content edge to edge, matching the posts around them, instead of inside a raised rounded container.

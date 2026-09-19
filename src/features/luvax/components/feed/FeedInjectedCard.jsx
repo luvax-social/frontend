@@ -1,38 +1,47 @@
+import { useRef, useState } from 'react';
+
 import { v } from '@/config/tokens';
 
-import { LxIcon } from '../primitives';
+import { LxDropdownMenu, LxIcon } from '../primitives';
 
 /**
- * The frame every injected suggestion card shares: surface, eyebrow, dismiss control.
+ * The frame every injected suggestion card shares: section label, options menu, and the content
+ * the card itself supplies.
  *
- * Only the frame. The three card types deliberately differ inside it - a dark portrait scroller, a
- * light banner scroller, a row list - because three cards sharing one geometry blur into a single
- * block the reader learns to scroll past. The shared surface and eyebrow keep them recognisably one
- * family while the silhouettes stay distinct.
+ * Only the frame. The cards deliberately differ inside it, because two cards sharing one geometry
+ * blur into a single block the reader learns to scroll past.
+ *
+ * The header carries an options menu rather than a bare dismiss control. A close button on a
+ * suggestion reads as "this was a mistake to show me"; the same action inside a menu reads as one
+ * choice among several, which is what it is.
  *
  * @param {string} eyebrow - Mono label, lowercase, naming what the card carries.
+ * @param {string} icon - Glyph shown before the label, so the section is recognisable before it is
+ *   read.
  * @param {string} [accentEyebrow] - Optional second label in accent ink, after a separator dot.
- * @param {React.ReactNode} [trailing] - Optional element left of the dismiss control.
- * @param {Function} onDismiss - Called when the reader dismisses the whole card.
- * @param {string} dismissLabel - Accessible name for the dismiss control; sentence case.
+ * @param {React.ReactNode} [trailing] - Optional element left of the options control.
+ * @param {Array<Object>} menuItems - Rows for the options menu, in LxDropdownMenu's shape.
+ * @param {string} menuLabel - Accessible name for the options control; sentence case.
  */
 export function FeedInjectedCard({
   eyebrow,
+  icon,
   accentEyebrow = null,
   trailing = null,
-  onDismiss,
-  dismissLabel,
+  menuItems = [],
+  menuLabel,
   viewport = 'desktop',
   children,
 }) {
   const isMobile = viewport === 'mobile';
+  const menuButtonRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <section
       aria-label={accentEyebrow ? `${eyebrow}, ${accentEyebrow}` : eyebrow}
       // No card chrome, for the reason PostCard gives: the feed is one continuous surface on the
       // page background, and posts are told apart by the space between them rather than by a box.
-      // A raised surface with a radius here drew a visible container around the suggestions that
-      // nothing else in the column has.
       style={{ background: v.base }}
     >
       <div
@@ -46,7 +55,8 @@ export function FeedInjectedCard({
           gap: 12,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+          {icon ? <LxIcon name={icon} size={14} color={v.ink2} /> : null}
           <span style={eyebrowStyle}>{eyebrow}</span>
           {accentEyebrow ? (
             <>
@@ -77,12 +87,15 @@ export function FeedInjectedCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           {trailing}
           <button
+            ref={menuButtonRef}
             type="button"
-            aria-label={dismissLabel}
-            onClick={onDismiss}
+            aria-label={menuLabel}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
             style={{
-              width: 24,
-              height: 24,
+              width: 28,
+              height: 28,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -93,11 +106,18 @@ export function FeedInjectedCard({
               padding: 0,
             }}
           >
-            <LxIcon name="close" size={13} color={v.ink2} />
+            <LxIcon name="more" size={16} color={v.ink2} />
           </button>
         </div>
       </div>
       {children}
+      <LxDropdownMenu
+        anchorRef={menuButtonRef}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={menuItems}
+        width={248}
+      />
     </section>
   );
 }

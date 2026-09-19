@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { FeedHashtagCard } from '@/features/luvax/components/feed/FeedHashtagCard';
@@ -64,8 +64,22 @@ describe('FeedHashtagCard', () => {
     expect(screen.getByTitle(/pinned/i)).toBeTruthy();
   });
 
-  it('gives the dismiss control an accessible name', () => {
+  it('carries a section options menu rather than a close button', () => {
     renderCard([row('analogue', 10)]);
-    expect(screen.getByRole('button', { name: /dismiss trending/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /dismiss/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /trending options/i }));
+    expect(screen.getByRole('button', { name: /hide trending for now/i })).toBeTruthy();
+  });
+
+  it('renders explore as a button-shaped control, not bare text', () => {
+    renderCard([row('analogue', 10)]);
+    const explore = screen.getByRole('link', { name: /explore/i });
+    expect(explore.style.borderRadius).toBe('999px');
+    expect(explore.style.background).not.toBe('');
+  });
+
+  it('renders the thumbnail large enough to read as an image', () => {
+    renderCard([row('analogue', 10)]);
+    expect(screen.getByTestId('preview-h-analogue').style.width).toBe('58px');
   });
 });

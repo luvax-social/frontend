@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { FeedPeopleCard } from '@/features/luvax/components/feed/FeedPeopleCard';
 
@@ -18,18 +19,23 @@ const row = (overrides = {}) => ({
   ...overrides,
 });
 
+// The card owns the block mutation, so it needs a client even in tests that never block.
 const renderCard = (rows, props = {}) =>
   render(
-    <MemoryRouter>
-      <FeedPeopleCard
-        rows={rows}
-        onFollow={vi.fn()}
-        onDismissUser={vi.fn()}
-        onDismiss={vi.fn()}
-        viewport="desktop"
-        {...props}
-      />
-    </MemoryRouter>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <MemoryRouter>
+        <FeedPeopleCard
+          rows={rows}
+          onFollow={vi.fn()}
+          onDismissUser={vi.fn()}
+          onDismiss={vi.fn()}
+          viewport="desktop"
+          {...props}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 describe('FeedPeopleCard', () => {
@@ -63,7 +69,7 @@ describe('FeedPeopleCard', () => {
 
   it('shows one tile per view on mobile', () => {
     renderCard([row(), row({ id: 'u2' })], { viewport: 'mobile' });
-    const tile = screen.getByTestId('banner-u1').parentElement;
+    const tile = screen.getByTestId('banner-u1').closest('[style*="flex-shrink"]');
     // One tile per view means no gaps are subtracted from the track.
     expect(tile.style.width).toContain('100% - 0px');
   });
@@ -72,7 +78,8 @@ describe('FeedPeopleCard', () => {
     renderCard([row()]);
     // The avatar is the element between the banner and the name; a silent no-op edit once left it
     // at 60px while every other number assumed 96, which opened a hole above the name.
-    const avatar = screen.getByTestId('banner-u1').nextElementSibling.nextElementSibling;
+    const avatar =
+      screen.getByTestId('banner-u1').parentElement.nextElementSibling.nextElementSibling;
     expect(avatar.style.width).toBe('96px');
     expect(avatar.style.height).toBe('96px');
   });
@@ -86,7 +93,7 @@ describe('FeedPeopleCard', () => {
 
   it('shows two tiles per view on desktop', () => {
     renderCard([row(), row({ id: 'u2' })]);
-    const tile = screen.getByTestId('banner-u1').parentElement;
+    const tile = screen.getByTestId('banner-u1').closest('[style*="flex-shrink"]');
     // Two tiles per view subtract the single 10px gap between them.
     expect(tile.style.width).toContain('100% - 10px');
   });
@@ -121,14 +128,53 @@ describe('FeedPeopleCard', () => {
     expect(onFollow).not.toHaveBeenCalled();
   });
 
-  it('gives each per-account dismiss control its own accessible name', () => {
+  it('gives each per-account options control its own accessible name', () => {
     renderCard([row(), row({ id: 'u2', username: 'theo', displayName: 'Theo' })]);
-    expect(screen.getByRole('button', { name: /dismiss nadia/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /dismiss theo/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /options for nadia/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /options for theo/i })).toBeTruthy();
   });
 
-  it('links the name to the account profile by id', () => {
+  it('offers follow, hide, block and report from one account menu', () => {
     renderCard([row()]);
-    expect(screen.getByRole('link', { name: /nadia/i }).getAttribute('href')).toContain('u1');
+    fireEvent.click(screen.getByRole('button', { name: /options for nadia/i }));
+    expect(screen.getByRole('button', { name: /follow @nadia/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /do not suggest this account/i })).toBeTruthy();
+    // Block and report are the two irreversible rows, and the menu marks them apart in red.
+    expect(screen.getByRole('button', { name: /block @nadia/i }).className).toMatch(/is-danger/);
+    expect(screen.getByRole('button', { name: /^report$/i }).className).toMatch(/is-danger/);
+  });
+
+  it('stops suggesting one account from its own menu', () => {
+    const onDismissUser = vi.fn();
+    renderCard([row()], { onDismissUser });
+    fireEvent.click(screen.getByRole('button', { name: /options for nadia/i }));
+    fireEvent.click(screen.getByRole('button', { name: /do not suggest this account/i }));
+    expect(onDismissUser).toHaveBeenCalledWith('u1');
+  });
+
+  it('hides the whole card from the section menu rather than from a close button', () => {
+    const onDismiss = vi.fn();
+    renderCard([row()], { onDismiss });
+    expect(screen.queryByRole('button', { name: /dismiss/i })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /suggestion options/i }));
+    fireEvent.click(screen.getByRole('button', { name: /hide suggestions for now/i }));
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('sends the banner, the avatar and the name to the same profile', () => {
+    renderCard([row()]);
+    const href = screen.getByRole('link', { name: /nadia/i }).getAttribute('href');
+    expect(href).toContain('u1');
+    const tile = screen.getByTestId('banner-u1').closest('[style*="flex-shrink"]');
+    const links = [...tile.querySelectorAll('a')];
+    expect(links).toHaveLength(3);
+    links.forEach((link) => expect(link.getAttribute('href')).toBe(href));
+  });
+
+  it('squares the tile on mobile and rounds it on desktop', () => {
+    renderCard([row()], { viewport: 'mobile' });
+    expect(
+      screen.getByTestId('banner-u1').closest('[style*="flex-shrink"]').style.borderRadius
+    ).toBe('0px');
   });
 });

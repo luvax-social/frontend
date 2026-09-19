@@ -26,9 +26,16 @@ describe('interleaveFeed', () => {
     expect(result.indexOf('[hashtags]')).toBe(15);
   });
 
-  it('rotates the type at each slot', () => {
+  it('rotates the type at each slot and then stops', () => {
     const result = kinds(interleaveFeed(posts(20), all, [])).filter((x) => x.startsWith('['));
-    expect(result).toEqual(['[stories]', '[people]', '[hashtags]', '[stories]']);
+    // Three types, three cards. The fourth slot at post 18 stays empty rather than starting the
+    // rotation again with the same content.
+    expect(result).toEqual(['[stories]', '[people]', '[hashtags]']);
+  });
+
+  it('never repeats a card type however long the feed is', () => {
+    const result = kinds(interleaveFeed(posts(60), all, [])).filter((x) => x.startsWith('['));
+    expect(result).toHaveLength(new Set(result).size);
   });
 
   it('gives the slot to the next eligible type when one has no data', () => {
@@ -43,7 +50,7 @@ describe('interleaveFeed', () => {
     const result = kinds(
       interleaveFeed(posts(14), { stories: false, people: true, hashtags: true }, [])
     ).filter((x) => x.startsWith('['));
-    expect(result).toEqual(['[people]', '[hashtags]', '[people]']);
+    expect(result).toEqual(['[people]', '[hashtags]']);
   });
 
   it('leaves the slot empty rather than inserting a card with no data', () => {
@@ -80,16 +87,16 @@ describe('interleaveFeed', () => {
     expect(result.filter((x) => x === '[stories]')).toHaveLength(0);
   });
 
-  it('keeps rendering the one remaining type when the others are dismissed', () => {
+  it('shows the one remaining type once when the others are dismissed', () => {
     const result = kinds(interleaveFeed(posts(9), all, ['stories', 'people'])).filter((x) =>
       x.startsWith('[')
     );
-    expect(result).toEqual(['[hashtags]', '[hashtags]']);
+    expect(result).toEqual(['[hashtags]']);
   });
 
   it('gives every card a stable key', () => {
     const items = interleaveFeed(posts(14), all, []).filter((item) => item.kind === 'card');
-    expect(items.map((item) => item.key)).toEqual(['stories-0', 'people-1', 'hashtags-2']);
+    expect(items.map((item) => item.key)).toEqual(['stories', 'people', 'hashtags']);
     expect(new Set(items.map((item) => item.key)).size).toBe(3);
   });
 

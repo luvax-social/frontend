@@ -34,8 +34,9 @@ describe('FeedInjectedList', () => {
     renderList({
       cards: { stories: <div data-testid="story-card" />, people: null, hashtags: null },
     });
-    // Two slots in nine posts, and stories is the only type with data, so it fills both.
-    expect(screen.getAllByTestId('story-card')).toHaveLength(2);
+    // Two slots in nine posts, but a type is used at most once, so the second slot stays empty
+    // rather than repeating the same three accounts five posts later.
+    expect(screen.getAllByTestId('story-card')).toHaveLength(1);
     expect(screen.getAllByTestId(/^post-/)).toHaveLength(9);
   });
 

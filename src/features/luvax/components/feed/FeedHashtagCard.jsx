@@ -48,16 +48,17 @@ export function FeedHashtagCard({ rows = [], onDismiss, viewport = 'desktop' }) 
       }
     >
       <div style={{ padding: isMobile ? '0 12px 12px' : '0 16px 14px' }}>
-        {rows.map((row, index) => (
+        {rows.map((row) => (
           <div key={row.hashtagId}>
-            {index > 0 ? <div style={{ height: 1, background: v.borderSubtle }} /> : null}
+            {/* No divider between rows. The hairlines that used to sit here read as borders the
+                post cards do not have, so the rows are separated by their own padding instead. */}
             <Link
               to={routeTo.hashtag(row.name)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '9px 0',
+                padding: isMobile ? '11px 0' : '10px 0',
                 textDecoration: 'none',
                 color: 'inherit',
               }}

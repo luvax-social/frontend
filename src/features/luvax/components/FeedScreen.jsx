@@ -246,11 +246,11 @@ export function FeedInjectedList({
 // zoom multiplies it, so the rendered column reads near the photo-first target
 // the owner asked for. See docs/layout-overhaul/layout-decisions.md.
 //
-// Widened from 412 when the right rail left this screen. It fits inside the shell's unchanged 680
-// main column, so no shell geometry moves, and it stays inside the 632 story-rail band above so
-// the two bands stay concentric. It also lets the people-card scroller show three tiles rather
-// than two.
-const FEED_COLUMN = 560;
+// Widening this to 560 when the rail left the screen made a post with a large image no longer fit
+// in one frame, which is the thing the column width exists to protect. Back to 412: the suggestion
+// cards size themselves as a fraction of the column, so they follow it down rather than forcing it
+// wider.
+const FEED_COLUMN = 412;
 
 // The story rail spans wider than the post column, so it reads as its own band
 // across the top of the feed rather than sitting inside the post width.

@@ -16,39 +16,6 @@ export const suggestionKeys = {
  * the response here is deliberate: the component's shape is the one the rail renders, and bending
  * a working component to a wire format is the wrong way round.
  */
-/**
- * Source label to the copy shown under a suggested account's handle.
- *
- * The backend stores which sources produced the suggestion, not how strongly, so a label is the
- * whole truth available - not a count. "3 mutuals" and "#analogue" would need queries that do not
- * exist yet and are deliberately out of scope.
- *
- * Ordered strongest first. A row carrying several labels shows the first that matches, because a
- * shared follow explains itself and a behavioural signal does not.
- */
-const REASON_COPY = [
-  ['graph', 'followed by people you follow'],
-  ['gorse', 'similar to accounts you follow'],
-  ['affinity', "posts you've engaged with"],
-];
-
-/**
- * Resolves the reason line from the comma-separated source labels.
- *
- * Returns null - which renders nothing - for a cold-start row, an empty string, and any label this
- * client does not recognise. Rendering an unknown label raw would leak an internal name into
- * someone else's feed.
- *
- * @param {string|null|undefined} sources - Comma-separated labels from the API.
- * @returns {string|null} The copy to render, or null to omit the line.
- */
-export const reasonFor = (sources) => {
-  if (!sources) return null;
-  const present = new Set(sources.split(',').map((label) => label.trim()));
-  const match = REASON_COPY.find(([label]) => present.has(label));
-  return match ? match[1] : null;
-};
-
 export const toRow = (item) => {
   const user = item?.user ?? {};
   const state = item?.viewerState ?? {};
@@ -62,7 +29,7 @@ export const toRow = (item) => {
     // Not on the shared UserSummaryResponse: the suggestions endpoint carries them beside it, so
     // they sit on the item rather than on item.user.
     bannerUrl: item?.bannerUrl ?? null,
-    reason: reasonFor(item?.sources),
+    followerCount: item?.followerCount ?? 0,
     // A pending request to a private account is not a follow, and must not render as one.
     isFollowing: Boolean(state.isFollowing),
     isFollowRequested: Boolean(state.isFollowRequested),

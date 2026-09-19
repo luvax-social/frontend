@@ -10,7 +10,7 @@ const row = (overrides = {}) => ({
   displayName: 'Nadia',
   avatarUrl: null,
   bannerUrl: null,
-  reason: 'followed by people you follow',
+  followerCount: 1240,
   verified: false,
   verifiedCategory: null,
   isFollowing: false,
@@ -38,14 +38,49 @@ describe('FeedPeopleCard', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the reason line', () => {
+  it('shows the follower count', () => {
     renderCard([row()]);
-    expect(screen.getByText('followed by people you follow')).toBeTruthy();
+    expect(screen.getByTestId('followers-u1').textContent).toMatch(/1240 followers/);
   });
 
-  it('omits the reason line entirely when there is no reason', () => {
-    renderCard([row({ reason: null })]);
-    expect(screen.queryByTestId('reason-u1')).toBeNull();
+  it('no longer renders the suggestion reason', () => {
+    renderCard([row()]);
+    expect(screen.queryByText(/followed by people you follow/i)).toBeNull();
+  });
+
+  it('offers scroll arrows once there are more rows than fit', () => {
+    renderCard([
+      row(),
+      row({ id: 'u2', username: 'theo' }),
+      row({ id: 'u3', username: 'ines' }),
+      row({ id: 'u4', username: 'mira' }),
+    ]);
+    expect(screen.getByRole('button', { name: /more suggestions/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /previous suggestions/i })).toBeTruthy();
+  });
+
+  it('omits the arrows when everything already fits', () => {
+    renderCard([row()]);
+    expect(screen.queryByRole('button', { name: /more suggestions/i })).toBeNull();
+  });
+
+  it('disables the previous arrow at the start of the list', () => {
+    renderCard([row(), row({ id: 'u2' }), row({ id: 'u3' }), row({ id: 'u4' })]);
+    expect(screen.getByRole('button', { name: /previous suggestions/i }).disabled).toBe(true);
+  });
+
+  it('shows one tile per view on mobile', () => {
+    renderCard([row(), row({ id: 'u2' })], { viewport: 'mobile' });
+    const tile = screen.getByTestId('banner-u1').parentElement;
+    // One tile per view means no gaps are subtracted from the track.
+    expect(tile.style.width).toContain('100% - 0px');
+  });
+
+  it('shows three tiles per view on desktop', () => {
+    renderCard([row(), row({ id: 'u2' })]);
+    const tile = screen.getByTestId('banner-u1').parentElement;
+    // Three tiles per view subtract the two 10px gaps between them.
+    expect(tile.style.width).toContain('100% - 20px');
   });
 
   it('falls back to the accent-dim wash when the account has no banner', () => {

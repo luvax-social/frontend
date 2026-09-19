@@ -39,18 +39,22 @@ export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   let cursor = 0;
   let slot = 0;
 
+  // A type is used at most once in a feed. Rotating without this let one type fill every slot
+  // whenever the others had no data, so the same three accounts and the same three hashtags came
+  // back every five posts and the suggestions read as a loop rather than as recommendations.
+  const used = new Set();
+
   const place = () => {
     for (let offset = 0; offset < CARD_TYPES.length; offset += 1) {
       const type = CARD_TYPES[(cursor + offset) % CARD_TYPES.length];
-      if (availability[type] && !skipped.has(type)) {
+      if (availability[type] && !skipped.has(type) && !used.has(type)) {
         cursor = (cursor + offset + 1) % CARD_TYPES.length;
-        // The key carries the slot so React can tell two renderings of the same card type apart;
-        // dismissal does not, for the reason on the parameter above.
-        return { kind: 'card', type, key: `${type}-${slot}` };
+        used.add(type);
+        return { kind: 'card', type, key: type };
       }
     }
-    // Nothing eligible. The slot stays empty rather than rendering a shell, and the next slot is
-    // unaffected.
+    // Nothing eligible, either because no type has data or because every type has already had its
+    // turn. The slot stays empty rather than rendering a shell or repeating a card.
     return null;
   };
 

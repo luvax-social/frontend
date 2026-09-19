@@ -9,9 +9,11 @@ import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 import { LxIcon } from '../primitives';
 import { FeedInjectedCard } from './FeedInjectedCard';
 
-// Lifted from PostMedia so the suggestion scroller's arrows and the post carousel's arrows are
-// the same control rather than two that merely resemble each other.
-const CONTROL_BG = 'rgba(255,255,255,0.9)';
+// Geometry is lifted from PostMedia so the two controls in the column read as one control. The
+// fill is not: the post carousel's arrows sit over a photograph, while these sit over a name, so
+// they are carried at a lower opacity and lean on the blur behind them to stay legible without
+// hiding the text they overlap.
+const CONTROL_BG = 'rgba(255,255,255,0.62)';
 const CONTROL_FG = '#1c1a17';
 const CONTROL_SHADOW = '0 1px 5px rgba(0,0,0,0.3)';
 
@@ -45,9 +47,10 @@ export function FeedPeopleCard({
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
 
-  // One tile per view on mobile, three on larger viewports. The gap is subtracted so three tiles
-  // plus two gaps come to exactly the track width and nothing is clipped at the right edge.
-  const perView = isMobile ? 1 : 3;
+  // One tile per view on mobile, two on larger viewports. Two rather than three so each account
+  // gets enough width to read as a card rather than a column. The gap is subtracted so the tiles
+  // plus the gaps between them come to exactly the track width and nothing is clipped.
+  const perView = isMobile ? 1 : 2;
   const gap = 10;
   const tileWidth = `calc((100% - ${gap * (perView - 1)}px) / ${perView})`;
 
@@ -131,7 +134,7 @@ export function FeedPeopleCard({
                   data-testid={`banner-${row.id}`}
                   data-fallback={row.bannerUrl ? 'false' : 'true'}
                   style={{
-                    height: isMobile ? 84 : 72,
+                    height: isMobile ? 84 : 88,
                     background: row.bannerUrl
                       ? `url(${row.bannerUrl}) center/cover no-repeat`
                       : v.accentDim,
@@ -165,7 +168,7 @@ export function FeedPeopleCard({
                   style={{
                     position: 'absolute',
                     left: '50%',
-                    top: isMobile ? 52 : 44,
+                    top: isMobile ? 52 : 56,
                     transform: 'translateX(-50%)',
                     width: isMobile ? 66 : 60,
                     height: isMobile ? 66 : 60,
@@ -179,7 +182,7 @@ export function FeedPeopleCard({
                 />
                 <div
                   style={{
-                    padding: isMobile ? '38px 12px 14px' : '34px 10px 12px',
+                    padding: isMobile ? '38px 12px 14px' : '42px 14px 14px',
                     textAlign: 'center',
                   }}
                 >
@@ -302,8 +305,8 @@ function ScrollArrow({ side, onClick }) {
         border: 'none',
         background: CONTROL_BG,
         boxShadow: CONTROL_SHADOW,
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',

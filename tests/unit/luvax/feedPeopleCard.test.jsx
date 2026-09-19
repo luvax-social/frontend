@@ -97,11 +97,11 @@ describe('FeedPeopleCard', () => {
     expect(tile.style.width).toContain('100% - 0px');
   });
 
-  it('shows three tiles per view on desktop', () => {
+  it('shows two tiles per view on desktop', () => {
     renderCard([row(), row({ id: 'u2' })]);
     const tile = screen.getByTestId('banner-u1').parentElement;
-    // Three tiles per view subtract the two 10px gaps between them.
-    expect(tile.style.width).toContain('100% - 20px');
+    // Two tiles per view subtract the single 10px gap between them.
+    expect(tile.style.width).toContain('100% - 10px');
   });
 
   it('falls back to the accent-dim wash when the account has no banner', () => {

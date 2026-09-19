@@ -187,13 +187,8 @@ import { PostCard } from './PostCard';
 import { interleaveFeed } from '../utils/feedInterleave';
 import { useSuggestions, useFollowSuggestion, useDismissSuggestion } from '../hooks/useSuggestions';
 import { useTrendingPreviews } from '../hooks/useTrendingPreviews';
-import { useStoryDiscovery } from '../hooks/useStoryDiscovery';
-import { FeedStoryCard } from './feed/FeedStoryCard';
 import { FeedPeopleCard } from './feed/FeedPeopleCard';
 import { FeedHashtagCard } from './feed/FeedHashtagCard';
-
-/** How many story cards one feed may carry, however many authors have stories to show. */
-const MAX_STORY_CARDS = 4;
 
 /**
  * One tab's posts with the suggestion cards placed among them.
@@ -201,10 +196,9 @@ const MAX_STORY_CARDS = 4;
  * Exported for its own test. The cadence itself lives in `feedInterleave` and is tested there; this
  * component only renders what that function returns, so the two concerns fail separately.
  *
- * `cards` maps a type to a factory taking that type's occurrence index and returning an element or
- * null, and `availability` says how many times each type may appear. The factory is what lets the
- * story card render a different author on each appearance; a plain element could only ever be the
- * same card twice.
+ * `cards` maps a type to its rendered element or null, and `availability` says which types may
+ * appear. Null covers loading, error and empty alike: all three mean the same thing here, which is
+ * that the card does not render and does not consume its slot.
  */
 export function FeedInjectedList({
   posts,
@@ -235,7 +229,7 @@ export function FeedInjectedList({
             assumeFollowing={assumeFollowing}
           />
         ) : (
-          <div key={item.key}>{cards[item.type]?.(item.occurrence)}</div>
+          <div key={item.key}>{cards[item.type]}</div>
         )
       )}
     </div>
@@ -311,7 +305,6 @@ function FeedTabPanel({
   const dismissCard = (key) =>
     setDismissedCards((prev) => (prev.includes(key) ? prev : [...prev, key]));
 
-  const { entries: discoveryEntries } = useStoryDiscovery(8);
   const { data: trendingRows } = useTrendingPreviews(3);
   const { data: suggestionRows } = useSuggestions(8);
   const followSuggestion = useFollowSuggestion();
@@ -319,41 +312,26 @@ function FeedTabPanel({
 
   // Rendered elements rather than raw data, so FeedInjectedList stays ignorant of what each card
   // needs and the "no data means no card" rule is one null check instead of three.
-  // Stories is the one repeatable type: each appearance carries a different author, so the count
-  // of authors is how many times the card may appear. Capped so the feed stays mostly posts.
-  const storyCapacity = Math.min(discoveryEntries.length, MAX_STORY_CARDS);
-
   const cards = {
-    stories: (occurrence) =>
-      discoveryEntries[occurrence] ? (
-        <FeedStoryCard
-          entry={discoveryEntries[occurrence]}
-          viewport={viewport}
-          onDismiss={() => dismissCard('stories')}
-        />
-      ) : null,
-    people: () =>
-      suggestionRows?.length ? (
-        <FeedPeopleCard
-          rows={suggestionRows}
-          viewport={viewport}
-          onFollow={(id) => followSuggestion.mutate(id)}
-          onDismissUser={(id) => dismissSuggestion.mutate(id)}
-          onDismiss={() => dismissCard('people')}
-        />
-      ) : null,
-    hashtags: () =>
-      trendingRows?.length ? (
-        <FeedHashtagCard
-          rows={trendingRows}
-          viewport={viewport}
-          onDismiss={() => dismissCard('hashtags')}
-        />
-      ) : null,
+    people: suggestionRows?.length ? (
+      <FeedPeopleCard
+        rows={suggestionRows}
+        viewport={viewport}
+        onFollow={(id) => followSuggestion.mutate(id)}
+        onDismissUser={(id) => dismissSuggestion.mutate(id)}
+        onDismiss={() => dismissCard('people')}
+      />
+    ) : null,
+    hashtags: trendingRows?.length ? (
+      <FeedHashtagCard
+        rows={trendingRows}
+        viewport={viewport}
+        onDismiss={() => dismissCard('hashtags')}
+      />
+    ) : null,
   };
 
   const availability = {
-    stories: storyCapacity,
     people: Boolean(suggestionRows?.length),
     hashtags: Boolean(trendingRows?.length),
   };

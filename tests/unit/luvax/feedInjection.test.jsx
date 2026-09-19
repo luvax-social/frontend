@@ -15,8 +15,8 @@ const renderList = (props) =>
     <MemoryRouter>
       <FeedInjectedList
         posts={posts(9)}
-        cards={{ stories: () => null, people: () => null, hashtags: () => null }}
-        availability={{ stories: 0, people: false, hashtags: false }}
+        cards={{ people: null, hashtags: null }}
+        availability={{ people: false, hashtags: false }}
         tweaks={{ density: 'default', showTags: true }}
         viewport="desktop"
         betweenPosts={56}
@@ -33,25 +33,20 @@ describe('FeedInjectedList', () => {
 
   it('places a card among the posts when one has data', () => {
     renderList({
-      cards: {
-        stories: (i) => <div data-testid={`story-card-${i}`} />,
-        people: () => null,
-        hashtags: () => null,
-      },
-      availability: { stories: 1, people: false, hashtags: false },
+      cards: { people: <div data-testid="people-card" />, hashtags: null },
+      availability: { people: true, hashtags: false },
     });
-    expect(screen.getByTestId('story-card-0')).toBeTruthy();
+    expect(screen.getByTestId('people-card')).toBeTruthy();
     expect(screen.getAllByTestId(/^post-/)).toHaveLength(9);
   });
 
   it('never drops a post to make room for a card', () => {
     renderList({
       cards: {
-        stories: () => <div data-testid="story-card" />,
-        people: () => <div data-testid="people-card" />,
-        hashtags: () => null,
+        people: <div data-testid="people-card" />,
+        hashtags: <div data-testid="hashtag-card" />,
       },
-      availability: { stories: 1, people: true, hashtags: false },
+      availability: { people: true, hashtags: true },
     });
     posts(9).forEach((post) => expect(screen.getByTestId(`post-${post.id}`)).toBeTruthy());
   });
@@ -59,15 +54,14 @@ describe('FeedInjectedList', () => {
   it('honours a dismissed card type in every slot', () => {
     renderList({
       cards: {
-        stories: () => <div data-testid="story-card" />,
-        people: () => <div data-testid="people-card" />,
-        hashtags: () => null,
+        people: <div data-testid="people-card" />,
+        hashtags: <div data-testid="hashtag-card" />,
       },
-      availability: { stories: 1, people: true, hashtags: false },
-      dismissed: ['stories'],
+      availability: { people: true, hashtags: true },
+      dismissed: ['people'],
     });
-    expect(screen.queryByTestId('story-card')).toBeNull();
-    expect(screen.getAllByTestId('people-card').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('people-card')).toBeNull();
+    expect(screen.getAllByTestId('hashtag-card').length).toBeGreaterThan(0);
   });
 
   it('renders an empty feed without crashing', () => {

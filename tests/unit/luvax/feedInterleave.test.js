@@ -7,8 +7,8 @@ import {
 } from '@/features/luvax/utils/feedInterleave';
 
 const posts = (n) => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}` }));
-const all = { stories: true, people: true, hashtags: true };
-const none = { stories: false, people: false, hashtags: false };
+const all = { people: true, hashtags: true };
+const none = { people: false, hashtags: false };
 const kinds = (items) =>
   items.map((item) => (item.kind === 'post' ? item.post.id : `[${item.type}]`));
 
@@ -16,21 +16,20 @@ describe('interleaveFeed', () => {
   it('exports the cadence the design settled on', () => {
     expect(FIRST_SLOT).toBe(3);
     expect(SLOT_STRIDE).toBe(5);
-    expect(CARD_TYPES).toEqual(['stories', 'people', 'hashtags']);
+    expect(CARD_TYPES).toEqual(['people', 'hashtags']);
   });
 
   it('places the first card after three posts and every five thereafter', () => {
     const result = kinds(interleaveFeed(posts(14), all, []));
-    expect(result.indexOf('[stories]')).toBe(3);
-    expect(result.indexOf('[people]')).toBe(9);
-    expect(result.indexOf('[hashtags]')).toBe(15);
+    expect(result.indexOf('[people]')).toBe(3);
+    expect(result.indexOf('[hashtags]')).toBe(9);
   });
 
   it('rotates the type at each slot and then stops', () => {
     const result = kinds(interleaveFeed(posts(20), all, [])).filter((x) => x.startsWith('['));
-    // Three types, three cards. The fourth slot at post 18 stays empty rather than starting the
-    // rotation again with the same content.
-    expect(result).toEqual(['[stories]', '[people]', '[hashtags]']);
+    // Two types, two cards. Later slots stay empty rather than starting the rotation again with
+    // the same content.
+    expect(result).toEqual(['[people]', '[hashtags]']);
   });
 
   it('never repeats a once-only card type however long the feed is', () => {
@@ -38,41 +37,10 @@ describe('interleaveFeed', () => {
     expect(result).toHaveLength(new Set(result).size);
   });
 
-  it('repeats a counted type up to its count, and no further', () => {
-    const result = kinds(
-      interleaveFeed(posts(60), { stories: 3, people: false, hashtags: false }, [])
-    ).filter((x) => x.startsWith('['));
-    expect(result).toEqual(['[stories]', '[stories]', '[stories]']);
-  });
-
-  it('numbers each appearance so a repeatable card knows which subject is its own', () => {
-    const items = interleaveFeed(
-      posts(60),
-      { stories: 3, people: false, hashtags: false },
-      []
-    ).filter((item) => item.kind === 'card');
-    expect(items.map((item) => item.occurrence)).toEqual([0, 1, 2]);
-    expect(items.map((item) => item.key)).toEqual(['stories-0', 'stories-1', 'stories-2']);
-  });
-
-  it('treats a count of zero as no data', () => {
-    const result = kinds(interleaveFeed(posts(9), { stories: 0 }, []));
-    expect(result.filter((x) => x.startsWith('['))).toHaveLength(0);
-  });
-
   it('gives the slot to the next eligible type when one has no data', () => {
-    const result = kinds(
-      interleaveFeed(posts(9), { stories: false, people: true, hashtags: true }, [])
-    );
-    expect(result[3]).toBe('[people]');
-    expect(result.filter((x) => x === '[stories]')).toHaveLength(0);
-  });
-
-  it('does not advance the rotation past a type it skipped', () => {
-    const result = kinds(
-      interleaveFeed(posts(14), { stories: false, people: true, hashtags: true }, [])
-    ).filter((x) => x.startsWith('['));
-    expect(result).toEqual(['[people]', '[hashtags]']);
+    const result = kinds(interleaveFeed(posts(9), { people: false, hashtags: true }, []));
+    expect(result[3]).toBe('[hashtags]');
+    expect(result.filter((x) => x === '[people]')).toHaveLength(0);
   });
 
   it('leaves the slot empty rather than inserting a card with no data', () => {
@@ -90,7 +58,7 @@ describe('interleaveFeed', () => {
   });
 
   it('appends one card when the feed is shorter than the first slot', () => {
-    expect(kinds(interleaveFeed(posts(2), all, []))).toEqual(['p1', 'p2', '[stories]']);
+    expect(kinds(interleaveFeed(posts(2), all, []))).toEqual(['p1', 'p2', '[people]']);
   });
 
   it('appends nothing to a short feed when no card has data', () => {
@@ -98,19 +66,19 @@ describe('interleaveFeed', () => {
   });
 
   it('appends a card even when there are no posts at all', () => {
-    expect(kinds(interleaveFeed([], all, []))).toEqual(['[stories]']);
+    expect(kinds(interleaveFeed([], all, []))).toEqual(['[people]']);
   });
 
   it('gives a dismissed type its slot to the next eligible one, in every slot', () => {
-    const result = kinds(interleaveFeed(posts(20), all, ['stories']));
-    expect(result[3]).toBe('[people]');
+    const result = kinds(interleaveFeed(posts(20), all, ['people']));
+    expect(result[3]).toBe('[hashtags]');
     // The point of keying dismissal on the type: it stays gone, rather than returning at the next
     // slot the way a slot-keyed dismissal would.
-    expect(result.filter((x) => x === '[stories]')).toHaveLength(0);
+    expect(result.filter((x) => x === '[people]')).toHaveLength(0);
   });
 
-  it('shows the one remaining type once when the others are dismissed', () => {
-    const result = kinds(interleaveFeed(posts(9), all, ['stories', 'people'])).filter((x) =>
+  it('shows the one remaining type once when the other is dismissed', () => {
+    const result = kinds(interleaveFeed(posts(9), all, ['people'])).filter((x) =>
       x.startsWith('[')
     );
     expect(result).toEqual(['[hashtags]']);
@@ -118,8 +86,8 @@ describe('interleaveFeed', () => {
 
   it('gives every card a stable key', () => {
     const items = interleaveFeed(posts(14), all, []).filter((item) => item.kind === 'card');
-    expect(items.map((item) => item.key)).toEqual(['stories-0', 'people-0', 'hashtags-0']);
-    expect(new Set(items.map((item) => item.key)).size).toBe(3);
+    expect(items.map((item) => item.key)).toEqual(['people', 'hashtags']);
+    expect(new Set(items.map((item) => item.key)).size).toBe(2);
   });
 
   it('does not care where API page boundaries fell', () => {

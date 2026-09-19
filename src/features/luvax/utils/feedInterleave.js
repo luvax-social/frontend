@@ -11,7 +11,7 @@
  */
 
 /** Rotation order. One card type per slot, cycling. */
-export const CARD_TYPES = ['stories', 'people', 'hashtags'];
+export const CARD_TYPES = ['people', 'hashtags'];
 
 /** Posts before the first card. */
 export const FIRST_SLOT = 3;
@@ -23,15 +23,12 @@ export const SLOT_STRIDE = 5;
  * Builds the feed's render list.
  *
  * @param {Array<Object>} posts - Flattened, filtered posts in display order.
- * @param {Object} availability - `{stories, people, hashtags}`. A boolean means the type may be
- *   used once; a number means it may be used that many times, each occurrence carrying a different
- *   subject. A loading, failed and empty query all read the same way - the card does not render.
+ * @param {Object} availability - `{people, hashtags}`; a type is eligible only when true, so a
+ *   loading, failed and empty query all read the same way - the card does not render.
  * @param {Array<string>} dismissed - Card *types* the reader has dismissed this session. Keyed by
  *   type rather than by slot on purpose: dismissing a card means "not this kind of thing", not "not
  *   in this position", and a slot-keyed dismissal would bring the same card back five posts later.
- * @returns {Array<Object>} `{kind:'post', post}` and `{kind:'card', type, key, occurrence}`
- *   entries, where `occurrence` is the zero-based index of that type's appearance and is what a
- *   repeatable card uses to pick which subject it shows.
+ * @returns {Array<Object>} `{kind:'post', post}` and `{kind:'card', type, key}` entries.
  */
 export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   const skipped = new Set(dismissed);
@@ -42,32 +39,22 @@ export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   let cursor = 0;
   let slot = 0;
 
-  // How many times a type may appear. A boolean is the once-only case: the people and hashtag
-  // cards carry the same rows every time, so a second one would be the same card twice. A count is
-  // the repeatable case: the story card shows one author per appearance, so repeating it is more
-  // variety rather than less, and the number available is the natural bound.
-  const capacityOf = (type) => {
-    const value = availability[type];
-    if (typeof value === 'number') return Math.max(0, value);
-    return value ? 1 : 0;
-  };
-
-  const used = {};
+  // A type is used at most once in a feed. Both cards carry the same rows every time they are
+  // built, so a second one would be the same card twice, which is what made the suggestions read
+  // as a loop rather than as recommendations.
+  const used = new Set();
 
   const place = () => {
     for (let offset = 0; offset < CARD_TYPES.length; offset += 1) {
       const type = CARD_TYPES[(cursor + offset) % CARD_TYPES.length];
-      const taken = used[type] ?? 0;
-      if (taken < capacityOf(type) && !skipped.has(type)) {
+      if (availability[type] && !skipped.has(type) && !used.has(type)) {
         cursor = (cursor + offset + 1) % CARD_TYPES.length;
-        used[type] = taken + 1;
-        // The occurrence rides on the item so a repeatable card knows which subject is its own,
-        // and the key stays unique per occurrence for React.
-        return { kind: 'card', type, key: `${type}-${taken}`, occurrence: taken };
+        used.add(type);
+        return { kind: 'card', type, key: type };
       }
     }
-    // Nothing eligible, either because no type has data or because every type has been used as
-    // often as it may be. The slot stays empty rather than rendering a shell.
+    // Nothing eligible, either because no type has data or because every type has had its turn.
+    // The slot stays empty rather than rendering a shell.
     return null;
   };
 

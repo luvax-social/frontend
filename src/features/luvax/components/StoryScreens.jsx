@@ -10,7 +10,6 @@ import {
   useRecordStoryView,
   useLikeStory,
 } from '../hooks/useStories';
-import { useStoryDiscovery } from '../hooks/useStoryDiscovery';
 import { useMediaUpload } from '../hooks/useMediaUpload';
 import { useMediaConstraints } from '../hooks/useMediaConstraints';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -366,27 +365,12 @@ function StoryStage({ children, onClose, footer, viewport, peeks, height }) {
  * every story of one person and continue straight into the next person's
  * without the caller needing to reopen the viewer.
  */
-/**
- * Every story this viewer can currently play, flattened to a single sequence.
- *
- * Reads both caches, not just the tray. The tray holds followed accounts; discovery holds the
- * authors the feed's story cards offer, which overlap but are not the same set. Reading only the
- * tray is why opening a story from a feed card used to land on an empty stage: the id was real,
- * the viewer simply had no record of it and fell through to its not-found branch.
- *
- * Entries are keyed by author so an account present in both caches contributes one entry rather
- * than two, and the tray wins because its copy is the one story mutations already write back to.
- */
 function useFlatStorySequence() {
   const { tray } = useStoryFeed();
-  const { entries: discovered } = useStoryDiscovery();
-  return useMemo(() => {
-    const byAuthor = new Map();
-    [...discovered, ...tray].forEach((entry) => byAuthor.set(entry.userId, entry));
-    return [...byAuthor.values()].flatMap((entry) =>
-      entry.stories.map((story) => ({ story, entry }))
-    );
-  }, [tray, discovered]);
+  return useMemo(
+    () => tray.flatMap((entry) => entry.stories.map((story) => ({ story, entry }))),
+    [tray]
+  );
 }
 
 // ─── Story View Screen ──────────────────────────────────────────────────────

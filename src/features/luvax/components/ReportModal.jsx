@@ -30,6 +30,7 @@ const ENTITY_LABELS = {
   post: 'post',
   comment: 'comment',
   user: 'account',
+  story: 'story',
 };
 
 /**

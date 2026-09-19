@@ -33,9 +33,31 @@ describe('interleaveFeed', () => {
     expect(result).toEqual(['[stories]', '[people]', '[hashtags]']);
   });
 
-  it('never repeats a card type however long the feed is', () => {
+  it('never repeats a once-only card type however long the feed is', () => {
     const result = kinds(interleaveFeed(posts(60), all, [])).filter((x) => x.startsWith('['));
     expect(result).toHaveLength(new Set(result).size);
+  });
+
+  it('repeats a counted type up to its count, and no further', () => {
+    const result = kinds(
+      interleaveFeed(posts(60), { stories: 3, people: false, hashtags: false }, [])
+    ).filter((x) => x.startsWith('['));
+    expect(result).toEqual(['[stories]', '[stories]', '[stories]']);
+  });
+
+  it('numbers each appearance so a repeatable card knows which subject is its own', () => {
+    const items = interleaveFeed(
+      posts(60),
+      { stories: 3, people: false, hashtags: false },
+      []
+    ).filter((item) => item.kind === 'card');
+    expect(items.map((item) => item.occurrence)).toEqual([0, 1, 2]);
+    expect(items.map((item) => item.key)).toEqual(['stories-0', 'stories-1', 'stories-2']);
+  });
+
+  it('treats a count of zero as no data', () => {
+    const result = kinds(interleaveFeed(posts(9), { stories: 0 }, []));
+    expect(result.filter((x) => x.startsWith('['))).toHaveLength(0);
   });
 
   it('gives the slot to the next eligible type when one has no data', () => {
@@ -96,7 +118,7 @@ describe('interleaveFeed', () => {
 
   it('gives every card a stable key', () => {
     const items = interleaveFeed(posts(14), all, []).filter((item) => item.kind === 'card');
-    expect(items.map((item) => item.key)).toEqual(['stories', 'people', 'hashtags']);
+    expect(items.map((item) => item.key)).toEqual(['stories-0', 'people-0', 'hashtags-0']);
     expect(new Set(items.map((item) => item.key)).size).toBe(3);
   });
 

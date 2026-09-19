@@ -38,8 +38,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Hashtag tokens inside post captions are now links to that hashtag's page.
 
 ### Changed
+- A story in the feed is now one author's story shown as a post-shaped block, with the author, the time, like, a reply box and a report control on the block itself, instead of a rail of small tiles. Several appear through the feed, each with a different author.
+- Stories in the feed include the accounts you follow, not only suggested ones, and a story you have already opened is not offered again.
 - The feed column is back to its original width; widening it for the suggestion cards had made a post with a large image no longer fit in one view.
-- Suggested accounts show two to a row on desktop and one on mobile, with arrow controls and swipe, and drop the explanatory line in favour of the account's follower count.
+- Suggested accounts show two to a row on desktop and one on mobile, with a larger avatar, arrow controls clear of the name, and the account's follower count in place of the explanatory line.
 - Suggestion cards sit directly on the feed background with their content edge to edge, matching the posts around them, instead of inside a raised rounded container.
 - The suggested-accounts carousel is paged by arrows overlaid on the track itself, in the same position and style as the post carousel's, rather than by controls in the card header.
 - Each kind of suggestion card now appears at most once in a feed, instead of repeating the same accounts and hashtags every five posts.
@@ -73,6 +75,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- Opening a story from the feed now plays it. The viewer only knew about stories from accounts you follow, so a story opened from a suggestion card landed on an empty screen.
+- A story playing in the feed pauses while the full-screen viewer is open, so two stories no longer advance at once.
 - A text area in the panel now shows the focus ring every other control there has; keyboard focus in the support reply, note and escalation fields was previously invisible.
 - A disabled outlined button now reads as disabled in every variant. Only the filled one was styled for it, so "close as rejected" and "escalate" looked clickable while the field they depend on was empty.
 - The panel now reloads once automatically when a route's code chunk fails to load after a new deploy or a dev restart, instead of leaving a dead "something went wrong" page.

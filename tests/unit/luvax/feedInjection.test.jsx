@@ -15,7 +15,8 @@ const renderList = (props) =>
     <MemoryRouter>
       <FeedInjectedList
         posts={posts(9)}
-        cards={{ stories: null, people: null, hashtags: null }}
+        cards={{ stories: () => null, people: () => null, hashtags: () => null }}
+        availability={{ stories: 0, people: false, hashtags: false }}
         tweaks={{ density: 'default', showTags: true }}
         viewport="desktop"
         betweenPosts={56}
@@ -32,21 +33,25 @@ describe('FeedInjectedList', () => {
 
   it('places a card among the posts when one has data', () => {
     renderList({
-      cards: { stories: <div data-testid="story-card" />, people: null, hashtags: null },
+      cards: {
+        stories: (i) => <div data-testid={`story-card-${i}`} />,
+        people: () => null,
+        hashtags: () => null,
+      },
+      availability: { stories: 1, people: false, hashtags: false },
     });
-    // Two slots in nine posts, but a type is used at most once, so the second slot stays empty
-    // rather than repeating the same three accounts five posts later.
-    expect(screen.getAllByTestId('story-card')).toHaveLength(1);
+    expect(screen.getByTestId('story-card-0')).toBeTruthy();
     expect(screen.getAllByTestId(/^post-/)).toHaveLength(9);
   });
 
   it('never drops a post to make room for a card', () => {
     renderList({
       cards: {
-        stories: <div data-testid="story-card" />,
-        people: <div data-testid="people-card" />,
-        hashtags: null,
+        stories: () => <div data-testid="story-card" />,
+        people: () => <div data-testid="people-card" />,
+        hashtags: () => null,
       },
+      availability: { stories: 1, people: true, hashtags: false },
     });
     posts(9).forEach((post) => expect(screen.getByTestId(`post-${post.id}`)).toBeTruthy());
   });
@@ -54,10 +59,11 @@ describe('FeedInjectedList', () => {
   it('honours a dismissed card type in every slot', () => {
     renderList({
       cards: {
-        stories: <div data-testid="story-card" />,
-        people: <div data-testid="people-card" />,
-        hashtags: null,
+        stories: () => <div data-testid="story-card" />,
+        people: () => <div data-testid="people-card" />,
+        hashtags: () => null,
       },
+      availability: { stories: 1, people: true, hashtags: false },
       dismissed: ['stories'],
     });
     expect(screen.queryByTestId('story-card')).toBeNull();

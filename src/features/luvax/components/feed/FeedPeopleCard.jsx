@@ -168,7 +168,7 @@ export function FeedPeopleCard({
                   style={{
                     position: 'absolute',
                     left: '50%',
-                    top: isMobile ? 52 : 56,
+                    top: isMobile ? 40 : 44,
                     transform: 'translateX(-50%)',
                     width: isMobile ? 66 : 60,
                     height: isMobile ? 66 : 60,
@@ -182,7 +182,7 @@ export function FeedPeopleCard({
                 />
                 <div
                   style={{
-                    padding: isMobile ? '38px 12px 14px' : '42px 14px 14px',
+                    padding: isMobile ? '58px 12px 14px' : '60px 14px 14px',
                     textAlign: 'center',
                   }}
                 >
@@ -296,7 +296,9 @@ function ScrollArrow({ side, onClick }) {
       onClick={onClick}
       style={{
         position: 'absolute',
-        top: '50%',
+        // Sits over the banner rather than the centre of the tile: centred, it landed on the
+        // display name and the follower count, which are the two things the card exists to show.
+        top: 38,
         [side]: 8,
         transform: 'translateY(-50%)',
         width: 30,

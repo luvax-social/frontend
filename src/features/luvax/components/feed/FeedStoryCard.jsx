@@ -45,6 +45,7 @@ export function FeedStoryCard({ entries = [], viewport = 'desktop', onDismiss })
       accentEyebrow="people you may know"
       onDismiss={onDismiss}
       dismissLabel="Dismiss story suggestions"
+      viewport={viewport}
       trailing={
         <span
           style={{
@@ -65,7 +66,7 @@ export function FeedStoryCard({ entries = [], viewport = 'desktop', onDismiss })
         style={{
           display: 'flex',
           gap: 10,
-          padding: isMobile ? '0 12px 14px' : '0 16px 16px',
+          padding: '0 0 4px',
           overflowX: 'auto',
           scrollbarWidth: 'none',
         }}

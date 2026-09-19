@@ -32,6 +32,7 @@ export function FeedHashtagCard({ rows = [], onDismiss, viewport = 'desktop' }) 
       eyebrow="trending now"
       onDismiss={onDismiss}
       dismissLabel="Dismiss trending hashtags"
+      viewport={viewport}
       trailing={
         <Link
           to={ROUTES.EXPLORE}
@@ -47,7 +48,9 @@ export function FeedHashtagCard({ rows = [], onDismiss, viewport = 'desktop' }) 
         </Link>
       }
     >
-      <div style={{ padding: isMobile ? '0 12px 12px' : '0 16px 14px' }}>
+      {/* The same inset PostCard gives its text rows, so the tag names line up with the caption of
+          the post above rather than sitting inside a box of their own. */}
+      <div style={{ padding: isMobile ? '0 14px 10px' : '0 4px 10px' }}>
         {rows.map((row) => (
           <div key={row.hashtagId}>
             {/* No divider between rows. The hairlines that used to sit here read as borders the

@@ -40,7 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - The feed column is back to its original width; widening it for the suggestion cards had made a post with a large image no longer fit in one view.
 - Suggested accounts show three to a row on desktop and one on mobile, with arrow controls and swipe, and drop the explanatory line in favour of the account's follower count.
-- Suggestion cards no longer draw internal borders, matching the plain surface the post cards use.
+- Suggestion cards sit directly on the feed background with their content edge to edge, matching the posts around them, instead of inside a raised rounded container.
+- The suggested-accounts carousel is paged by arrows overlaid on the track itself, in the same position and style as the post carousel's, rather than by controls in the card header.
 - Each kind of suggestion card now appears at most once in a feed, instead of repeating the same accounts and hashtags every five posts.
 - Trending hashtags are drawn from a deeper pool and rotate per visit rather than always showing the busiest few.
 - The feed no longer shows the right rail. Explore and the hashtag page still show trending hashtags and suggested accounts in the rail.

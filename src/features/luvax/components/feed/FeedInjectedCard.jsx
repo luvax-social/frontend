@@ -22,23 +22,27 @@ export function FeedInjectedCard({
   trailing = null,
   onDismiss,
   dismissLabel,
+  viewport = 'desktop',
   children,
 }) {
+  const isMobile = viewport === 'mobile';
   return (
     <section
       aria-label={accentEyebrow ? `${eyebrow}, ${accentEyebrow}` : eyebrow}
-      style={{
-        background: v.surface,
-        borderRadius: 12,
-        overflow: 'hidden',
-      }}
+      // No card chrome, for the reason PostCard gives: the feed is one continuous surface on the
+      // page background, and posts are told apart by the space between them rather than by a box.
+      // A raised surface with a radius here drew a visible container around the suggestions that
+      // nothing else in the column has.
+      style={{ background: v.base }}
     >
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '14px 16px 10px',
+          // Matches the horizontal inset PostCard gives its own text rows, so the eyebrow lines
+          // up with the caption of the post above it.
+          padding: isMobile ? '12px 14px 10px' : '12px 4px 10px',
           gap: 12,
         }}
       >

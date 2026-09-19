@@ -43,7 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Suggestion cards no longer draw internal borders, matching the plain surface the post cards use.
 - Each kind of suggestion card now appears at most once in a feed, instead of repeating the same accounts and hashtags every five posts.
 - Trending hashtags are drawn from a deeper pool and rotate per visit rather than always showing the busiest few.
-- The feed no longer shows the right rail; its post column widened from 412 to 560 to use the space. Explore and the hashtag page still show trending hashtags and suggested accounts in the rail.
+- The feed no longer shows the right rail. Explore and the hashtag page still show trending hashtags and suggested accounts in the rail.
 - The staff support ticket is now laid out in the titled cards the report detail uses — its state and facts, what the requester wrote, the reply already sent, and the controls each in their own region — instead of one undivided card.
 - Answering a support ticket now names each field and says where its text goes: the reply that reaches the requester and the note that never leaves the panel are labelled as such, on fields visible against the card rather than the same colour as it.
 - The action log opens the action beside the log, with the row it belongs to marked, instead of over a scrim that hid the rows being compared.

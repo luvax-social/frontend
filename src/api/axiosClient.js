@@ -2,48 +2,7 @@ import axios from 'axios';
 
 import { useAuthStore } from '@/store/useAuthStore';
 
-const ENV_API_URL = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '');
-
-/**
- * Reduces a configured API URL to the path the browser should request.
- *
- * An absolute value keeps only its pathname; a value that is already a path is
- * returned unchanged. Anything else yields an empty string so the caller falls
- * back to the default.
- */
-const apiPathOf = (value) => {
-  if (!value) {
-    return '';
-  }
-
-  try {
-    return new URL(value).pathname.replace(/\/$/, '');
-  } catch {
-    return value.startsWith('/') ? value : '';
-  }
-};
-
-/**
- * Same-origin path for every request, never VITE_API_URL's origin.
- *
- * Taking the path in dev and the origin in a production build is what produced
- * two authentication failures visible only under a production bundle, because
- * dev always took the other branch. A cross-origin XHR is subject to CORS, and
- * Spring Security answers an origin missing from CORS_ALLOWED_ORIGINS with
- * `403 Invalid CORS request` from its CORS filter before authentication runs,
- * which is why the symptom was a 403 rather than a 401 or a 429 and why a
- * relative fetch from the same page succeeded where this client did not. The
- * refresh cookie is additionally `SameSite=Lax`, which a browser withholds from
- * a cross-site subresource request, so refresh fails wherever the API is a
- * genuinely different site; locally that stays hidden because cookies are not
- * port-scoped, making :4173 and :8080 same-site.
- *
- * A path gives dev, preview and production one topology, served by the dev
- * proxy, the preview proxy and a deployment reverse proxy. VITE_API_URL keeps
- * its absolute form for `resolveEndpoint` in `services/realtime/stompConnection`,
- * because the WebSocket endpoints sit outside `/api` and cannot be proxied.
- */
-const API_BASE_URL = apiPathOf(ENV_API_URL) || '/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '') || '/api/v1';
 // The refresh token is delivered as an HttpOnly cookie, so every endpoint that
 // issues, rotates, or clears it must send credentials. In dev the browser talks
 // to the Vite proxy, which is same-origin and would carry the cookie anyway; a

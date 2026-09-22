@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { LxDropdownMenu } from '@/components/ui/lx-dropdown-menu';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 export { LxIcon, LxAvatar, LxDropdownMenu };
 
@@ -106,13 +106,7 @@ export function LxDivider({ mx = 0 }) {
 
 export function LxBottomSheet({ open, onClose, children, height = '70vh' }) {
   useEscapeKey(open, onClose);
-
-  useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   // Render nothing when closed. A sheet left mounted parks its shadowed, rounded
   // panel just below the fold; with one sheet per post, dozens stack and their

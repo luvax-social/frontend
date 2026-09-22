@@ -16,7 +16,7 @@ import { routeTo } from '@/config/constants';
 // either slice because both read it, and a feature must not import another's internals.
 import { CONTENT_REMOVAL_TYPES, appealPath, appealableActionId } from '@/utils/appealEntry';
 import { toast } from './Toast';
-import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
+import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 // Keyed on the notification_type enum values the backend actually sends.
 // The previous mapping tested for 'like' and 'comment', which are not members
@@ -228,22 +228,17 @@ function NotifRow({ n, onAccept, onDecline, pendingRequestIds }) {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: v.fontBody, fontSize: 14, color: v.ink, lineHeight: 1.4 }}>
-          <strong
-            style={{ fontWeight: 600, cursor: 'pointer' }}
+          <LxVerifiedName
+            name={displayName}
+            verified={!isSystemModeration && actor.isVerified}
+            category={actor.verifiedCategory}
+            size={12}
             onClick={(e) => {
               e.stopPropagation();
               if (actor?.id) navigate(routeTo.userProfile(actor.id));
             }}
-          >
-            {displayName}
-            {isSystemModeration ? null : (
-              <LxVerifiedBadge
-                verified={actor.isVerified}
-                category={actor.verifiedCategory}
-                size={12}
-              />
-            )}
-          </strong>{' '}
+            textStyle={{ fontWeight: 600 }}
+          />{' '}
           <span style={{ color: v.ink2 }}>{text}</span>
         </div>
         {n.message ? (
@@ -362,16 +357,13 @@ function RequestRow({ req, onAccept, onDecline }) {
 
       <div style={{ flex: 1, minWidth: 0, alignSelf: 'center' }}>
         <div style={{ fontFamily: v.fontBody, fontSize: 14, color: v.ink, lineHeight: 1.4 }}>
-          <strong
-            onClick={() => user?.id && navigate(routeTo.userProfile(user.id))}
-            style={{ fontWeight: 600, cursor: 'pointer' }}
-          >
-            {getDisplayName(user)}
-          </strong>
-          <LxVerifiedBadge
+          <LxVerifiedName
+            name={getDisplayName(user)}
             verified={user?.isVerified}
             category={user?.verifiedCategory}
             size={12}
+            onClick={() => user?.id && navigate(routeTo.userProfile(user.id))}
+            textStyle={{ fontWeight: 600 }}
           />{' '}
           <span style={{ color: v.ink2 }}>requested to follow you</span>
         </div>

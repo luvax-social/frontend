@@ -724,6 +724,19 @@ button:disabled {
   }
 }
 
+/* The screen behind a route overlay (post detail, story) is a fresh remount of the same screen,
+   not the instance that was already showing a moment ago - see the lx-bg-frozen usage in
+   LuvaxApp. Nothing under it should visibly move because of that remount: this kills every
+   animation and transition in the subtree, the same blanket approach reduced-motion above takes,
+   scoped to just this wrapper instead of the whole document. */
+.lx-bg-frozen,
+.lx-bg-frozen *,
+.lx-bg-frozen *::before,
+.lx-bg-frozen *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,

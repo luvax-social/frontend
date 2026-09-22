@@ -4,6 +4,7 @@ import { useInView } from 'react-intersection-observer';
 import { v } from '@/config/tokens';
 import { extractPageContent, getUserSummary } from '@/utils/helpers';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { routeTo } from '@/config/constants';
 import { LxIcon } from './primitives';
 import { UserCard } from './UserCard';
@@ -28,12 +29,7 @@ export function FollowListModal({ open, onClose, userId, mode }) {
     if (inView && hasNextPage && !isFetchingNextPage) fetchNextPage();
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   if (!open) return null;
 

@@ -79,6 +79,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- The verified badge beside a name now lines up with it everywhere it appears, instead of sitting visibly low against the name's optical centre.
+- Opening a post's detail view no longer scrolls the feed behind it back to the top or replays its entrance animation; the feed now stays exactly where it was.
+- A verified badge inside a comment no longer sits flush against the comment text that follows it.
 - A text area in the panel now shows the focus ring every other control there has; keyboard focus in the support reply, note and escalation fields was previously invisible.
 - A disabled outlined button now reads as disabled in every variant. Only the filled one was styled for it, so "close as rejected" and "escalate" looked clickable while the field they depend on was empty.
 - The panel now reloads once automatically when a route's code chunk fails to load after a new deploy or a dev restart, instead of leaving a dead "something went wrong" page.

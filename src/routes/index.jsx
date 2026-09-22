@@ -64,8 +64,22 @@ function RootLayout() {
       <AuthSessionBootstrap />
       {/* Sends every navigation to the top of the page and returns the browser
           to its previous offset on back, replacing the manual scroll reset the
-          screen switch used to perform. */}
-      <ScrollRestoration />
+          screen switch used to perform.
+
+          getKey opts overlay addresses (post detail, story) out of that default: their own
+          location carries the screen underneath in `state.background`, and keying the
+          restoration entry by that background path - rather than by the overlay's own path -
+          tells React Router this is the same page as before, not a new one to reset to the top.
+          Without it, opening an overlay was indistinguishable from a real navigation and reset
+          the page behind the overlay to (0, 0) on every open.
+
+          The fallback is the plain pathname rather than the default `location.key`: the save (on
+          the background page, before the overlay opens) and the restore (on the overlay's own
+          location, once it has) must resolve to the identical key, and `state.background` only
+          ever holds a pathname - keying the background's own visit by its `.key` instead would
+          save under one string and restore under another, and never match. */}
+      <ScrollRestoration getKey={(location) => location.state?.background || location.pathname} />
+
       {/* Screens under the authenticated shell are code-split, so a first visit to one suspends
           while its chunk downloads. One boundary here covers every route rather than each screen
           having to remember its own. */}

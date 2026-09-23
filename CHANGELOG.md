@@ -79,6 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The preview server proxies the API, so a production build can be exercised against a local backend.
 
 ### Fixed
+- A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.
 - The verified badge beside a name now lines up with it everywhere it appears, instead of sitting visibly low against the name's optical centre.
 - Opening a post's detail view no longer scrolls the feed behind it back to the top or replays its entrance animation; the feed now stays exactly where it was.
 - A verified badge inside a comment no longer sits flush against the comment text that follows it.
@@ -132,6 +133,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The standalone verification queue screen, whose function moved into the support console.
 
 ### Tests
+- A regression test asserts that every request able to receive the session cookie is sent with credentials.
 - A Playwright end-to-end project covering the anonymous appeal paths, run with `npm run test:e2e`: the lost-link recovery form submits and reaches its one success state, the challenge is re-armed after a refusal so a retry succeeds, and the status screen renders a known appeal, persists no token and answers every dead link identically.
 - Coverage proving the anonymous status screen renders one identical state for an unknown, an expired and a malformed token, that it writes no token to storage, and that it offers no control that could change anything.
 - Coverage proving the captcha is re-armed after every failed link-recovery submission, and that the confirmation is the same whatever the address turned out to be.

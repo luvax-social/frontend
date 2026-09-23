@@ -299,12 +299,17 @@ kept so the shared service modules can import a default; it is the same instance
 | `axiosClient` | Authenticated requests; auto-injects `Authorization: Bearer <token>`, auto-refreshes on 401 |
 | `publicClient` | Unauthenticated requests (login, register, forgot-password, OAuth exchange) |
 
-Base URL: `VITE_API_URL` env var (falls back to `http://localhost:8080/api/v1`).
-In dev mode (`import.meta.env.DEV`), Vite proxies `/api/v1` to the BE; `axiosClient` uses `/api/v1`.
+Base URL: `VITE_API_URL` env var, falling back to the relative `/api/v1` when it is unset.
+`.env.example` sets it to `http://localhost:8080/api/v1`, so local development calls the API
+cross-origin and does not pass through the Vite `/api` proxy; production calls
+`api.luvax.online` from `luvax.online`, also cross-origin.
+The proxy is used only when `VITE_API_URL` is left empty.
 
-The refresh token is delivered as an HttpOnly cookie, so the refresh call sends credentials and
-never reads the token from JavaScript. An absent in-memory refresh token is not a dead end: the
-cookie alone completes the refresh.
+The refresh token is delivered as an HttpOnly cookie, path-scoped to `/api/v1/auth`.
+Both clients default to `withCredentials: true`: across origins a browser discards a `Set-Cookie`
+and withholds the cookie unless the request carries credentials, so a sign-in request without
+them leaves no cookie and the next full page reload signs the user out.
+The refresh call never reads the token from JavaScript; the cookie alone completes it.
 
 ---
 

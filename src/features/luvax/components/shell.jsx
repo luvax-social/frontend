@@ -8,7 +8,8 @@ import { LxIcon, LxAvatar, LxBtn } from './primitives';
 import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 import { useSuggestions, useFollowSuggestion, useDismissSuggestion } from '../hooks/useSuggestions';
 import { usePendingFollowRequests } from '../hooks/useSocial';
-import { useUnreadCount } from '../hooks/useNotifications';
+import { useNotificationState } from '../hooks/useNotifications';
+import { NotificationBadge } from '../notifications/NotificationBadge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isPanelRole } from '@/config/roles';
 import { useConversations } from '@/features/messages/hooks/useConversations';
@@ -49,12 +50,6 @@ export function LxAppBar({ screen, navigate }) {
   };
   const isSubpage = Boolean(subpages[screen]);
   const subpageLabel = subpages[screen];
-
-  const { data: requestsResponse } = usePendingFollowRequests();
-  const requests = extractPageContent(requestsResponse);
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadCount = unreadResponse?.data?.unreadCount ?? 0;
-  const hasNotifications = requests.length > 0 || unreadCount > 0;
 
   return (
     <header
@@ -165,47 +160,10 @@ export function LxAppBar({ screen, navigate }) {
             justifyContent: 'flex-end',
           }}
         >
-          {isSubpage ? (
-            <div style={{ width: 24, height: 24 }} />
-          ) : (
-            <button
-              onClick={() => navigate(ROUTES.NOTIFICATIONS)}
-              className="lx-header-icon-btn"
-              style={{
-                background: v.surface,
-                border: 'none',
-                borderRadius: '50%',
-                width: 36,
-                minWidth: 36,
-                height: 36,
-                aspectRatio: '1 / 1',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                boxShadow: 'none',
-                padding: 0,
-                flexShrink: 0,
-                marginRight: 2,
-              }}
-            >
-              <LxIcon name="bell" size={18} color={v.ink2} />
-              {hasNotifications && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: v.error,
-                  }}
-                />
-              )}
-            </button>
-          )}
+          {/* The bell used to live here, duplicating the bottom nav's own bell and its own
+              dot (D14). The bottom nav is the only nav surface always present on mobile, so
+              this slot stays an empty spacer of the same width rather than a second bell. */}
+          <div style={{ width: 36, height: 36 }} aria-hidden="true" />
         </div>
       </div>
     </header>
@@ -218,9 +176,10 @@ export function LxBottomNav({ active, navigate }) {
 
   const { data: requestsResponse } = usePendingFollowRequests();
   const requests = extractPageContent(requestsResponse);
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadCount = unreadResponse?.data?.unreadCount ?? 0;
-  const hasNotifications = requests.length > 0 || unreadCount > 0;
+  const { data: state } = useNotificationState();
+  const unseenCount = state?.unseen?.count ?? 0;
+  const unseenCapped = state?.unseen?.capped ?? false;
+  const hasFollowRequests = requests.length > 0;
   return (
     <nav
       style={{
@@ -248,6 +207,7 @@ export function LxBottomNav({ active, navigate }) {
             onClick={() => !t.disabled && navigate(t.path)}
             disabled={t.disabled}
             aria-disabled={t.disabled || undefined}
+            aria-label={t.label}
             title={t.disabled ? `${t.label} are not part of this build` : undefined}
             className="lx-tab-btn"
             style={{
@@ -272,18 +232,13 @@ export function LxBottomNav({ active, navigate }) {
               color={isActive ? v.accent : v.ink3}
               stroke={isActive ? 1.8 : 1.5}
             />
-            {t.id === 'notifications' && hasNotifications && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: '25%',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: v.error,
-                }}
-              />
+            {t.id === 'notifications' && (unseenCount > 0 || hasFollowRequests) && (
+              <span style={{ position: 'absolute', top: 2, right: '22%' }}>
+                <NotificationBadge
+                  count={hasFollowRequests ? Math.max(unseenCount, 1) : unseenCount}
+                  capped={unseenCapped}
+                />
+              </span>
             )}
           </button>
         );
@@ -606,9 +561,10 @@ export function LxSideRail({ active, navigate, visible = true }) {
   const canReachPanel = isPanelRole(role);
   const { data: requestsResponse } = usePendingFollowRequests();
   const requests = extractPageContent(requestsResponse);
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadCount = unreadResponse?.data?.unreadCount ?? 0;
-  const hasNotifications = requests.length > 0 || unreadCount > 0;
+  const { data: state } = useNotificationState();
+  const unseenCount = state?.unseen?.count ?? 0;
+  const unseenCapped = state?.unseen?.capped ?? false;
+  const hasFollowRequests = requests.length > 0;
 
   const rowStyle = (disabled) => ({
     width: '100%',
@@ -731,18 +687,13 @@ export function LxSideRail({ active, navigate, visible = true }) {
                 )}
               </span>
               <span style={labelStyle(isActive)}>{t.label}</span>
-              {t.id === 'notifications' && hasNotifications && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    left: RAIL_ICON_INSET + 12,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: v.error,
-                  }}
-                />
+              {t.id === 'notifications' && (unseenCount > 0 || hasFollowRequests) && (
+                <span style={{ position: 'absolute', top: 2, left: RAIL_ICON_INSET + 14 }}>
+                  <NotificationBadge
+                    count={hasFollowRequests ? Math.max(unseenCount, 1) : unseenCount}
+                    capped={unseenCapped}
+                  />
+                </span>
               )}
             </button>
           );

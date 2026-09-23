@@ -6,7 +6,7 @@ import { AvatarVisual } from './AvatarVisual';
 import { ConversationGreeting } from './ConversationGreeting';
 import { MessageAlbum } from './MessageAlbum';
 import { MessageBubble } from './MessageBubble';
-import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
+import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 // Matches MessageBubble's own avatar column - albums sit in the same left/right rail and need to
 // line up with the bubbles above and below them in the same run.
@@ -316,14 +316,13 @@ export function ChatCenterPanel({
           ) : null}
           <AvatarVisual thread={activeThread} size={32} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: v.fontBody, fontSize: 13, fontWeight: 700, color: v.ink }}>
-              {activeThread.name}
-              <LxVerifiedBadge
-                verified={activeThread.isVerified}
-                category={activeThread.verifiedCategory}
-                size={13}
-              />
-            </div>
+            <LxVerifiedName
+              name={activeThread.name}
+              verified={activeThread.isVerified}
+              category={activeThread.verifiedCategory}
+              size={13}
+              textStyle={{ fontFamily: v.fontBody, fontSize: 13, fontWeight: 700, color: v.ink }}
+            />
             <div style={{ fontFamily: v.fontMono, fontSize: 10, color: v.ink3 }}>
               {activeThread.nickname && activeThread.profileName
                 ? activeThread.profileName

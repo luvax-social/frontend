@@ -103,9 +103,21 @@ export function LxVerifiedBadge({ verified, category, categoryLabel, iconKey, si
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // Sits the badge on the optical centre of the name beside it. Baseline alignment alone
-        // drops it too low against cap-height text.
-        verticalAlign: '-0.14em',
+        // vertical-align resolves against this element's own font-size, not the name text's, so
+        // it must be pinned to `size` rather than left to inherit an ambient font-size - an
+        // inherited value put the badge visibly off-centre in any non-flex caller (a comment row,
+        // a profile header) while flex callers stayed correct only because flexbox ignores
+        // vertical-align outright and masked the bug.
+        fontSize: size,
+        // `middle` aligns to the parent's baseline plus half its x-height, which holds regardless
+        // of the ambient line-height. A fixed em offset (the previous approach) was tuned against
+        // one caller's line-height and drifted low in every other caller with a taller or absent
+        // line-height (a comment row at 1.42, a conversation row with no line-height set at all,
+        // inheriting the page's 24px default against 12.5px text) - the offset a font-size-relative
+        // em cannot see, since line-height never enters that computation. Baseline alone (the
+        // default) drops it lower still, sitting the badge at the text's descender line instead of
+        // its optical centre.
+        verticalAlign: 'middle',
         flexShrink: 0,
         lineHeight: 0,
       }}
@@ -117,6 +129,65 @@ export function LxVerifiedBadge({ verified, category, categoryLabel, iconKey, si
       <span aria-hidden="true" style={{ display: 'inline-flex', lineHeight: 0 }}>
         <LxIcon name={glyph} size={glyphSize} color="#FFFFFF" stroke={glyphStroke} />
       </span>
+    </span>
+  );
+}
+
+/**
+ * A name with its verified badge, centred against it by real flex alignment rather than by
+ * text-metric guesswork.
+ *
+ * `LxVerifiedBadge` alone still needs `vertical-align` to sit inline next to a name, and that
+ * property has no version that is actually correct: `baseline` drops it to the text's descender
+ * line, and `middle` - the fix that replaced that - aligns to half the font's x-height, a point
+ * that sits visibly below a name's optical centre because x-height itself sits in the lower part
+ * of the em box while a name typically opens on a cap-height letter. That is not a rounding error
+ * to chase with a bigger offset; it is what `middle` means, and it measured 1.6-2px low in every
+ * caller regardless of font-size or line-height. Flex's `align-items: center` centres against the
+ * line's actual box height instead of a font-metric approximation, which is what removes the
+ * drift rather than re-tuning it.
+ *
+ * Renders the badge only when `verified` is true, same as `LxVerifiedBadge` alone, so a caller
+ * can pass an unverified user straight through.
+ *
+ * @param {React.ReactNode} name the name/label content, placed before the badge
+ * @param {object} [textStyle] style applied to the wrapping span around `name`
+ * @param {number} [gap=4] space between the name and the badge, in px
+ */
+export function LxVerifiedName({
+  name,
+  verified,
+  category,
+  categoryLabel,
+  iconKey,
+  size = 14,
+  gap = 4,
+  onClick,
+  className,
+  style,
+  textStyle,
+}) {
+  return (
+    <span
+      onClick={onClick}
+      className={className}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        minWidth: 0,
+        gap,
+        cursor: onClick ? 'pointer' : undefined,
+        ...style,
+      }}
+    >
+      <span style={{ minWidth: 0, ...textStyle }}>{name}</span>
+      <LxVerifiedBadge
+        verified={verified}
+        category={category}
+        categoryLabel={categoryLabel}
+        iconKey={iconKey}
+        size={size}
+      />
     </span>
   );
 }

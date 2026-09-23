@@ -33,6 +33,7 @@ import { useUserProfile } from '../hooks/useUsers';
 import { useRelativeTime } from '../hooks/useRelativeTime';
 import { useViewport } from '../hooks/useViewport';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ReportModal } from './ReportModal';
 import { toast } from './Toast';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
@@ -40,7 +41,7 @@ import { REPORT_TYPES } from '@/services/report.service';
 import { routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
-import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
+import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 const HEART_COLOR = 'var(--lx-error)';
 const COMMENT_MAX_LENGTH = CHAR_LIMITS.comment;
@@ -404,23 +405,23 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId }) {
               wordBreak: 'break-word',
             }}
           >
-            <span
-              onClick={() => author.id && navigate(routeTo.userProfile(author.id))}
-              style={{
+            <LxVerifiedName
+              name={authorName}
+              verified={author.isVerified}
+              category={author.verifiedCategory}
+              size={12}
+              gap={7}
+              onClick={author.id ? () => navigate(routeTo.userProfile(author.id)) : undefined}
+              textStyle={{
                 fontFamily: v.fontBody,
                 fontSize: 12.5,
                 fontWeight: 600,
                 color: v.ink,
-                cursor: author.id ? 'pointer' : 'default',
-                marginRight: 7,
               }}
-            >
-              {authorName}
-            </span>
-            <LxVerifiedBadge
-              verified={author.isVerified}
-              category={author.verifiedCategory}
-              size={12}
+              // Same gap the name keeps before the badge, kept after it too: the badge is the
+              // last thing before the comment body starts, and without this it sits flush
+              // against the first letter of the comment.
+              style={{ marginRight: 7 }}
             />
             {editing ? null : (
               <span
@@ -842,14 +843,7 @@ export function PostDetailScreen({ overlay = false }) {
     commentInputRef.current?.focus();
   }, [replyingTo]);
 
-  useEffect(() => {
-    if (!overlay || typeof document === 'undefined') return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [overlay]);
+  useBodyScrollLock(overlay, location.state?.backgroundScrollY);
 
   const closePost = () => navigate(-1);
   // The post detail is a route overlay rather than an LxModal, so it did not
@@ -1126,24 +1120,19 @@ export function PostDetailScreen({ overlay = false }) {
           <LxAvatar size={32} src={authorAvatarUrl} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            onClick={() => targetUserId && navigate(routeTo.userProfile(targetUserId))}
-            style={{
+          <LxVerifiedName
+            name={authorName}
+            verified={author.isVerified}
+            category={author.verifiedCategory}
+            size={14}
+            onClick={targetUserId ? () => navigate(routeTo.userProfile(targetUserId)) : undefined}
+            textStyle={{
               fontFamily: v.fontBody,
               fontSize: 13.5,
               fontWeight: 600,
               color: v.ink,
               lineHeight: 1.15,
-              cursor: targetUserId ? 'pointer' : 'default',
-              display: 'inline-block',
             }}
-          >
-            {authorName}
-          </div>
-          <LxVerifiedBadge
-            verified={author.isVerified}
-            category={author.verifiedCategory}
-            size={14}
           />
         </div>
         <button

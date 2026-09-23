@@ -36,6 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Trending hashtags in the right rail, with a personalised tab and a platform tab and a marker on pinned hashtags.
 - Hashtag suggestions in the composer before any text is typed, replaced by live search results as soon as a `#` token is being written.
 - Hashtag tokens inside post captions are now links to that hashtag's page.
+- A notifications screen rewrite: chips for all, unread, comments, mentions, follows, system and verified actors, a pinned follow-requests entry with its own confirm and delete sub-view, and a numeric unseen badge shared across every navigation surface.
+- Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
 - Each suggested account carries an options menu instead of a close button, offering follow, stop suggesting this account, block and report, with the two irreversible actions marked in red.
@@ -77,6 +79,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Trending hashtags and people you may know are shown on explore below the width where the right rail is dropped, so neither feature is absent on a phone.
 - A hashtag result in search and explore now opens that hashtag's page instead of running a caption text search for its name, which returned unrelated posts or nothing at all.
 - The preview server proxies the API, so a production build can be exercised against a local backend.
+- Opening the notifications screen no longer marks every notification read; read state now follows only what is actually seen and what is tapped.
+- The unread indicator is a trailing dot per row instead of a full-row tint, which had lost contrast on its own timestamp in the dark theme.
+- Mark all as read only reaches rows fetched before the action, so anything arriving afterward stays unread.
+- The two duplicate notification bells and their two dots on phones are down to one, since the bottom navigation already carries its own.
 
 ### Fixed
 - A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.
@@ -124,6 +130,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The tablet shell no longer overflows the viewport at 768 pixels wide, where the reading column previously started off-screen and the right rail extended past the right edge.
 - The tablet right spacer now matches the left one, so the reading column is centred rather than sitting left of centre.
 - Layout decisions that depend on the viewport width now update when the window is resized within one breakpoint.
+- The mentions chip on the notifications screen now actually filters to mentions instead of repeating the unfiltered list.
+- Notifications past the first twenty are reachable by scrolling instead of stopping at the first page.
+- Warning and support-ticket notifications now show their own wording instead of a generic fallback, and never name the staff member who acted.
+- Post-removal and restoration notifications can now be appealed in place.
+- Notification rows are keyboard-focusable with a visible focus ring, and every icon-only navigation button carries an accessible name.
+- Post detail now pluralises the like count correctly and marks only the actual top comment as pinned, instead of every comment the backend happens to flag.
 
 ### Security
 - Neither the appeal link nor the appeal status link is copied into browser storage any more; both are read from the address only, which is the rule already applied to access tokens and matters more here because an appeal link authorises a write and a status link reads for ninety days.
@@ -131,6 +143,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Removed
 - The verification panel in account settings, and the unused service module behind it. Verification is a support category, and the panel was a second door with its own field styling.
 - The standalone verification queue screen, whose function moved into the support console.
+- The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
 - A regression test asserts that every request able to receive the session cookie is sent with credentials.
@@ -144,3 +157,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Unit coverage for the session bootstrap, pinning that each address restores a cookie-backed session rather than clearing it, and that the OAuth callback is left to complete its own exchange.
 - Unit coverage for the support request schemas, the declared-key request contracts, the ticket lifecycle helpers, and the console's role gating.
 - The verification request body is pinned to the exact field names the endpoint declares, so a name that exists only on the form fails a test rather than every submission.
+- Coverage for the notification cache reducers, the rolling time-section buckets, and the per-type sentence builder.
+- Coverage for the notifications screen's seen flow: one call on the first page load and none on any other chip, and mark-all-read bound to the most recently fetched page rather than the moment of the click.
+- A Playwright suite for the notifications screen at 390, 768, 1024, 1440 and 1920 pixels, covering the seen flow, chip filtering, the read/unread/delete menu with rollback, and an unavailable target.

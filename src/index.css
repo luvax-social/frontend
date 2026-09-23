@@ -745,6 +745,13 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+/* A full-bleed row (edge to edge, unlike a standalone button) needs an inward
+   offset so the ring stays visible instead of being clipped by its container. */
+.lx-focusable-row:focus-visible {
+  outline: 2px solid var(--lx-focus-ring);
+  outline-offset: -2px;
+}
+
 ::selection {
   background: var(--lx-accent-dim);
   color: var(--lx-ink);

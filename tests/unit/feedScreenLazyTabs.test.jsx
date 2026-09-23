@@ -41,10 +41,12 @@ function renderFeedScreen(initialPath = '/app') {
 
 describe('FeedScreen lazy tab fetching', () => {
   beforeEach(() => {
-    getFeedMock.mockReset().mockResolvedValue({ data: { content: [], nextCursor: null } });
-    getRecommendedFeedMock
-      .mockReset()
-      .mockResolvedValue({ data: { content: [], nextCursor: null } });
+    getFeedMock.mockReset().mockResolvedValue({
+      data: { content: [], nextCursor: null, pageInfo: { hasNextPage: false } },
+    });
+    getRecommendedFeedMock.mockReset().mockResolvedValue({
+      data: { content: [], nextCursor: null, pageInfo: { hasNextPage: false } },
+    });
   });
 
   it('fetches only the default (for-you) tab on mount, not both', async () => {

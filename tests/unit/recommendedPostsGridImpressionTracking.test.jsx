@@ -34,7 +34,9 @@ function withProviders(children) {
 describe('RecommendedPostsGrid impression tracking', () => {
   beforeEach(() => {
     useImpressionTrackingMock.mockReset();
-    getMock.mockReset().mockResolvedValue({ data: { data: { content: [post] } } });
+    getMock
+      .mockReset()
+      .mockResolvedValue({ data: { data: { content: [post], pageInfo: { hasNextPage: false } } } });
   });
 
   it('tracks each tile with the surface passed to the grid', async () => {

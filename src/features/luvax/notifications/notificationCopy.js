@@ -40,7 +40,9 @@ const SYSTEM_PHRASE = {
 export function notificationCopyParts(item) {
   const isSystem = item.category === 'system';
   const actors = isSystem ? [] : (item.actors ?? []);
-  const othersCount = isSystem ? 0 : Math.max(0, (item.actorCount ?? actors.length) - actors.length);
+  const othersCount = isSystem
+    ? 0
+    : Math.max(0, (item.actorCount ?? actors.length) - actors.length);
   const phrase = isSystem
     ? (SYSTEM_PHRASE[item.type] ?? 'took an action on your account')
     : (TYPE_PHRASE[item.type] ?? 'interacted with you');

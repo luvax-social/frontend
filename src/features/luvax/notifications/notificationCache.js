@@ -64,7 +64,9 @@ export function markRead(items, ids, readAt) {
  */
 export function markUnread(items, ids) {
   const idSet = new Set(ids);
-  return items.map((item) => (idSet.has(item.id) ? { ...item, isRead: false, readAt: null } : item));
+  return items.map((item) =>
+    idSet.has(item.id) ? { ...item, isRead: false, readAt: null } : item
+  );
 }
 
 /**

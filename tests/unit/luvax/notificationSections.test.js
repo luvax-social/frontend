@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { SECTION_ORDER, bucketFor, sectionFor } from '@/features/luvax/notifications/notificationSections';
+import {
+  SECTION_ORDER,
+  bucketFor,
+  sectionFor,
+} from '@/features/luvax/notifications/notificationSections';
 
 const NOW = new Date('2026-09-23T12:00:00.000Z');
 const hoursAgo = (h) => new Date(NOW.getTime() - h * 3600_000).toISOString();

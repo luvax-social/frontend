@@ -92,9 +92,12 @@ export const useDebouncedAdvanceSeen = () => {
     [advanceSeen]
   );
 
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
 
   return advance;
 };
@@ -104,7 +107,10 @@ export const useDebouncedAdvanceSeen = () => {
  * optimistic mutation's rollback, restored in full on error.
  */
 const snapshotCaches = (queryClient) => {
-  const listSnapshots = FILTERS.map((filter) => [filter, queryClient.getQueryData(notifKeys.list(filter))]);
+  const listSnapshots = FILTERS.map((filter) => [
+    filter,
+    queryClient.getQueryData(notifKeys.list(filter)),
+  ]);
   const stateSnapshot = queryClient.getQueryData(notifKeys.state());
   return { listSnapshots, stateSnapshot };
 };
@@ -224,10 +230,12 @@ export const useLiveNotifications = () => {
         }
         switch (envelope.event) {
           case 'upserted':
-            patchAllListsByFilter(queryClient, (filter) => (items) =>
-              itemMatchesFilter(envelope.item, filter)
-                ? upsertItem(items, envelope.item)
-                : removeItems(items, [envelope.item.id])
+            patchAllListsByFilter(
+              queryClient,
+              (filter) => (items) =>
+                itemMatchesFilter(envelope.item, filter)
+                  ? upsertItem(items, envelope.item)
+                  : removeItems(items, [envelope.item.id])
             );
             break;
           case 'deleted':

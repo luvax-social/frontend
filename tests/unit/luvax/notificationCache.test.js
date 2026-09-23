@@ -116,7 +116,11 @@ describe('markReadUpTo', () => {
     const items = [
       item({ id: 'n1', activityAt: '2026-09-23T09:00:00.000000Z', isRead: true, readAt: 'x' }),
     ];
-    const next = markReadUpTo(items, { activityAt: '2026-09-23T10:00:00.000000Z', id: 'z' }, undefined);
+    const next = markReadUpTo(
+      items,
+      { activityAt: '2026-09-23T10:00:00.000000Z', id: 'z' },
+      undefined
+    );
     expect(next[0]).toMatchObject({ isRead: false, readAt: null });
   });
 });
@@ -137,8 +141,12 @@ describe('itemMatchesFilter', () => {
     expect(itemMatchesFilter(item({ category: 'system' }), 'system')).toBe(true);
   });
   it('verified matches only when the newest actor (actors[0]) is verified', () => {
-    expect(itemMatchesFilter(item({ actors: [{ id: 'u1', isVerified: true }] }), 'verified')).toBe(true);
-    expect(itemMatchesFilter(item({ actors: [{ id: 'u1', isVerified: false }] }), 'verified')).toBe(false);
+    expect(itemMatchesFilter(item({ actors: [{ id: 'u1', isVerified: true }] }), 'verified')).toBe(
+      true
+    );
+    expect(itemMatchesFilter(item({ actors: [{ id: 'u1', isVerified: false }] }), 'verified')).toBe(
+      false
+    );
     expect(itemMatchesFilter(item({ actors: [] }), 'verified')).toBe(false);
   });
 });

@@ -45,9 +45,9 @@ describe('notificationCopyParts', () => {
     ['mention_comment', 'mentioned you in a comment'],
     ['story_view', 'viewed your story'],
   ])('phrase for %s is %s', (type, expected) => {
-    expect(notificationCopyParts({ type, category: 'x', actors: [actor('a')], actorCount: 1 }).phrase).toBe(
-      expected
-    );
+    expect(
+      notificationCopyParts({ type, category: 'x', actors: [actor('a')], actorCount: 1 }).phrase
+    ).toBe(expected);
   });
 
   it.each([

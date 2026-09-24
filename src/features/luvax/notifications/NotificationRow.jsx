@@ -21,7 +21,9 @@ export function NotificationRow({ item, navigate }) {
   const timeStr = useRelativeTime(item.activityAt);
   const { isSystem, actors, othersCount, phrase } = notificationCopyParts(item);
   const { path, isNavigable } = resolveNotificationTarget(item);
-  const thumbnailUrl = item.preview?.media?.thumbnailUrl;
+  // PreviewMediaResponse's field is "url" (the CDN URL, enough on its own to draw a
+  // thumbnail) - not "thumbnailUrl", which this row never received a value under.
+  const thumbnailUrl = item.preview?.media?.url;
 
   const handleTap = () => {
     if (!isNavigable || !path) return;

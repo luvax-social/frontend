@@ -11,9 +11,11 @@ const KIND_LABEL = {
 };
 
 /**
- * The row's second line: a muted "no longer available" state, or whatever preview the
- * target carries (thumbnail and/or quoted snippet). Renders nothing when the target
- * carries no preview at all, which is the common case for a follow row.
+ * The row's second line: a muted "no longer available" state, or the quoted snippet a
+ * comment/reply preview carries, each truncated to one line so a long reply does not push
+ * the rest of the list down. Renders nothing when the target carries no preview text at
+ * all, which is the common case for a follow or a like row. The preview's own thumbnail, if
+ * any, is rendered separately in the row's trailing slot (NotificationRow), not here.
  * @param {{target: object, preview: ?object}} props
  */
 export function NotificationPreview({ target, preview }) {
@@ -25,58 +27,39 @@ export function NotificationPreview({ target, preview }) {
     );
   }
 
-  if (!preview) return null;
+  if (!preview || (!preview.parentCommentSnippet && !preview.commentSnippet)) return null;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6 }}>
-      {preview.media?.thumbnailUrl ? (
+    <div style={{ marginTop: 6, minWidth: 0 }}>
+      {preview.parentCommentSnippet ? (
         <div
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 6,
-            flexShrink: 0,
-            background: `url(${preview.media.thumbnailUrl}) center/cover no-repeat`,
+            fontFamily: v.fontBody,
+            fontSize: 12,
+            color: v.ink3,
+            borderLeft: `2px solid ${v.borderSubtle}`,
+            paddingLeft: 8,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
-        />
+        >
+          Your comment: &ldquo;{preview.parentCommentSnippet}&rdquo;
+        </div>
       ) : null}
-      {preview.parentCommentSnippet || preview.commentSnippet ? (
-        // flex: 1 (not width: 100%) so this column only claims the space the thumbnail
-        // sibling leaves behind; min-width: 0 overrides the flex-item default of
-        // min-width: auto, which for nowrap text otherwise resolves to the full,
-        // un-truncated text width and defeats the ellipsis below it.
-        <div style={{ minWidth: 0, flex: 1 }}>
-          {preview.parentCommentSnippet ? (
-            <div
-              style={{
-                fontFamily: v.fontBody,
-                fontSize: 12,
-                color: v.ink3,
-                borderLeft: `2px solid ${v.borderSubtle}`,
-                paddingLeft: 8,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              Your comment: &ldquo;{preview.parentCommentSnippet}&rdquo;
-            </div>
-          ) : null}
-          {preview.commentSnippet ? (
-            <div
-              style={{
-                fontFamily: v.fontBody,
-                fontSize: 12,
-                color: v.ink2,
-                marginTop: 2,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              &ldquo;{preview.commentSnippet}&rdquo;
-            </div>
-          ) : null}
+      {preview.commentSnippet ? (
+        <div
+          style={{
+            fontFamily: v.fontBody,
+            fontSize: 12,
+            color: v.ink2,
+            marginTop: 2,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          &ldquo;{preview.commentSnippet}&rdquo;
         </div>
       ) : null}
     </div>

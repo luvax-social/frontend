@@ -5,7 +5,7 @@ import { appealPath } from '@/utils/appealEntry';
 import { toast } from '../components/Toast';
 
 /**
- * Inline row actions: "follow back" for a follow row the viewer does not yet follow, or
+ * Inline row actions: "follow" for a follow row the viewer does not yet follow, or
  * the appeal link for an appealable moderation row. `useFollow`'s own onMutate/onError
  * already snapshot and restore the relationship cache on failure (see useSocial.js), so
  * this component adds no optimistic logic of its own - it only surfaces the error toast.
@@ -25,11 +25,11 @@ export function NotificationActions({ item, navigate }) {
           const actorId = item.actors?.[0]?.id;
           if (!actorId) return;
           follow.mutate(actorId, {
-            onError: (error) => toast(error?.message || "couldn't follow back. try again."),
+            onError: (error) => toast(error?.message || "couldn't follow. try again."),
           });
         }}
       >
-        follow back
+        follow
       </LxBtn>
     );
   }

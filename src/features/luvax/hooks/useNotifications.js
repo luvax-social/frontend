@@ -164,32 +164,6 @@ export const useMarkRead = () => {
   });
 };
 
-export const useMarkUnread = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id) => notifService.markUnread(id),
-    onMutate: async (id) => {
-      const snapshot = snapshotCaches(queryClient);
-      patchAllLists(queryClient, (items) => markUnread(items, [id]));
-      return snapshot;
-    },
-    onError: (_error, _id, snapshot) => snapshot && restoreCaches(queryClient, snapshot),
-  });
-};
-
-export const useDeleteNotification = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id) => notifService.deleteNotification(id),
-    onMutate: async (id) => {
-      const snapshot = snapshotCaches(queryClient);
-      patchAllLists(queryClient, (items) => removeItems(items, [id]));
-      return snapshot;
-    },
-    onError: (_error, _id, snapshot) => snapshot && restoreCaches(queryClient, snapshot),
-  });
-};
-
 /**
  * Sends `upTo` = the newest row actually rendered (the head of the most recently fetched
  * page 0), never the client's own idea of "now" - rows that arrive after that fetch stay

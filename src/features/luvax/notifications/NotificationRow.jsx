@@ -1,7 +1,5 @@
-import { useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
-import { LxIcon } from '../components/primitives';
 import { useRelativeTime } from '../hooks/useRelativeTime';
 import { useMarkRead } from '../hooks/useNotifications';
 import { notificationCopyParts } from './notificationCopy';
@@ -9,22 +7,21 @@ import { NotificationAvatarStack } from './NotificationAvatarStack';
 import { NotificationPreview } from './NotificationPreview';
 import { NotificationActions } from './NotificationActions';
 import { hasNotificationAction } from './notificationActionKind';
-import { NotificationMenu } from './NotificationMenu';
 import { resolveNotificationTarget } from './notificationTarget';
 
 /**
  * One notification row. A button-role element with a visible focus ring (D15, fixing the
- * previous click-only div), rendering the unread state as a trailing accent dot rather
- * than a full-row tint (D18, whose contrast the tint broke in dark mode).
+ * previous click-only div). Carries no per-row unread dot or overflow menu: read state is
+ * conveyed by the avatar's category badge and the row's own content, tapping through marks
+ * a navigable row read, and "mark all as read" in the screen header covers the rest.
  * @param {{item: object, navigate: (path: string) => void}} props
  */
 export function NotificationRow({ item, navigate }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuButtonRef = useRef(null);
   const markRead = useMarkRead();
   const timeStr = useRelativeTime(item.activityAt);
   const { isSystem, actors, othersCount, phrase } = notificationCopyParts(item);
   const { path, isNavigable } = resolveNotificationTarget(item);
+  const thumbnailUrl = item.preview?.media?.thumbnailUrl;
 
   const handleTap = () => {
     if (!isNavigable || !path) return;
@@ -56,7 +53,7 @@ export function NotificationRow({ item, navigate }) {
         position: 'relative',
       }}
     >
-      <NotificationAvatarStack actors={actors} isSystem={isSystem} />
+      <NotificationAvatarStack actors={actors} isSystem={isSystem} category={item.category} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: v.fontBody, fontSize: 14, color: v.ink, lineHeight: 1.4 }}>
@@ -107,54 +104,27 @@ export function NotificationRow({ item, navigate }) {
         ) : null}
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          flexShrink: 0,
-          alignSelf: 'center',
-        }}
-      >
-        {hasNotificationAction(item) ? (
-          <div onClick={(event) => event.stopPropagation()}>
-            <NotificationActions item={item} navigate={navigate} />
-          </div>
-        ) : null}
-        {!item.isRead ? (
-          <span
-            aria-hidden="true"
-            style={{ width: 8, height: 8, borderRadius: '50%', background: v.accent }}
-          />
-        ) : null}
-        <button
-          ref={menuButtonRef}
-          type="button"
-          aria-label="notification options"
-          onClick={(event) => {
-            event.stopPropagation();
-            setMenuOpen(true);
-          }}
+      {hasNotificationAction(item) ? (
+        <div
+          onClick={(event) => event.stopPropagation()}
+          style={{ flexShrink: 0, alignSelf: 'center' }}
+        >
+          <NotificationActions item={item} navigate={navigate} />
+        </div>
+      ) : null}
+
+      {thumbnailUrl ? (
+        <div
           style={{
             width: 44,
             height: 44,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
+            borderRadius: 6,
+            flexShrink: 0,
+            alignSelf: 'center',
+            background: `url(${thumbnailUrl}) center/cover no-repeat`,
           }}
-        >
-          <LxIcon name="more" size={16} color={v.ink3} />
-        </button>
-        <NotificationMenu
-          item={item}
-          anchorRef={menuButtonRef}
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
         />
-      </div>
+      ) : null}
     </div>
   );
 }

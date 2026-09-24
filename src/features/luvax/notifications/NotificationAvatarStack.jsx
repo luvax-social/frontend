@@ -1,12 +1,16 @@
 import { LxAvatar } from '@/components/ui/lx-avatar';
+import { LxIcon } from '../components/primitives';
+import { notificationTypeBadge } from './notificationTypeBadge';
 
 /**
  * The row's leading avatar area: one or two overlapping avatars for an actor-bearing
  * row, or the Luvax mark for a system row (which never carries an actor - P1 section 4
- * deviation D6).
- * @param {{actors: Array<{avatarUrl?: string}>, isSystem: boolean, size?: number}} props
+ * deviation D6). A small category badge (heart, chat, follow-plus, eye) sits over the
+ * bottom-right corner so the row's kind reads at a glance, without a system row (whose
+ * avatar already is that signal).
+ * @param {{actors: Array<{avatarUrl?: string}>, isSystem: boolean, category?: string, size?: number}} props
  */
-export function NotificationAvatarStack({ actors, isSystem, size = 40 }) {
+export function NotificationAvatarStack({ actors, isSystem, category, size = 40 }) {
   if (isSystem) {
     return (
       <div
@@ -33,22 +37,51 @@ export function NotificationAvatarStack({ actors, isSystem, size = 40 }) {
   }
 
   const visible = actors.slice(0, 2);
+  const badge = notificationTypeBadge(category);
+  const badgeSize = Math.round(size * 0.42);
 
   return (
-    <div style={{ display: 'flex', flexShrink: 0 }}>
-      {visible.map((actor, index) => (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div style={{ display: 'flex' }}>
+        {visible.map((actor, index) => (
+          <span
+            key={actor.id ?? index}
+            style={{
+              marginLeft: index === 0 ? 0 : -10,
+              border: index === 0 ? 'none' : '2px solid var(--lx-base)',
+              borderRadius: '50%',
+              display: 'inline-flex',
+            }}
+          >
+            <LxAvatar size={size} src={actor.avatarUrl} />
+          </span>
+        ))}
+      </div>
+      {badge ? (
         <span
-          key={actor.id ?? index}
+          aria-hidden="true"
           style={{
-            marginLeft: index === 0 ? 0 : -10,
-            border: index === 0 ? 'none' : '2px solid var(--lx-base)',
+            position: 'absolute',
+            bottom: -2,
+            right: -2,
+            width: badgeSize,
+            height: badgeSize,
             borderRadius: '50%',
-            display: 'inline-flex',
+            background: badge.background,
+            border: '2px solid var(--lx-base)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <LxAvatar size={size} src={actor.avatarUrl} />
+          <LxIcon
+            name={badge.icon}
+            filled={badge.filled}
+            size={Math.round(badgeSize * 0.55)}
+            color={badge.color}
+          />
         </span>
-      ))}
+      ) : null}
     </div>
   );
 }

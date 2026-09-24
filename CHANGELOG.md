@@ -85,6 +85,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The two duplicate notification bells and their two dots on phones are down to one, since the bottom navigation already carries its own.
 - A notification row's timestamp now sits inline with its title instead of on its own line below the preview, and its follow-back or appeal action now sits beside the options button instead of below the text, matching the approved wireframe.
 - A notification row's quoted comment or reply text is now truncated to one line with an ellipsis instead of wrapping in full, so a long reply does not push the rest of the list down.
+- A notification row's avatar now carries a small category badge (heart, chat, follow) over its bottom-right corner, and a like or comment row shows the target post's thumbnail on the row's trailing edge.
+- A follow row's action button now reads "follow" rather than "follow back".
+- A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
 - A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.

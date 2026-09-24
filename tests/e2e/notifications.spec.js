@@ -97,7 +97,7 @@ for (const viewport of VIEWPORTS) {
       await signIn(page);
     });
 
-    test('opening the screen issues POST /seen and no read call; the badge clears; rows keep their unread dots', async ({
+    test('opening the screen issues POST /seen and no read call; the badge clears', async ({
       page,
     }) => {
       let seenCalls = 0;
@@ -142,25 +142,6 @@ for (const viewport of VIEWPORTS) {
       await page.goto('/app/notifications');
       await page.getByRole('button', { name: 'unread' }).click();
       await expect.poll(() => lastFilter).toBe('unread');
-    });
-
-    test('menu: delete rolls back when the stub returns 500', async ({ page }) => {
-      await stubNotificationApi(page);
-      await page.route('**/api/v1/notifications/n1', async (route) => {
-        await route.fulfill({
-          status: 500,
-          json: { success: false, code: 'SERVER_ERROR', message: 'fail' },
-        });
-      });
-      await page.goto('/app/notifications');
-      // Substring name matching (Playwright's default) also matches the row itself, whose
-      // own accessible name concatenates its full sentence with this nested button's label
-      // per the accessible-name-from-content algorithm - exact: true is the disambiguator,
-      // matching the same ambiguity the Vitest suite hit on this same markup.
-      await page.getByRole('button', { name: 'notification options', exact: true }).click();
-      await page.getByText('delete').click();
-      // Rolled back: the row is still present after the failed request settles.
-      await expect(page.getByText(/liked your post/)).toBeVisible();
     });
 
     test('an unavailable target renders muted and does not navigate', async ({ page }) => {

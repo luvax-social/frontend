@@ -805,6 +805,8 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
             display: 'flex',
             flexDirection: 'column',
             background: v.base,
+            // Matches the right rail's own clearance below, for the same fixed launcher.
+            paddingBottom: MESSAGE_LAUNCHER_CLEARANCE,
           }}
         >
           {children}
@@ -860,6 +862,9 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
               display: 'flex',
               flexDirection: 'column',
               background: v.base,
+              // Matches the right rail's own clearance below, for the same fixed launcher - without
+              // it, the last row of any long list is painted underneath the launcher and unclickable.
+              paddingBottom: MESSAGE_LAUNCHER_CLEARANCE,
             }}
           >
             {children}
@@ -923,6 +928,8 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
               display: 'flex',
               flexDirection: 'column',
               background: v.base,
+              // Matches the right rail's own clearance below, for the same fixed launcher.
+              paddingBottom: MESSAGE_LAUNCHER_CLEARANCE,
             }}
           >
             {children}

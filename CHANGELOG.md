@@ -136,6 +136,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Post-removal and restoration notifications can now be appealed in place.
 - Notification rows are keyboard-focusable with a visible focus ring, and every icon-only navigation button carries an accessible name.
 - Post detail now pluralises the like count correctly and marks only the actual top comment as pinned, instead of every comment the backend happens to flag.
+- The centre content column no longer renders the last row of a long list underneath the fixed messages launcher, on desktop, tablet and settings; the right rail already reserved this clearance but the reading column next to it did not.
 
 ### Security
 - Neither the appeal link nor the appeal status link is copied into browser storage any more; both are read from the address only, which is the rule already applied to access tokens and matters more here because an appeal link authorises a write and a status link reads for ninety days.

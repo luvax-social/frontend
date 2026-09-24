@@ -8,6 +8,7 @@ import { notificationCopyParts } from './notificationCopy';
 import { NotificationAvatarStack } from './NotificationAvatarStack';
 import { NotificationPreview } from './NotificationPreview';
 import { NotificationActions } from './NotificationActions';
+import { hasNotificationAction } from './notificationActionKind';
 import { NotificationMenu } from './NotificationMenu';
 import { resolveNotificationTarget } from './notificationTarget';
 
@@ -84,7 +85,17 @@ export function NotificationRow({ item, navigate }) {
             ))
           )}
           {othersCount > 0 ? ` and ${othersCount} others` : ''}{' '}
-          <span style={{ color: v.ink2 }}>{phrase}.</span>
+          <span style={{ color: v.ink2 }}>{phrase}.</span>{' '}
+          <span
+            style={{
+              fontFamily: v.fontMono,
+              fontSize: 10,
+              color: v.ink3,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {timeStr}
+          </span>
         </div>
 
         <NotificationPreview target={item.target} preview={item.preview} />
@@ -94,14 +105,6 @@ export function NotificationRow({ item, navigate }) {
             reason: {item.moderation.reason}
           </div>
         ) : null}
-
-        <div style={{ fontFamily: v.fontMono, fontSize: 10, color: v.ink3, marginTop: 4 }}>
-          {timeStr}
-        </div>
-
-        <div onClick={(event) => event.stopPropagation()} style={{ marginTop: 6 }}>
-          <NotificationActions item={item} navigate={navigate} />
-        </div>
       </div>
 
       <div
@@ -113,6 +116,11 @@ export function NotificationRow({ item, navigate }) {
           alignSelf: 'center',
         }}
       >
+        {hasNotificationAction(item) ? (
+          <div onClick={(event) => event.stopPropagation()}>
+            <NotificationActions item={item} navigate={navigate} />
+          </div>
+        ) : null}
         {!item.isRead ? (
           <span
             aria-hidden="true"

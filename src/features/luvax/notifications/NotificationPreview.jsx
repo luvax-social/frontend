@@ -41,7 +41,11 @@ export function NotificationPreview({ target, preview }) {
         />
       ) : null}
       {preview.parentCommentSnippet || preview.commentSnippet ? (
-        <div style={{ minWidth: 0 }}>
+        // flex: 1 (not width: 100%) so this column only claims the space the thumbnail
+        // sibling leaves behind; min-width: 0 overrides the flex-item default of
+        // min-width: auto, which for nowrap text otherwise resolves to the full,
+        // un-truncated text width and defeats the ellipsis below it.
+        <div style={{ minWidth: 0, flex: 1 }}>
           {preview.parentCommentSnippet ? (
             <div
               style={{
@@ -50,13 +54,26 @@ export function NotificationPreview({ target, preview }) {
                 color: v.ink3,
                 borderLeft: `2px solid ${v.borderSubtle}`,
                 paddingLeft: 8,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               Your comment: &ldquo;{preview.parentCommentSnippet}&rdquo;
             </div>
           ) : null}
           {preview.commentSnippet ? (
-            <div style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink2, marginTop: 2 }}>
+            <div
+              style={{
+                fontFamily: v.fontBody,
+                fontSize: 12,
+                color: v.ink2,
+                marginTop: 2,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
               &ldquo;{preview.commentSnippet}&rdquo;
             </div>
           ) : null}

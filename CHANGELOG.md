@@ -83,6 +83,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The unread indicator is a trailing dot per row instead of a full-row tint, which had lost contrast on its own timestamp in the dark theme.
 - Mark all as read only reaches rows fetched before the action, so anything arriving afterward stays unread.
 - The two duplicate notification bells and their two dots on phones are down to one, since the bottom navigation already carries its own.
+- A notification row's timestamp now sits inline with its title instead of on its own line below the preview, and its follow-back or appeal action now sits beside the options button instead of below the text, matching the approved wireframe.
+- A notification row's quoted comment or reply text is now truncated to one line with an ellipsis instead of wrapping in full, so a long reply does not push the rest of the list down.
 
 ### Fixed
 - A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.

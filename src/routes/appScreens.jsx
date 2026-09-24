@@ -54,7 +54,7 @@ const FollowingScreen = lazy(() =>
   }))
 );
 const NotificationsScreen = lazy(() =>
-  import('@/features/luvax/components/NotificationsScreen').then((m) => ({
+  import('@/features/luvax/notifications/NotificationsScreen').then((m) => ({
     default: m.NotificationsScreen,
   }))
 );

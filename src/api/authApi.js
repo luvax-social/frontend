@@ -1,5 +1,4 @@
 import {
-  AUTH_WITH_CREDENTIALS,
   axiosClient,
   getRefreshTokenFromResponse,
   getTokenFromResponse,
@@ -139,10 +138,7 @@ export const authApi = {
       '/auth/logout',
       buildRequestBody({
         refreshToken: refreshToken ?? undefined,
-      }),
-      {
-        withCredentials: AUTH_WITH_CREDENTIALS,
-      }
+      })
     );
   },
 
@@ -153,7 +149,6 @@ export const authApi = {
         refreshToken: refreshToken ?? undefined,
       }),
       {
-        withCredentials: AUTH_WITH_CREDENTIALS,
         skipAuthRefresh: true,
       }
     );

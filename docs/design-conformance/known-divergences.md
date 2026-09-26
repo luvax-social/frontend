@@ -1,5 +1,7 @@
 # Known Divergences
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The eight divergences carried in from earlier phases, each confirmed, corrected, or cleared.
 
 Three of the eight were stated on a premise that turns out to be wrong.

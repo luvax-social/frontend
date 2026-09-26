@@ -1,5 +1,7 @@
 # Discipline Contract Verification
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 4. Every claim below was produced by calling the running backend at
 `http://localhost:8080` on 2026-08-21, against the reset seed fixture
 (`bash scripts/seed-dev-data.sh --reset`, five seed accounts, password `SeedPass123!`).

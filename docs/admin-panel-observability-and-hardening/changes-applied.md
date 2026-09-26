@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 All source changes are inside the frontend panel feature (`src/features/admin/`) except one shared
 file, called out below with its justification. **Nothing in the backend repository was modified**;
 the backend was read and called only. **No user-facing application code was changed.**

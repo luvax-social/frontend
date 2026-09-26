@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 How the work was checked, screen by screen and capability by capability, and a plain statement of what was not verified.
 
 ## Environment

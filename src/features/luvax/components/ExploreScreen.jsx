@@ -21,6 +21,9 @@ import {
 } from '@/features/search/hooks/useSearch';
 import { SearchDegraded, SearchFailed } from '@/features/search/components/SearchResultsEmpty';
 import { RecommendedPostsGrid, SearchResultPost } from './RecommendedPostsGrid';
+import { LxTrendingRail } from './LxTrendingRail';
+import { LxSuggestedRail, TABLET_RAIL_MIN_WIDTH } from './shell';
+import { useViewportWidth } from '../hooks/useViewport';
 
 function SuggestedHashtags({ tags, query, onSelect }) {
   if (!query) return null;
@@ -84,6 +87,8 @@ export function ExploreScreen() {
   const activeQuery = searchParams.get('q') || '';
   const shouldFocusSearch = searchParams.get('focusSearch') === '1';
   const { viewport } = useLuvaxTweaks();
+  const viewportWidth = useViewportWidth();
+  const railHomeless = viewportWidth < TABLET_RAIL_MIN_WIDTH;
   const [query, setQuery] = useState(activeQuery);
   const searchInputRef = useRef(null);
 
@@ -402,10 +407,7 @@ export function ExploreScreen() {
                       <SuggestedHashtags
                         tags={hashtagSuggestions}
                         query={trimmedQuery}
-                        onSelect={(tag) => {
-                          setQuery(tag);
-                          setSearchParams({ q: tag });
-                        }}
+                        onSelect={(tag) => navigate(routeTo.hashtag(tag))}
                       />
                     </section>
 
@@ -505,7 +507,20 @@ export function ExploreScreen() {
             )}
           </div>
         ) : (
-          <RecommendedPostsGrid surface="explore" />
+          <>
+            {/* Below TABLET_RAIL_MIN_WIDTH the shell renders no right rail, and trending and
+                people-you-may-know had no other mount point, so both features were entirely
+                absent at phone and small-tablet widths - the form factor this application is
+                mostly read on. Explore hosts them here rather than forcing the rail into a
+                narrow column, which is what the tablet threshold exists to prevent. */}
+            {railHomeless ? (
+              <div style={{ padding: '18px 16px 0' }}>
+                <LxTrendingRail />
+                <LxSuggestedRail />
+              </div>
+            ) : null}
+            <RecommendedPostsGrid surface="explore" />
+          </>
         )}
       </div>
     </>

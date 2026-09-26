@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every surface exercised in a real browser with dev tools attached.
 
 Frontend at `http://localhost:5173`, backend at `http://localhost:8080/api/v1`, both running with seed data loaded.

@@ -1,5 +1,7 @@
 # Orchestrator Brief — Observability and Hardening
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 For the planner. Under two pages. No codebase access assumed.
 
 **The panel is finished.** Fifteen screens, both roles, all 51 checks in section 15 of the backend

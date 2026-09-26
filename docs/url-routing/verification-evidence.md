@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Both applications running: backend on 8080 against the docker-compose stack, frontend on 5173, signed in as `luvax_ava`, seeded with `tools/seed/seed.py`.
 Driven in Chromium with the dev tools console captured.
 

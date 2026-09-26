@@ -1,5 +1,7 @@
 # Uptake Contract Verification
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything below was produced by calling a running server. Nothing is carried over from the
 handoff's prose, from `openapi.json`, or from any previous phase's document. Where this phase's
 prompt or the handoff states something the server contradicts, the server wins and the divergence

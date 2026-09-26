@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Decisions taken while building the live tier, with the reasoning and what was rejected.
 
 Every treatment derived rather than specified is labelled as such.

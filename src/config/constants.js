@@ -2,11 +2,15 @@
 
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'MyApp';
 
-const ENV_API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
-
-export const API_URL = import.meta.env.DEV
-  ? '/api/v1'
-  : ENV_API_URL || 'http://localhost:8080/api/v1';
+/**
+ * The API base address is deliberately not re-declared here.
+ *
+ * It lived in this file as a second copy of the expression in `api/axiosClient`,
+ * had no importer, and carried the dev-versus-production fork that broke
+ * authentication under a production bundle. `API_BASE_URL` from
+ * `api/axiosClient` is the single definition; every request goes through that
+ * client, so nothing else needs the address.
+ */
 
 /** Route paths — single source of truth for navigation */
 export const ROUTES = {
@@ -25,6 +29,12 @@ export const ROUTES = {
   // them can be linked, bookmarked, and reloaded.
   FEED: '/app',
   EXPLORE: '/app/explore',
+  // Hashtag detail lives inside /app like every other authenticated screen, because the shell,
+  // the navigation and the right rail only exist there. The bare /tags/:name address in
+  // HASHTAG_DEEP_LINK is kept as a shareable top-level link and redirects here, so a link pasted
+  // into a message still resolves.
+  HASHTAG: '/app/tags/:name',
+  HASHTAG_DEEP_LINK: '/tags/:name',
   COMPOSE: '/app/compose',
   NOTIFICATIONS: '/app/notifications',
   MESSAGES: '/app/messages',
@@ -39,6 +49,11 @@ export const ROUTES = {
   SETTINGS_PRIVACY: '/app/settings/privacy',
   SETTINGS_ACCOUNT: '/app/settings/account',
   SETTINGS_REQUESTS: '/app/settings/requests',
+  // Support is a settings category rather than a screen of its own. Every
+  // surface it needs was built and none of them had an entry point: nothing in
+  // the signed-in navigation reached /app/support, so the only support-shaped
+  // thing a user could find was a verification form buried in account settings.
+  SETTINGS_SUPPORT: '/app/settings/support',
   // Kept because it was a published address before the settings rebuild. It now
   // resolves to the account category, which carries the only password action
   // the backend actually offers, rather than to a screen that said it was not
@@ -48,6 +63,36 @@ export const ROUTES = {
   // The viewer's saved posts. Filed under settings because the list belongs to
   // the viewer rather than to a profile being looked at, and is private to them.
   SAVED: '/app/settings/saved',
+  // The address the help centre used to occupy. It now redirects to
+  // SETTINGS_SUPPORT, so a bookmark or an older link still lands on support
+  // while there is exactly one place that looks like the entrance.
+  SUPPORT: '/app/support',
+  // A ticket keeps its own address. The detail could have been folded into the
+  // settings pane as a master-detail, but settings routes one segment only, and
+  // an in-pane detail would take back the thing P7-FE-004 asked for: a ticket
+  // that can be copied, bookmarked and opened in a second tab.
+  SUPPORT_TICKET: '/app/support/:ticketId',
+
+  // The three anonymous support addresses. These sit outside the authenticated
+  // tree because the accounts that need them cannot authenticate: a banned or
+  // suspended account is refused a session by design, and it is exactly the
+  // population an appeal exists for.
+  //
+  // The first two are already built into moderation and confirmation mail that
+  // has been sent, so their shapes are fixed by messages already in inboxes and
+  // must not be changed.
+  SUPPORT_APPEAL: '/support/appeal',
+  SUPPORT_CONFIRM: '/support/confirm',
+  SUPPORT_PUBLIC: '/support/new',
+  // Where a status link lands. Anonymous like the three above, and for the
+  // same population: the appeal token is spent by the submission that created
+  // the ticket, so this token is the only thing that can reach it afterwards.
+  SUPPORT_APPEAL_STATUS: '/support/appeal/status',
+  // The lost-link recovery form. Its own address rather than a panel on the
+  // public form, so the sentence on the sign-in failure can link straight to
+  // it instead of asking the reader to find it.
+  SUPPORT_APPEAL_RESEND: '/support/appeal/resend',
+
   ONBOARDING: '/app/onboarding',
   STORY_COMPOSE: '/app/stories/new',
 
@@ -100,6 +145,14 @@ export const ROUTES = {
   ADMIN_USER: '/admin/users/:userId',
   // The administrative hashtag registry. Administrator only.
   ADMIN_HASHTAGS: '/admin/hashtags',
+  // Moderator-reachable, not administrator-only: verification is a discretionary grant rather than
+  // an enforcement action, so it sits with reports rather than with the account list.
+  // The staff support console. Verification review happens here, as one
+  // category of ticket among the rest, rather than on a screen of its own: a
+  // verification request is a support ticket, claimed and decided by the same
+  // rules as any other, and reviewing it somewhere else meant two queues with
+  // one workflow between them.
+  ADMIN_SUPPORT: '/admin/support',
   // Platform statistics. Administrator only; both statistics endpoints answer a
   // moderator with 403.
   ADMIN_STATISTICS: '/admin/statistics',
@@ -125,9 +178,11 @@ export const routeTo = {
   userFollowers: (userId) => withParams(ROUTES.USER_FOLLOWERS, { userId }),
   userFollowing: (userId) => withParams(ROUTES.USER_FOLLOWING, { userId }),
   postDetail: (postId) => withParams(ROUTES.POST_DETAIL, { postId }),
+  hashtag: (name) => withParams(ROUTES.HASHTAG, { name }),
   storyView: (storyId) => withParams(ROUTES.STORY_VIEW, { storyId }),
   adminReportDetail: (reportId) => withParams(ROUTES.ADMIN_REPORT_DETAIL, { reportId }),
   adminUser: (userId) => withParams(ROUTES.ADMIN_USER, { userId }),
+  supportTicket: (ticketId) => withParams(ROUTES.SUPPORT_TICKET, { ticketId }),
   // The action log with a specific action open in its drawer; the open state is
   // a query parameter so the link is shareable and the list stays mounted.
   adminAction: (actionId) => `${ROUTES.ADMIN_ACTIONS}?action=${encodeURIComponent(actionId ?? '')}`,

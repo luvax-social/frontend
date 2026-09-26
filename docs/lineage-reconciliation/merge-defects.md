@@ -1,5 +1,7 @@
 # Merge Defects
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Defects the merge itself introduced, and how they were fixed.
 
 ## None found at runtime

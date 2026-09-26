@@ -1,5 +1,7 @@
 # Media Behaviour
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 How posts carrying media actually behave, on every surface where they render.
 
 Video is covered separately in `video-behaviour.md`.

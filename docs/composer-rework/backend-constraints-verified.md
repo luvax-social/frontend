@@ -1,5 +1,7 @@
 # Backend Constraints, Verified
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Written before any feature code on this branch, as the phase requires.
 
 Every value below was observed against the running server.

@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every decision the task delegated, with reasoning and what was rejected.
 
 Section numbers refer to the Stage 2 task description.

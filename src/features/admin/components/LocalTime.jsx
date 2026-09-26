@@ -34,7 +34,18 @@ export function LocalTime({ value, showZone = true }) {
     <span title={`${value} (UTC)`} style={{ fontFamily: v.fontBody, color: v.ink2 }}>
       {label}
       {showZone ? (
-        <span style={{ color: v.ink2, fontSize: '0.85em', marginLeft: 6 }}>{localZone()}</span>
+        <>
+          {/*
+            A real separator in the text, not just a margin. With the zone
+            abutting the time, the text content read "12:23 AMAsia/Saigon" -
+            wrong for anything that copies it, and a screen reader announced
+            "AMAsia slash Saigon". The styling made it look separated while the
+            string never was. This component is the panel's shared timestamp, so
+            the same run appeared on every timestamped screen.
+          */}
+          <span aria-hidden="true"> · </span>
+          <span style={{ color: v.ink2, fontSize: '0.85em' }}>{localZone()}</span>
+        </>
       ) : null}
     </span>
   );

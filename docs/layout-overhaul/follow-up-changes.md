@@ -1,5 +1,7 @@
 # Follow-up Changes
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 A second round of changes the owner asked for after reviewing the layout overhaul.
 Recorded here so the decisions, and the reasons behind them, are on the record.
 

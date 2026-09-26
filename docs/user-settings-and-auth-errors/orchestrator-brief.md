@@ -1,5 +1,7 @@
 # Orchestrator brief — user settings and authentication error handling
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 For the planner. Under two pages.
 
 ---

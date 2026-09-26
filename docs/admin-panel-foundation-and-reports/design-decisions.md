@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every decision this phase was asked to state, the derived patterns and the tokens they were built from, the error classification, and the copy convention.
 
 ## Role in the session

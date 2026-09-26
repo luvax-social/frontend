@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 One entry per change.
 Each states what was wrong, the evidence it was wrong, what changed, and the file touched.
 

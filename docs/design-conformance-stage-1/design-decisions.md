@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Three decisions and four derived values.
 
 ## 1. The right rail's suggested block

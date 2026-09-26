@@ -1,5 +1,7 @@
 # Comment Contract
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Re-verified against the running server before anything was built.
 Backend read at `backend/src/main/java/com/app/modules/comment/`: `CommentController`, `CommentServiceImpl`, `CommentResponse`, `CreateCommentRequest`, `EditCommentRequest`.
 

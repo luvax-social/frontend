@@ -115,13 +115,22 @@ If your change affects API integration, verify the relevant flow against the con
 
 - Follow the existing feature-based structure under `src/`.
 - Reuse shared UI primitives from `src/components/ui/` before adding new component patterns.
-- Keep route definitions centralized in `src/routes/index.jsx` unless the routing structure is intentionally refactored.
+- Keep route definitions in the three tables that hold them: `src/routes/index.jsx` for the root router, `src/routes/appScreens.jsx` for the authenticated screens, and `src/features/admin/adminRoutes.jsx` for the panel. Do not add an ad-hoc `<Routes>` tree elsewhere.
 - Put API calls behind service modules instead of scattering `axios` calls in components.
 - Keep environment-specific values behind `import.meta.env`.
 
 ## Testing
 
-There is currently no dedicated automated test suite configured in this repository. Until one is added, `npm run lint` and `npm run build` are the required baseline checks for every PR.
+Vitest is configured and CI runs it. `.github/workflows/ci-fe.yml` runs `npm run lint`, `npm test` and `npm run build` on every PR, and all three must pass.
+
+| Command | What it runs |
+|---------|--------------|
+| `npm run test` | The unit suite under `tests/unit/`, via `vitest.config.js`. This is what CI runs. |
+| `npm run test:watch` | The same suite in watch mode. |
+| `npm run test:live` | The suite under `tests/live/`, via `vitest.live.config.js`. It needs a running backend and is not part of CI. |
+| `npm run test:all` | `test` then `test:live`. |
+
+There are 26 test files in total: 21 under `tests/unit/` and 5 under `tests/live/`.
 
 ## Security issues
 

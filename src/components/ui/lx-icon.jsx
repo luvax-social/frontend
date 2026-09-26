@@ -252,6 +252,76 @@ const ICONS = {
       <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
     </>
   ),
+  // A question mark in a circle: the support nav item's icon. `check` read as
+  // "done" rather than "help", which is confusing beside a queue of open
+  // tickets that are anything but done.
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 1.8-2.5 2.4-2.85 3.9" />
+      <circle cx="12" cy="17.2" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+
+  // The eight verification category glyphs. These are drawn for the inside of a 14px badge, which
+  // is a harder brief than the rest of this map: at that size the glyph is under 8px across, so
+  // every one of them is reduced to a single silhouette with no interior detail that would close
+  // up. Each is tested against the other seven at 14px in a browser, not by reading the paths.
+  'music-note': (
+    <>
+      <circle cx="8.5" cy="17" r="3.5" />
+      <path d="M12 17V4l7 2.2" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.8-.9 1.8-1.8 0-1.6 2-1.7 3.2-1.7A5 5 0 0 0 22 12c0-5-4.5-9-10-9Z" />
+      <circle cx="7.5" cy="12" r="1.1" />
+      <circle cx="11.5" cy="7.5" r="1.1" />
+      <circle cx="16" cy="10" r="1.1" />
+    </>
+  ),
+  'pen-nib': (
+    <>
+      <path d="M12 21 5.5 8 12 3l6.5 5L12 21Z" />
+      <circle cx="12" cy="9.5" r="1.8" />
+    </>
+  ),
+  flask: (
+    <>
+      <path d="M9.5 3v6.2L4.6 18.4A2 2 0 0 0 6.4 21.4h11.2a2 2 0 0 0 1.8-3L14.5 9.2V3" />
+      <path d="M8 3h8" />
+      <path d="M7.2 15h9.6" />
+    </>
+  ),
+  clapperboard: (
+    <>
+      <rect x="3" y="9" width="18" height="12" rx="2" />
+      <path d="M3.6 9 6.5 4.2h3.8L7.4 9" />
+      <path d="M12.2 9l2.9-4.8h3.8L16 9" />
+    </>
+  ),
+  medal: (
+    <>
+      <circle cx="12" cy="15" r="5.8" />
+      <path d="M8.6 10 6 3h12l-2.6 7" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="2.5" y="7" width="19" height="14" rx="2" />
+      <path d="M8.5 7V5.2A2.2 2.2 0 0 1 10.7 3h2.6a2.2 2.2 0 0 1 2.2 2.2V7" />
+    </>
+  ),
+  gamepad: (
+    <>
+      <rect x="2" y="6.5" width="20" height="11" rx="5.5" />
+      <path d="M7 10v4" />
+      <path d="M5 12h4" />
+      <circle cx="16.2" cy="10.8" r="1.05" />
+      <circle cx="18.4" cy="13.4" r="1.05" />
+    </>
+  ),
 };
 
 // Filled variants are distinct artwork, not the outline paths with a fill added. Each shape sets

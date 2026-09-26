@@ -1,5 +1,7 @@
 # Defects
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything observed during the audit that is wrong, inconsistent, or will cause a failure.
 
 Nothing here was fixed.

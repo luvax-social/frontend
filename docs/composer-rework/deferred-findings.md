@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything found and deliberately not acted on, with the phase it belongs to.
 
 ## Declared out of scope by the phase brief

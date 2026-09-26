@@ -1,5 +1,7 @@
 # Blockers and Contradictions
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Anything that would stop or misdirect the next phase.
 Nothing here was acted on; this phase changed no application code.
 

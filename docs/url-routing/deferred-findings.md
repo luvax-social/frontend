@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Found during this phase, deliberately not acted on, with where each belongs.
 
 ## Found while routing

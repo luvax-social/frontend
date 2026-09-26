@@ -1,5 +1,7 @@
 # Endpoint Verification
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Written before any feature code, against the running backend.
 
 Every request and response below was observed, not inferred from source.

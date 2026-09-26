@@ -1,5 +1,7 @@
 # Design decisions
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## 1. The master-and-detail URL strategy
 
 **Decision.** The open record lives in the address bar as a search parameter,

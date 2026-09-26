@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { v } from '@/config/tokens';
+import { LxTrendingRail } from './LxTrendingRail';
 import { ROUTES } from '@/config/constants';
 import { extractPageContent } from '@/utils/helpers';
-import { useViewport } from '../hooks/useViewport';
+import { useViewport, useViewportWidth } from '../hooks/useViewport';
 import { LxIcon, LxAvatar, LxBtn } from './primitives';
+import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
+import { useSuggestions, useFollowSuggestion, useDismissSuggestion } from '../hooks/useSuggestions';
 import { usePendingFollowRequests } from '../hooks/useSocial';
-import { useUnreadCount } from '../hooks/useNotifications';
+import { useNotificationState } from '../hooks/useNotifications';
+import { NotificationBadge } from '../notifications/NotificationBadge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isPanelRole } from '@/config/roles';
 import { useConversations } from '@/features/messages/hooks/useConversations';
@@ -46,12 +50,6 @@ export function LxAppBar({ screen, navigate }) {
   };
   const isSubpage = Boolean(subpages[screen]);
   const subpageLabel = subpages[screen];
-
-  const { data: requestsResponse } = usePendingFollowRequests();
-  const requests = extractPageContent(requestsResponse);
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadCount = unreadResponse?.data?.unreadCount ?? 0;
-  const hasNotifications = requests.length > 0 || unreadCount > 0;
 
   return (
     <header
@@ -162,47 +160,10 @@ export function LxAppBar({ screen, navigate }) {
             justifyContent: 'flex-end',
           }}
         >
-          {isSubpage ? (
-            <div style={{ width: 24, height: 24 }} />
-          ) : (
-            <button
-              onClick={() => navigate(ROUTES.NOTIFICATIONS)}
-              className="lx-header-icon-btn"
-              style={{
-                background: v.surface,
-                border: 'none',
-                borderRadius: '50%',
-                width: 36,
-                minWidth: 36,
-                height: 36,
-                aspectRatio: '1 / 1',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                boxShadow: 'none',
-                padding: 0,
-                flexShrink: 0,
-                marginRight: 2,
-              }}
-            >
-              <LxIcon name="bell" size={18} color={v.ink2} />
-              {hasNotifications && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    right: 6,
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: v.error,
-                  }}
-                />
-              )}
-            </button>
-          )}
+          {/* The bell used to live here, duplicating the bottom nav's own bell and its own
+              dot (D14). The bottom nav is the only nav surface always present on mobile, so
+              this slot stays an empty spacer of the same width rather than a second bell. */}
+          <div style={{ width: 36, height: 36 }} aria-hidden="true" />
         </div>
       </div>
     </header>
@@ -215,9 +176,10 @@ export function LxBottomNav({ active, navigate }) {
 
   const { data: requestsResponse } = usePendingFollowRequests();
   const requests = extractPageContent(requestsResponse);
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadCount = unreadResponse?.data?.unreadCount ?? 0;
-  const hasNotifications = requests.length > 0 || unreadCount > 0;
+  const { data: state } = useNotificationState();
+  const unseenCount = state?.unseen?.count ?? 0;
+  const unseenCapped = state?.unseen?.capped ?? false;
+  const hasFollowRequests = requests.length > 0;
   return (
     <nav
       style={{
@@ -245,6 +207,7 @@ export function LxBottomNav({ active, navigate }) {
             onClick={() => !t.disabled && navigate(t.path)}
             disabled={t.disabled}
             aria-disabled={t.disabled || undefined}
+            aria-label={t.label}
             title={t.disabled ? `${t.label} are not part of this build` : undefined}
             className="lx-tab-btn"
             style={{
@@ -269,18 +232,13 @@ export function LxBottomNav({ active, navigate }) {
               color={isActive ? v.accent : v.ink3}
               stroke={isActive ? 1.8 : 1.5}
             />
-            {t.id === 'notifications' && hasNotifications && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 6,
-                  right: '25%',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: v.error,
-                }}
-              />
+            {t.id === 'notifications' && (unseenCount > 0 || hasFollowRequests) && (
+              <span style={{ position: 'absolute', top: 2, right: '22%' }}>
+                <NotificationBadge
+                  count={hasFollowRequests ? Math.max(unseenCount, 1) : unseenCount}
+                  capped={unseenCapped}
+                />
+              </span>
             )}
           </button>
         );
@@ -300,51 +258,150 @@ export function LxBottomNav({ active, navigate }) {
 // interface, which this project has already removed once. It renders nothing when handed nothing,
 // so the day a suggested-accounts endpoint exists this needs a data hook and a single line in the
 // rail.
-export function LxSuggestedList({ users = [] }) {
+export function LxSuggestedList({ users = [], loading = false, onFollow, onDismiss }) {
+  if (loading) {
+    return (
+      <div>
+        <div style={suggestedHeadingStyle}>suggested</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[0, 1, 2].map((row) => (
+            <div key={row} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="lx-skeleton" style={{ width: 36, height: 36, borderRadius: '50%' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  className="lx-skeleton"
+                  style={{ width: '62%', height: 11, borderRadius: 4, marginBottom: 6 }}
+                />
+                <div className="lx-skeleton" style={{ width: '40%', height: 9, borderRadius: 4 }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (users.length === 0) return null;
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: v.fontMono,
-          fontSize: 10,
-          color: v.ink3,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          marginBottom: 12,
-        }}
-      >
-        suggested
-      </div>
+      <div style={suggestedHeadingStyle}>suggested</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {users.map((u) => (
-          <div key={u.id ?? u.username} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <LxAvatar size={36} src={u.avatarUrl} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: v.fontBody, fontSize: 13, fontWeight: 600, color: v.ink }}>
-                {u.username}
+        {users.map((u) => {
+          const pending = !u.isFollowing && u.isFollowRequested;
+          return (
+            <div
+              key={u.id ?? u.username}
+              style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+            >
+              <LxAvatar size={36} src={u.avatarUrl} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: v.fontBody,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: v.ink,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    minWidth: 0,
+                  }}
+                >
+                  {/* The name truncates and the badge does not. A badge pushed off the end by a
+                      long display name would silently drop the one fact the row exists to carry. */}
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      minWidth: 0,
+                    }}
+                  >
+                    {u.displayName || u.username}
+                  </span>
+                  <LxVerifiedBadge verified={u.verified} category={u.verifiedCategory} size={13} />
+                </div>
+                <div
+                  style={{
+                    fontFamily: v.fontBody,
+                    fontSize: 11,
+                    color: v.ink3,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {u.username ? `@${u.username}` : u.bio}
+                </div>
               </div>
-              <div
+              <LxBtn
+                variant="ghost"
+                size="sm"
+                disabled={u.isFollowing || pending}
+                onClick={() => (u.onFollow ? u.onFollow() : onFollow?.(u.id))}
+              >
+                {u.isFollowing ? 'following' : pending ? 'pending' : 'follow'}
+              </LxBtn>
+              {/* Its own button rather than a corner of the row, so it is reachable by keyboard in
+                  the natural tab order. Kept to 24px and placed after the follow action so the
+                  primary tap target on a touch screen is follow, not dismiss. */}
+              <button
+                type="button"
+                aria-label={`Dismiss ${u.displayName || u.username}`}
+                onClick={() => onDismiss?.(u.id)}
                 style={{
-                  fontFamily: v.fontBody,
-                  fontSize: 11,
+                  width: 24,
+                  height: 24,
+                  flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'none',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
                   color: v.ink3,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
                 }}
               >
-                {u.bio}
-              </div>
+                <LxIcon name="close" size={13} color={v.ink3} />
+              </button>
             </div>
-            <LxBtn variant="ghost" size="sm" onClick={u.onFollow}>
-              follow
-            </LxBtn>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+const suggestedHeadingStyle = {
+  fontFamily: v.fontMono,
+  fontSize: 10,
+  color: v.ink3,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  marginBottom: 12,
+};
+
+// Reads the endpoint and hands LxSuggestedList rows in the shape it already expects. Kept beside
+// the presentational component rather than inside it so the composition stays testable with
+// invented data and the mounted widget never is.
+//
+// Exported because the rail is not the only mount point any more: below TABLET_RAIL_MIN_WIDTH
+// there is no rail at all, and Explore hosts this and the trending list instead so the two
+// features are not simply absent on the form factor this application is mostly read on.
+export function LxSuggestedRail() {
+  const { data: rows, isLoading } = useSuggestions(5);
+  const followSuggestion = useFollowSuggestion();
+  const dismissSuggestion = useDismissSuggestion();
+
+  return (
+    <LxSuggestedList
+      users={rows ?? []}
+      loading={isLoading}
+      onFollow={(userId) => followSuggestion.mutate(userId)}
+      onDismiss={(userId) => dismissSuggestion.mutate(userId)}
+    />
   );
 }
 
@@ -365,14 +422,19 @@ export function LxRightRail({ compact = false }) {
         // vh is computed against the true viewport, unadjusted for the root's zoom scale, so a
         // raw 100vh here rendered taller than the real viewport and could push part of the rail
         // out of view. Dividing by --lx-scale cancels the zoom multiplication back out.
-        maxHeight: 'calc(100vh / var(--lx-scale))',
+        //
+        // The launcher clearance is subtracted rather than added as padding: the messages pill is
+        // fixed to the bottom-right of the same viewport and reserves no space, and padding below
+        // the content does not move the content up. Ending the rail's scroll viewport above the
+        // pill is what keeps the last row reachable - at 1440x900 with five suggestions the fifth
+        // row's follow and dismiss buttons were otherwise painted under it and unclickable, with
+        // the launcher reported as the intercepting element.
+        maxHeight: `calc((100vh / var(--lx-scale)) - ${MESSAGE_LAUNCHER_CLEARANCE}px)`,
         overflowY: 'auto',
       }}
     >
-      {/* The trending rail was a hardcoded list of invented tags, numbered as
-          though it were a ranking and clickable as though it filtered. There is
-          a real trending endpoint, but wiring it is not part of this phase, and
-          a fabricated ranking is worse than an empty rail. */}
+      <LxTrendingRail compact={compact} />
+      <LxSuggestedRail />
     </aside>
   );
 }
@@ -499,9 +561,10 @@ export function LxSideRail({ active, navigate, visible = true }) {
   const canReachPanel = isPanelRole(role);
   const { data: requestsResponse } = usePendingFollowRequests();
   const requests = extractPageContent(requestsResponse);
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadCount = unreadResponse?.data?.unreadCount ?? 0;
-  const hasNotifications = requests.length > 0 || unreadCount > 0;
+  const { data: state } = useNotificationState();
+  const unseenCount = state?.unseen?.count ?? 0;
+  const unseenCapped = state?.unseen?.capped ?? false;
+  const hasFollowRequests = requests.length > 0;
 
   const rowStyle = (disabled) => ({
     width: '100%',
@@ -624,18 +687,13 @@ export function LxSideRail({ active, navigate, visible = true }) {
                 )}
               </span>
               <span style={labelStyle(isActive)}>{t.label}</span>
-              {t.id === 'notifications' && hasNotifications && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 6,
-                    left: RAIL_ICON_INSET + 12,
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: v.error,
-                  }}
-                />
+              {t.id === 'notifications' && (unseenCount > 0 || hasFollowRequests) && (
+                <span style={{ position: 'absolute', top: 2, left: RAIL_ICON_INSET + 14 }}>
+                  <NotificationBadge
+                    count={hasFollowRequests ? Math.max(unseenCount, 1) : unseenCount}
+                    capped={unseenCapped}
+                  />
+                </span>
               )}
             </button>
           );
@@ -656,6 +714,30 @@ export function LxSideRail({ active, navigate, visible = true }) {
         </button>
       ) : null}
 
+      {/*
+        Support sits with the panel and settings rather than among the tabs
+        above, because it is somewhere you go when something is wrong rather
+        than a place you browse. It points at the settings category, so the rail
+        is a shortcut to the one door and not a second one: without it, reaching
+        support meant opening settings first, and before this it meant typing an
+        address, because nothing in the product linked to support at all.
+
+        It does not light up as an active tab for the same reason `panel` does
+        not: the rail's active state is keyed on the screen id, and the screen
+        behind this address is `settings`.
+      */}
+      <button
+        onClick={() => navigate(ROUTES.SETTINGS_SUPPORT)}
+        aria-label="support"
+        className="lx-tab-btn"
+        style={rowStyle(false)}
+      >
+        <span style={iconWrapStyle}>
+          <LxIcon name="mail" size={RAIL_ICON_SIZE} color={v.ink3} stroke={1.5} />
+        </span>
+        <span style={labelStyle(false)}>support</span>
+      </button>
+
       <button
         onClick={() => navigate(ROUTES.SETTINGS)}
         aria-label="profile settings"
@@ -671,9 +753,21 @@ export function LxSideRail({ active, navigate, visible = true }) {
   );
 }
 
+/**
+ * Narrowest tablet viewport, in device pixels, that can host the compact right rail beside a
+ * readable column. Below this the rail is dropped and the column takes the space instead.
+ */
+export const TABLET_RAIL_MIN_WIDTH = 910;
+
+// Height the fixed messages launcher occupies at the bottom-right, plus its offset and a little
+// clearance. The right rail subtracts this from its own scroll viewport so its last row can never
+// be painted underneath a control that reserves no space of its own.
+const MESSAGE_LAUNCHER_CLEARANCE = 72;
+
 // ─── App Shell ─────────────────────────────────────────────────────────────
 export function LxShell({ screen, navigate, children, showRightRail = true }) {
   const vp = useViewport();
+  const viewportWidth = useViewportWidth();
   const currentUserId = useAuthStore((state) => state.user?.id);
 
   // Settings is the one screen that is not a reading column. It is a list of
@@ -695,11 +789,24 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
           key={screen}
           className="lx-fade-in"
           style={{
-            marginLeft: RAIL_COLLAPSED_W,
+            // The expanded width, not the collapsed one. The rail is fixed and
+            // overlays rather than shifting the layout, so whatever the layout
+            // fails to reserve, the rail covers. Reserving 60 left the rail's
+            // open state overlapping this column by 136px, which swallowed the
+            // left half of every sub-nav row including its label, and it was
+            // open precisely on arrival: reaching settings means clicking the
+            // rail's own settings button, which focuses it, and onFocus expands
+            // the rail. The pointer then sits inside the overlay while crossing
+            // to the sub-nav, so onMouseLeave never fires to collapse it. Every
+            // other branch of this shell already reserves more than the rail can
+            // grow to, which is why settings alone showed the defect.
+            marginLeft: RAIL_EXPANDED_W,
             minHeight: 'calc(100vh / var(--lx-scale))',
             display: 'flex',
             flexDirection: 'column',
             background: v.base,
+            // Matches the right rail's own clearance below, for the same fixed launcher.
+            paddingBottom: MESSAGE_LAUNCHER_CLEARANCE,
           }}
         >
           {children}
@@ -742,7 +849,12 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
             className="lx-fade-in"
             style={{
               width: mainWidth,
-              flexShrink: 0,
+              // Shrinkable, not fixed. Explore and search widen the centre column to 960, which
+              // together with the 280 left spacer, the 280 rail and the rail's own padding needs
+              // more room than a 1440 viewport has once the root zoom is applied - the row
+              // overflowed by 149px and the page scrolled sideways. The rail and the spacer keep
+              // their widths; the centre column gives up the difference instead.
+              flexShrink: 1,
               minWidth: 0,
               // No column rules. The feed is one continuous surface on the page
               // background, so the borders that boxed the centre column are gone.
@@ -750,6 +862,9 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
               display: 'flex',
               flexDirection: 'column',
               background: v.base,
+              // Matches the right rail's own clearance below, for the same fixed launcher - without
+              // it, the last row of any long list is painted underneath the launcher and unclickable.
+              paddingBottom: MESSAGE_LAUNCHER_CLEARANCE,
             }}
           >
             {children}
@@ -768,7 +883,16 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
       screen === 'compose' ? 784 : screen === 'search' || screen === 'explore' ? 760 : 604;
     const tabletShellWidth =
       screen === 'compose' ? 1090 : screen === 'search' || screen === 'explore' ? 1060 : 910;
-    const tabletRightSpacer = 206;
+    // Matched to LEFT_W rather than the 206 it used to be. The left spacer stands in for the
+    // fixed navigation rail, so the main column is only centred between the rail and the right
+    // edge when the two are equal; at 206 it sat measurably left of centre.
+    const tabletRightSpacer = LEFT_W;
+    // The rail is only offered when the viewport can host it beside a readable column. The tablet
+    // shell is sized in CSS pixels but the root carries a zoom scale, so 768 device pixels is
+    // about 673 CSS pixels - far less than the 882 the rail layout needs. Rendering it anyway is
+    // what pushed the column off the left edge and the rail 116 pixels past the right one.
+    const railFits = viewportWidth >= TABLET_RAIL_MIN_WIDTH;
+    const showTabletRail = showRightRail && railFits;
     return (
       // No min-height: 100vh here - see the desktop branch above for why.
       <div style={{ background: v.base, display: 'flex', flexDirection: 'column' }}>
@@ -794,19 +918,23 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
             key={screen}
             className="lx-fade-in"
             style={{
-              width: tabletMainWidth,
-              flexShrink: 0,
+              // Flexible with a ceiling rather than a fixed width: at 1024 it still takes its
+              // designed width, and at 768 it gives ground to the spacers instead of overflowing.
+              flex: 1,
+              maxWidth: tabletMainWidth,
               minWidth: 0,
               // Column rules removed to match the desktop feed's continuous surface.
               minHeight: 'calc(100vh / var(--lx-scale))',
               display: 'flex',
               flexDirection: 'column',
               background: v.base,
+              // Matches the right rail's own clearance below, for the same fixed launcher.
+              paddingBottom: MESSAGE_LAUNCHER_CLEARANCE,
             }}
           >
             {children}
           </main>
-          {showRightRail ? (
+          {showTabletRail ? (
             <LxRightRail navigate={navigate} compact />
           ) : (
             <div style={{ width: tabletRightSpacer, flexShrink: 0 }} aria-hidden="true" />

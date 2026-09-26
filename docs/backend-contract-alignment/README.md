@@ -1,5 +1,7 @@
 # Backend Contract Alignment
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## What this changed, in plain language
 
 Nobody could log in.

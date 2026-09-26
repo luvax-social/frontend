@@ -1,5 +1,7 @@
 # Completion Audit
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The panel is finished at the end of this phase. This establishes that it actually is.
 
 Everything below was seen working in the browser **during this phase**, not carried forward from a

@@ -1,5 +1,7 @@
 # Remaining Screen Differences
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The three screens the first audit could not measure: the report modal, post detail, and the composer.
 
 All three now have concrete difference lists and real sizes.

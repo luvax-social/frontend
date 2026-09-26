@@ -1,5 +1,7 @@
 # Session and Token Flow
 
+> Record of work done on 2026-08-09. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The previous phase reported that both tokens live in memory, so a refresh logs the user out.
 This phase treated that as an unverified claim and tested it against the backend source, the running server, and the browser.
 

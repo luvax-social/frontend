@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import { authApi } from '@/api/authApi';
@@ -6,6 +7,7 @@ import { clearAuthAndRedirect } from '@/api/axiosClient';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxToggle } from '@/components/ui/lx-toggle';
+import { ROUTES } from '@/config/constants';
 import { v } from '@/config/tokens';
 import { useThemeChoice } from '@/hooks/useThemeChoice';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -19,6 +21,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useMediaUpload } from '../hooks/useMediaUpload';
+import { appealPath } from '@/utils/appealEntry';
 import { useMyWarnings, useReportReasonNames } from '../hooks/useAccountStanding';
 import {
   useApproveFollowRequest,
@@ -593,6 +596,13 @@ export function PrivacyCategory() {
           label="allow message requests"
           sub="people you do not follow can message you"
         />
+        <SettingToggle
+          settings={settings}
+          isLoading={settingsLoading}
+          field="suggestible"
+          label="suggest my account to others"
+          sub="turn this off and you will not appear in anyone's suggested accounts"
+        />
       </div>
     </div>
   );
@@ -766,6 +776,9 @@ export function AccountCategory() {
   const profile = profileResponse?.data ?? profileResponse;
   const sessionUser = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const goToSupport = () => navigate(ROUTES.SETTINGS_SUPPORT);
+  const goToAppeal = (adminActionId) => navigate(appealPath(adminActionId));
 
   const {
     data: warningsResponse,
@@ -832,6 +845,30 @@ export function AccountCategory() {
           value={profile?.isPrivate ? 'private' : 'public'}
         />
         <ReadonlyRow label="joined" value={formatDate(profile?.createdAt)} />
+        {/*
+          A badge is asked for through support, where every other request to a
+          human already goes. This section used to carry the request form
+          itself, which made it the only support-shaped surface anywhere in the
+          product and the only one the maintainer could find - while the help
+          centre, which had the same form and every other kind of request
+          besides, had no entry point at all. The form is gone from here; this
+          is the pointer left in its place, because somebody looking for it will
+          look here first.
+        */}
+        {profile?.isVerified ? null : (
+          <div style={{ marginTop: 14 }}>
+            <p className="lx-settings-note">
+              asking for a verified badge is a support request, like appealing a decision or
+              reporting a problem.
+            </p>
+            {/* Its own control rather than a link inside the sentence: an
+                inline link cannot carry a 44px target without breaking the
+                line box it sits in. */}
+            <button type="button" className="lx-settings-textlink" onClick={goToSupport}>
+              open support
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="lx-settings-section">
@@ -858,6 +895,18 @@ export function AccountCategory() {
                   <div className="lx-settings-warning-note">{warning.note}</div>
                 ) : null}
                 <div className="lx-settings-warning-when">{formatDate(warning.createdAt)}</div>
+                {/* The in-product route to contest this. Before it existed, the
+                    only way to appeal a warning was a link inside the email
+                    that announced it, so a lost email meant a lost appeal. */}
+                {warning.adminActionId ? (
+                  <button
+                    type="button"
+                    className="lx-settings-textlink"
+                    onClick={() => goToAppeal(warning.adminActionId)}
+                  >
+                    appeal this warning
+                  </button>
+                ) : null}
               </div>
             ))}
           </div>

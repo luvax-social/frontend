@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything still open at the end of the panel effort, tagged with who owns it.
 
 The panel is complete. Nothing here blocks it. **Everything that needs the backend has been moved

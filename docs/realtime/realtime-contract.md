@@ -1,5 +1,7 @@
 # Realtime Contract
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything here was observed against the running server at `localhost:8080`, backend commit `42f6147`.
 
 Frames were captured with a Node client speaking SockJS and STOMP directly, so what appears below is what the server actually sent, not a description of what it should send.

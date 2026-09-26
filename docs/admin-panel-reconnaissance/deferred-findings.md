@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Things noticed and deliberately not acted on, each tagged with the phase it belongs to.
 This phase changed no application code in either repository.
 

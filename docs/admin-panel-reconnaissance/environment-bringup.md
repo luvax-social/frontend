@@ -1,5 +1,7 @@
 # Environment Bring-Up
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 4.
 Everything here is from a command and its output, run on 2026-08-21.
 

@@ -1,5 +1,7 @@
 # Fabricated Data Removal
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything invented that was rendering anywhere in the application, what happened to it, and confirmation that no navigation path now leads somewhere that does not exist.
 
 ## Why it was deleted rather than hidden

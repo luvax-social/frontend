@@ -1,78 +1,84 @@
 ---
 trigger: model_decision
-description: Load when writing or reviewing Java code in App. Defines comment and Javadoc enforcement rules.
+description: Load when writing or reviewing frontend code. Defines comment and JSDoc conventions for this React repository.
 ---
 
-# Comment Style — App
+# Comment Style — Frontend
 
-**Scope**: All source files under `src/main/java/com/app/`
-**Language**: Java 21
+**Scope**: All source files under `src/`
+**Language**: JavaScript (React 19, JSX). There is no TypeScript in this repository.
 **Comment language**: English only.
 
+Until this revision, this file was a copy of the backend's: it declared its scope as
+`src/main/java/com/app/`, its language as Java 21, and it carried Javadoc tables, `@Transactional`
+guidance, JPA annotations and a set of cache keys for an AI module this project does not have.
+It was the file an agent loaded before writing a React comment. The backend's rules live in
+`backend/.claude/rules/comment_style.md` and apply there; this file applies here.
+
 ---
 
-## 1. Documentation Comments (Javadoc)
+## 1. Documentation Comments (JSDoc)
 
-Apply Javadoc only to:
+JSDoc is used where the shape of a value or the contract of a function is not obvious from
+reading it. It is not required everywhere, and a block that only restates the signature is worse
+than none.
+
+Apply a JSDoc block to:
 
 | Target | Required |
 |--------|---------|
-| All `public` methods in `service/` interfaces | Yes |
-| All `public` methods in `controller/` (`@GetMapping`, `@PostMapping`, etc.) | Yes |
-| All `public` methods in `mapper/` interfaces with non-obvious mapping logic | Yes |
-| All `@Entity` classes (class-level only) | Yes |
-| All `@RestController` classes (class-level only) | Yes |
-| All `record` types used as API response DTOs | Yes |
-| Custom `@Query` methods in `repository/` interfaces | Yes |
-| `@Configuration` classes (class-level only) | Yes |
+| An exported hook whose return shape is not obvious from its name | Yes |
+| An exported service function that wraps an API call | Yes — say which endpoint and what it unwraps |
+| A Zod schema whose rules mirror a backend constraint | Yes — name the backend rule it mirrors |
+| A component whose props carry non-obvious semantics or invariants | Yes |
+| A module-level constant table other files read back (`ROUTES`, `APP_SCREENS`) | Yes, on the object |
 
-**Not required on**:
-- `private` or `package-private` methods
-- `@Repository` methods that mirror Spring Data conventions (e.g., `findById`, `findAll`)
-- Lombok-generated boilerplate
-- Test classes and test methods
-- `service/impl/` methods that implement an already-documented interface method without diverging behavior
+Not required on:
 
-```java
+- A component whose props are self-describing
+- A one-line helper whose name says what it does
+- Test files
+- Anything Prettier or ESLint already enforces
+
+```js
 /**
  * One-sentence summary ending with a period.
  *
- * @param paramName description of what this parameter represents
- * @return description of return value and its semantics
- * @throws ExceptionType when this specific condition occurs
+ * @param {string} userId - what this parameter represents
+ * @returns {{ posts: Post[], isLoading: boolean }} what the caller gets back
  */
 ```
 
 - No `@author`, `@version`, or `@since` — Git history is authoritative.
-- Document *what* the method does and *why* (business invariants, side effects). Never document *how*.
-- Omit `@throws` for unchecked/runtime exceptions unless the caller is expected to handle them.
-- Multi-sentence summaries: second sentence starts on a new line after a blank `*` line.
+- Document *what* the function does and *why* (invariants, side effects). Never document *how*.
+- Multi-sentence summaries: the second sentence starts on a new line after a blank `*` line.
 
 ---
 
 ## 2. Inline Comments
 
-Use `//` only for non-obvious logic that cannot be made clear by renaming. Place on its own line **above** the code — never at end of line (except for enum constants or ambiguous field names).
+Use `//` only for non-obvious logic that cannot be made clear by renaming. Place it on its own
+line **above** the code — never at the end of a line, except for an object literal entry or a
+constant whose name is ambiguous.
 
-```java
-// Lua script ensures RPUSH + LTRIM + EXPIRE are atomic across Redis operations
-redisTemplate.execute(appendScript, keys, args);
+```js
+// Lands before the paint so the shell does not flash the signed-out header on reload.
+useLayoutEffect(() => hydrateFromStorage(), []);
 
-// REQUIRES_NEW isolates the payment reconciliation transaction from the outer batch context
-@Transactional(propagation = Propagation.REQUIRES_NEW)
-public void reconcilePayment(Long paymentId) { ... }
-
-// Skip bootstrap if index already has documents — partial population is also skipped
-if (documentCount > 0) return;
+// The backend returns the envelope; feature code must never see it.
+return response.data.data;
 ```
 
+Inside JSX, use `{/* ... */}` on its own line above the element it describes.
+
 Forbidden:
-```java
+
+```js
 // Call the service        ← restates what the code does
-// Get user by id          ← restates the method name
-// Loop through the list   ← restates the code
+// Get user by id          ← restates the function name
+// Map over the array      ← restates the code
 // TODO fix this later     ← no issue reference, FORBIDDEN
-// TODO(VR-123): fix this  ← ALLOWED (must have ticket reference in VR-NNN format)
+// TODO(#123): fix this    ← ALLOWED (must reference a GitHub issue in this repository)
 // Created by agent v2     ← no attribution comments
 ```
 
@@ -80,35 +86,46 @@ Forbidden:
 
 ## 3. Section Dividers — Forbidden
 
-```java
+```js
 // ===================== DO NOT USE =====================
 // *** Forbidden ***
 /* ---- Also forbidden ---- */
-//===================================================
 ```
 
-`hooks/pre-commit-lint.sh` blocks commits containing these patterns.
+Enforced by code review, not by tooling. There is no pre-commit hook in this repository: an
+earlier revision of this file named `hooks/pre-commit-lint.sh` as the enforcer, and no such file
+has ever existed here. A mechanical heuristic for this pattern also flags legitimate multi-line
+explanatory prose, which is why the backend chose review over tooling and why this repository
+does the same.
+
+`npm run lint` runs ESLint with `eslint-plugin-prettier`, which enforces formatting from
+`.prettierrc`. It says nothing about comment content.
 
 ---
 
 ## 4. Comment Placement
 
-- Inline comments sit on their own line **above** the code they describe with no blank line between them.
-- Trailing same-line comments allowed **only** for enum constants or fields where the name is ambiguous:
+- Inline comments sit on their own line **above** the code they describe, with no blank line
+  between them.
+- A trailing same-line comment is allowed only on an object literal entry or a constant whose
+  name is ambiguous:
 
-```java
-public enum JobStatus {
-    DRAFT,
-    PUBLISHED, // Visible to candidates, consumes quota
-    CLOSED     // No new applications accepted
-}
+```js
+export const STALE_TIME = {
+  SHORT: 30_000, // 30 seconds
+  MEDIUM: 5 * 60_000, // 5 minutes
+  LONG: 30 * 60_000, // 30 minutes
+};
 ```
 
 ---
 
 ## 5. Removed / Commented-Out Code
 
-Dead code must be deleted, not commented out. `hooks/pre-commit-lint.sh` flags 3+ consecutive `//` comment lines as a violation. If reactivation is uncertain, create a Git branch or a tracked issue (`VR-NNN`).
+Dead code must be deleted, not commented out. Enforced by code review, not by tooling, for the
+same reason as section 3: a heuristic flagging three or more consecutive `//` lines also fires on
+a legitimate multi-sentence explanation. If reactivation is uncertain, create a Git branch or a
+GitHub issue in this repository.
 
 ---
 
@@ -116,63 +133,39 @@ Dead code must be deleted, not commented out. `hooks/pre-commit-lint.sh` flags 3
 
 | Layer | Rule |
 |-------|------|
-| `controller/` | Javadoc on every handler method: one sentence describing the HTTP action, what it accepts, what it returns, and auth requirements. |
-| `service/` interface | Javadoc on every method — these are the domain API contracts. Document business invariants and side effects. |
-| `service/impl/` | Javadoc only if the implementation diverges meaningfully from the interface contract. Use inline `//` for non-obvious transaction boundaries or external call patterns. |
-| `repository/` | Javadoc on custom `@Query` methods only. Standard Spring Data method names need no comment. |
-| `entity/` | Class-level Javadoc required. Field-level Javadoc only for fields with business constraints (nullable semantics, computed fields, state machine fields). |
-| `mapper/` | No comments unless a mapping involves non-obvious transformation logic. |
-| `dto/` | No comments unless a field name is a domain abbreviation opaque to a new engineer. |
-| `config/` | Class-level Javadoc required. Inline comments for non-default configuration values where the reason is non-obvious. |
-| `common/security/` | Document security contracts and token lifecycle invariants on class-level Javadoc. |
+| `src/api/`, `src/services/` | Say which endpoint the function calls and what it unwraps from the `ApiResponse<T>` envelope. |
+| `src/features/*/hooks/` | Document the query key, what invalidates it, and any optimistic update's rollback path. |
+| `src/features/*/components/` | Comment only where a layout or interaction decision is not visible in the markup. |
+| `src/components/ui/` | Document a prop that changes behaviour rather than appearance. |
+| `src/store/` | Document what is persisted and what is deliberately not, and why. |
+| `src/config/` | Document a constant whose value encodes a backend contract, naming the contract. |
+| `src/routes/` | Document why an address exists where it does when the placement is not obvious. |
 
-### AI Module Specifics
+### Optimistic updates
 
-```java
-// Combines job description and candidate profile to generate a relevance score (0–100)
-String prompt = promptBuilder.build(job, candidate);
+An optimistic update must carry a comment naming what it rolls back to on failure, because the
+rollback is the part a reader cannot infer from the happy path:
 
-// Key format: ai:emb:{sha256(text)} — TTL 24hr, avoids redundant OpenAI embedding calls
-String cacheKey = "ai:emb:" + DigestUtils.sha256Hex(text);
-
-// Key format: ai:mem:{userId}:{sessionId} — TTL 1hr, capped at 10 messages via Lua script
-```
-
-### Transaction Boundary Annotations
-
-Always document `REQUIRES_NEW` propagation with an inline comment explaining the isolation reason:
-
-```java
-// Ensures payment activation is committed independently — outer batch failure must not roll it back
-@Transactional(propagation = Propagation.REQUIRES_NEW)
-public void activateSubscription(Long paymentId) { ... }
+```js
+// Rolls back to the snapshot taken in onMutate; the counter is trigger-maintained server-side,
+// so a failed like must not leave the client's number ahead of the database.
+onError: (_error, _variables, context) => queryClient.setQueryData(key, context.previous),
 ```
 
 ---
 
-## 7. Framework Annotations — No Comment Required
+## 7. Framework Idioms — No Comment Required
 
-```java
-@RestController
-@RequestMapping("/app/...")
-@Service
-@Repository
-@Component
-@Configuration
-@Bean
-@Autowired
-@Value("...")
-@Cacheable
-@Transactional          // No comment needed UNLESS propagation is non-default
-@PreAuthorize("...")
-@Valid
-@NotNull, @NotBlank, @Size, etc.
-@Getter, @Setter, @Builder, @Data, @AllArgsConstructor, @NoArgsConstructor
-@Entity, @Table, @Column
-@Id, @GeneratedValue
+```jsx
+useState, useEffect, useMemo, useCallback, useRef
+useQuery, useMutation, useQueryClient, useInfiniteQuery
+useNavigate, useParams, useSearchParams, <Link>, <Outlet>
+useForm, zodResolver
+className={cn(...)}
 ```
 
-Exception: add an inline comment if a configuration value is non-default and the reason is non-obvious (e.g., `@Transactional(propagation = REQUIRES_NEW)` must always have a comment).
+Exception: add a comment when a dependency array is deliberately narrower or wider than it looks,
+or when an effect exists for ordering rather than for its body.
 
 ---
 
@@ -181,13 +174,12 @@ Exception: add an inline comment if a configuration value is non-default and the
 Before committing any source file, verify:
 
 - [ ] No commented-out code exists.
-- [ ] No decorative dividers (`====`, `----`, `***`, `███`, etc.).
-- [ ] No `TODO` / `FIXME` / `HACK` without a tracked issue reference in `VR-NNN` format.
+- [ ] No decorative dividers (`====`, `----`, `***`).
+- [ ] No `TODO` / `FIXME` / `HACK` without a GitHub issue reference (`#123`).
 - [ ] No attribution comments (`// added by`, `// agent`, `// created`, `// author`).
-- [ ] Javadoc exists on all `public` service interface method declarations.
-- [ ] Javadoc exists on all `@RestController` handler methods.
-- [ ] Javadoc exists on all `@Entity` and `@Configuration` class declarations.
+- [ ] Every optimistic update names its rollback.
+- [ ] Every service function says which endpoint it calls.
 - [ ] Inline comments explain *why*, never *what*.
 - [ ] Comment language is English throughout.
-- [ ] No `System.out.println` or `e.printStackTrace()` anywhere in production code.
-- [ ] All `@Transactional(propagation = REQUIRES_NEW)` usages have an inline comment explaining the isolation rationale.
+- [ ] No `console.log` left in application code.
+- [ ] `npm run lint` passes.

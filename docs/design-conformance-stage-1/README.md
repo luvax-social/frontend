@@ -1,5 +1,7 @@
 # Design Conformance Stage 1: Icons, Buttons, and the Shell
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The first of three stages bringing the interface into line with the design export.
 
 This stage changes only what appears on every screen at once: the icon set, the button primitive, and the application shell.

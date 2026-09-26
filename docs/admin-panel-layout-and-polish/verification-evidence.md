@@ -1,5 +1,7 @@
 # Verification evidence
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything below was driven through a real browser against the running
 application and the live backend. Nothing here is inferred.
 

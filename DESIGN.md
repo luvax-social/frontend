@@ -9,13 +9,14 @@ description: |
   confident in what it chooses not to do.
 
 colors:
-  primary: "#C8A97E"
-  secondary: "#7A9E7A"
-  canvas: "#F9F7F4"
-  canvas-subtle: "#F0EDE8"
+  primary: "#C8A97E"    # --lx-accent
+  secondary: "#7A9E7A"  # --lx-success, avatar 1, brand alternate
+  canvas: "#F9F7F4"     # --lx-base
+  canvas-subtle: "#F0EDE8"  # --lx-surface
   ink: "#1A1816"
-  muted: "#9B9088"
-  accent: "#C47168"
+  muted: "#9B9088"      # --lx-ink-3
+  brand-alt-rose: "#C4847A"
+  error: "#C47168"      # --lx-error
 
 typography:
   display:
@@ -60,7 +61,14 @@ Structure comes from **hairlines and whitespace**, not boxes or fills. No decora
 - **Rule:** both themes share the same accent `#C8A97E` and border logic. Do not invent theme-specific accent overrides.
 
 ### Voice
-Everything is **lowercase**. UI labels, headings, buttons, nav. Capitals only for proper nouns in body copy and the logotype asset. No exclamation marks; no hype copy; no emoji anywhere.
+No exclamation marks; no hype copy; no emoji anywhere.
+
+Casing is split, and the split is deliberate rather than drift:
+
+- **Navigation, tabs, section labels and in-shell chrome are lowercase.** This is the brand voice and it holds.
+- **Sentences are sentence case.** Auth screens, support screens, form labels, validation messages, empty states and any copy that reads as a sentence take a capital first letter. An all-lowercase sentence read as a stylistic tic rather than as voice, and it made error copy harder to scan at the moment it mattered most.
+
+Capitals otherwise only for proper nouns and the logotype asset. Nothing is Title Case.
 
 ---
 
@@ -80,7 +88,7 @@ Everything is **lowercase**. UI labels, headings, buttons, nav. Capitals only fo
 | **Danger** background | `--lx-error` (#C47168) · text `--lx-ink-inverse` |
 | Transition | `background var(--duration-fast) var(--ease-out)` |
 | Disabled | opacity 0.4, `cursor: not-allowed` |
-| Text casing | **lowercase** always |
+| Text casing | lowercase for chrome and short labels; sentence case for anything that reads as a sentence (see §1 Voice) |
 
 ### Cards / Containers
 | Property | Value |
@@ -106,7 +114,7 @@ Everything is **lowercase**. UI labels, headings, buttons, nav. Capitals only fo
 | Error border | `--lx-error` (#C47168) · helper text in `--lx-error-text` |
 | Error background | `--lx-error-dim` (#F5E8E7) |
 | Label | `--font-body`, `--fw-medium`, `--text-label` (13px), `--tracking-label` |
-| Microcopy style | lowercase, human ("that doesn't look like an email") |
+| Microcopy style | sentence case, human ("That doesn't look like an email") |
 
 ### Modals / Sheets
 | Property | Value |
@@ -127,7 +135,7 @@ Reserved for floating-over-content surfaces only — never for static cards.
 
 ### Icons
 - Lucide-style, 24×24 grid, `currentColor` stroke, **1.5px default weight**.
-- Use `<Icon name="…" />` from `window.LuvaxDesignSystem_cae09a.Icon`. Never hand-roll inline SVG paths.
+- Use `<LxIcon name="…" />` from `src/components/ui/lx-icon.jsx`. Never hand-roll inline SVG paths. There is no design-system global on `window`; an earlier revision of this file named one.
 - Active states: bump stroke to 1.8–2px; `heart` and `bookmark` switch to filled variant.
 - Active nav item: gold accent color + thin underline. **Never** a filled pill highlight.
 
@@ -174,7 +182,7 @@ Reserved for floating-over-content surfaces only — never for static cards.
 
 2. **Use pill radius for all interactive affordances.** Buttons, avatars, chips, toggles, and search inputs always use `--radius-pill` (999px). Reserve `--radius-lg` for cards and `--radius-md` for form inputs.
 
-3. **Write all copy in lowercase.** Labels, headings, button text, nav items — everything. Sentence-case or Title Case breaks brand voice immediately.
+3. **Follow the casing split.** Chrome and short labels are lowercase; anything that reads as a sentence is sentence case. Title Case breaks brand voice immediately and is never correct.
 
 4. **Keep shadows warm.** All shadow values use `rgba(26,24,22,…)` (the ink hue), never `rgba(0,0,0,…)`. Always pull from the named `--shadow-*` tokens.
 
@@ -196,7 +204,7 @@ Reserved for floating-over-content surfaces only — never for static cards.
 
 5. **Don't use a color not in the palette for borders.** All hairlines must use `--lx-border` (#DDD7CF), `--lx-border-strong` (#C4BCB2), or `--lx-border-subtle` (#ECEAE5). Never invent new border colors.
 
-6. **Don't import external icon libraries.** All icons come from `<Icon name="…" />`. If a glyph is missing, add it to `Icon.jsx` in the same 24×24 / 1.5-stroke Lucide style rather than importing a second icon set.
+6. **Don't import external icon libraries.** All icons come from `<LxIcon name="…" />`. If a glyph is missing, add it to the `ICONS` map in `src/components/ui/lx-icon.jsx` in the same 24×24 / 1.5-stroke Lucide style rather than importing a second icon set. "Lucide style" is a drawing convention here, not a dependency: the 38 declared packages contain no icon library.
 
 7. **Don't use Title Case or ALL CAPS in UI text.** The mono eyebrow exception (`DM Mono`, `text-transform: uppercase`, `--tracking-caps`) exists only for metadata labels, timestamps, and section dividers — applied via the `.t-mono-sm` utility class, never hand-rolled.
 

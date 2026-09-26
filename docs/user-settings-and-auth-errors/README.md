@@ -1,5 +1,7 @@
 # What changed, for someone who knew the previous settings screen
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## The list
 
 Each entry is an icon and a name, with a search field above them. The one you have open sits

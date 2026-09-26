@@ -20,6 +20,7 @@ import { FollowListModal } from './FollowListModal';
 import { useLuvaxTweaks } from '../LuvaxTweaksContext';
 import { ROUTES, routeTo } from '@/config/constants';
 import { isPanelRole } from '@/config/roles';
+import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 
 /**
  * The post types the photos tab asks the server for.
@@ -693,7 +694,11 @@ export function ProfileScreen() {
             >
               {title}
             </div>
-            {user?.isVerified && <LxIcon name="check" size={18} color={v.accent} />}
+            <LxVerifiedBadge
+              verified={user?.isVerified}
+              category={user?.verifiedCategory}
+              size={18}
+            />
             {user?.isPrivate && !isSelf && <LxIcon name="lock" size={14} color={v.ink3} />}
           </div>
           {showHandle ? (

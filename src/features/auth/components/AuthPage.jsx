@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { authApi } from '@/api/authApi';
+import { TurnstileWidget } from '@/components/common/TurnstileWidget';
+import { useTurnstile } from '@/hooks/useTurnstile';
+import { CAPTCHA_FAILURE_MESSAGE, isCaptchaFailure } from '@/utils/captchaErrors';
 import { ROUTES } from '@/config/constants';
 import { landingPathForRole } from '@/config/roles';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -13,14 +16,18 @@ import './AuthPage.css';
 
 const HERO_IMAGES = ['/1.webp', '/2.webp', '/3.webp'];
 
+// The two halves render as one continuous headline, with `accent` only picking
+// up the accent colour. Sentence case belongs to the sentence, so only `main`
+// carries the capital: a blind pass over both gave "Explore the things You
+// love".
 const WELCOMES = [
-  { main: 'explore the things ', accent: 'you love' },
-  { main: 'connect with your kind of ', accent: 'fun' },
-  { main: 'dive into ', accent: 'what you enjoy' },
-  { main: 'your space for ', accent: 'good energy' },
-  { main: 'share what makes ', accent: 'you smile' },
-  { main: 'discover your next ', accent: 'obsession' },
-  { main: 'bring your passions ', accent: 'here' },
+  { main: 'Explore the things ', accent: 'you love' },
+  { main: 'Connect with your kind of ', accent: 'fun' },
+  { main: 'Dive into ', accent: 'what you enjoy' },
+  { main: 'Your space for ', accent: 'good energy' },
+  { main: 'Share what makes ', accent: 'you smile' },
+  { main: 'Discover your next ', accent: 'obsession' },
+  { main: 'Bring your passions ', accent: 'here' },
 ];
 
 // The registration form calls its display-name input `name`; the server calls
@@ -58,6 +65,62 @@ const applyServerFieldErrors = (form, fieldErrors) => {
   });
 
   return applied;
+};
+
+/**
+ * What to say about a refused sign-in, and whether support is the way onward.
+ *
+ * A refusal caused by the account's own state is the one sign-in failure worth
+ * naming: the person cannot fix it by trying again, and nothing else in the
+ * product will ever tell them, because a banned or suspended account is refused
+ * on every authenticated endpoint and can never load a screen to be told there.
+ *
+ * It is also the one moment the system knows for certain that the person in
+ * front of it needs the appeal path, which is why the link belongs here and not
+ * only in the page's footer. Before this, `AUTH_ACCOUNT_LOCKED` - a ban - fell
+ * through to the generic message and read "we could not sign you in just now.
+ * try again in a moment.", inviting a retry that can never succeed.
+ *
+ * The copy names the state and gives the route onward, and stops there. It does
+ * not restate the moderation reason, name the acting staff member or mention a
+ * report, which is the same constraint the moderation email is written under.
+ * No end date is claimed for a suspension, because the refusal carries none.
+ *
+ * `AUTH_ACCOUNT_INACTIVE` also covers DEACTIVATED, which no live flow produces
+ * today; `AdminServiceImpl` records that it is reserved for a future
+ * self-service deactivation, and if that ships this branch needs its own code
+ * rather than borrowing the suspension's words.
+ *
+ * @param {string|undefined} code the `code` field of the error envelope
+ * @returns {{text: string, offerSupport: boolean}} the sentence and whether to
+ *   offer the support link beside it
+ */
+const describeLoginFailure = (code) => {
+  if (code === 'AUTH_ACCOUNT_LOCKED') {
+    return {
+      text: 'This account has been banned, so you cannot sign in to it.',
+      offerSupport: true,
+    };
+  }
+  if (code === 'AUTH_ACCOUNT_INACTIVE') {
+    return {
+      text: 'This account is suspended, so you cannot sign in to it at the moment.',
+      offerSupport: true,
+    };
+  }
+  if (code === 'AUTH_INVALID_CREDENTIALS') {
+    return {
+      text: 'That email or password is not right. Check them and try again.',
+      offerSupport: false,
+    };
+  }
+  // The challenge refused rather than the credentials. Named separately so the
+  // reader is not sent hunting for a password mistake that is not there; the
+  // widget is re-armed alongside this, so trying again is the whole of the fix.
+  if (code === 'AUTH_CAPTCHA_FAILED') {
+    return { text: CAPTCHA_FAILURE_MESSAGE, offerSupport: false };
+  }
+  return { text: 'We could not sign you in just now. Try again in a moment.', offerSupport: false };
 };
 
 const getSuccessMessage = (state) => {
@@ -145,7 +208,8 @@ export default function AuthPage() {
   const [welcome] = useState(() => WELCOMES[Math.floor(Math.random() * WELCOMES.length)]);
   const [showLoginPw, setShowLoginPw] = useState(false);
   const [showRegPw, setShowRegPw] = useState(false);
-  const [serverError, setServerError] = useState('');
+  // { text, offerSupport } once a sign-in has been refused, null before that.
+  const [serverError, setServerError] = useState(null);
   const [regServerError, setRegServerError] = useState('');
   const [fpServerError, setFpServerError] = useState('');
   const [fpSent, setFpSent] = useState(false);
@@ -172,20 +236,44 @@ export default function AuthPage() {
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: '', password: '' },
+    defaultValues: { identifier: '', password: '', turnstileToken: '' },
   });
 
   const registerForm = useForm({
     resolver: zodResolver(authPageRegisterSchema),
-    defaultValues: { username: '', name: '', email: '', password: '' },
+    defaultValues: { username: '', name: '', email: '', password: '', turnstileToken: '' },
   });
 
   const forgotForm = useForm({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: '' },
+    defaultValues: { email: '', turnstileToken: '' },
   });
 
   const fpEmailValue = useWatch({ control: forgotForm.control, name: 'email' });
+
+  // The token lives in the form's own values rather than beside them, so the
+  // Zod schema is what decides whether a submission may go out and there is one
+  // source of truth for it.
+  const setLoginToken = useCallback(
+    (token) => loginForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
+    [loginForm]
+  );
+  const setRegisterToken = useCallback(
+    (token) => registerForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
+    [registerForm]
+  );
+  const setForgotToken = useCallback(
+    (token) => forgotForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
+    [forgotForm]
+  );
+
+  const loginChallenge = useTurnstile(setLoginToken);
+  const registerChallenge = useTurnstile(setRegisterToken);
+  const forgotChallenge = useTurnstile(setForgotToken);
+
+  const loginToken = useWatch({ control: loginForm.control, name: 'turnstileToken' });
+  const registerToken = useWatch({ control: registerForm.control, name: 'turnstileToken' });
+  const forgotToken = useWatch({ control: forgotForm.control, name: 'turnstileToken' });
 
   const goLogin = () => setView('login');
   const goRegister = () => setView('register');
@@ -195,23 +283,23 @@ export default function AuthPage() {
   };
 
   const handleGoogle = () => {
-    setServerError('');
+    setServerError(null);
     setRegServerError('');
     try {
       window.location.href = authApi.getGoogleLoginUrl();
     } catch (error) {
       const message =
-        'we could not open google sign-in just now. try again, or use your email and password.';
+        'We could not open Google sign-in just now. Try again, or use your email and password.';
       if (view === 'register') {
         setRegServerError(message);
       } else {
-        setServerError(message);
+        setServerError({ text: message, offerSupport: false });
       }
     }
   };
 
   const onLoginSubmit = async (values) => {
-    setServerError('');
+    setServerError(null);
 
     try {
       const result = await authApi.login(values);
@@ -231,6 +319,11 @@ export default function AuthPage() {
       const nextPath = location.state?.from?.pathname || landingPathForRole(user?.role);
       navigate(nextPath, { replace: true });
     } catch (error) {
+      // Every failure re-arms the challenge, not only a refused one. The token
+      // is single-use, so a wrong password followed by a second attempt would
+      // otherwise send a spent token and be refused for a reason the reader
+      // cannot see.
+      loginChallenge.reset();
       // The backend returns 403 with code AUTH_EMAIL_NOT_VERIFIED on the
       // envelope's `code` field.
       const errorCode = error?.response?.data?.code;
@@ -245,20 +338,7 @@ export default function AuthPage() {
         return;
       }
       logout();
-      // A refused account is the one sign-in failure worth naming, because the
-      // person cannot fix it by trying again and nothing else in the product
-      // will ever tell them: a suspended account is answered 401 on every
-      // authenticated endpoint, so it can never load a screen to be told there.
-      // The server returns no end date with this refusal, so none is claimed.
-      // Recorded as a backend request item.
-      const code = error?.response?.data?.code;
-      setServerError(
-        code === 'AUTH_ACCOUNT_INACTIVE'
-          ? 'this account is suspended, so you cannot sign in to it at the moment. if you think that is wrong, get in touch and we will look into it.'
-          : code === 'AUTH_INVALID_CREDENTIALS'
-            ? 'that email or password is not right. check them and try again.'
-            : 'we could not sign you in just now. try again in a moment.'
-      );
+      setServerError(describeLoginFailure(error?.response?.data?.code));
     }
   };
 
@@ -271,10 +351,20 @@ export default function AuthPage() {
         username: values.username,
         email: values.email,
         password: values.password,
+        turnstileToken: values.turnstileToken,
       });
 
       navigate(ROUTES.VERIFY_EMAIL_NOTICE, { replace: true, state: { email: values.email } });
     } catch (error) {
+      // Single-use token: re-armed on every failure, not only a refused
+      // challenge, so the next attempt carries a fresh one.
+      registerChallenge.reset();
+
+      if (isCaptchaFailure(error)) {
+        setRegServerError(CAPTCHA_FAILURE_MESSAGE);
+        return;
+      }
+
       // A rejected field carries the specific rule that failed in `errors`,
       // keyed by field name, while `message` only says validation failed.
       // Showing the rule beside the field it belongs to beats repeating the
@@ -295,7 +385,13 @@ export default function AuthPage() {
       await authApi.forgotPassword(values);
       setFpSent(true);
     } catch (error) {
-      setFpServerError("we couldn't send that email just now. try again in a moment.");
+      // Single-use token: re-armed on every failure so a retry is possible.
+      forgotChallenge.reset();
+      setFpServerError(
+        isCaptchaFailure(error)
+          ? CAPTCHA_FAILURE_MESSAGE
+          : "we couldn't send that email just now. try again in a moment."
+      );
     }
   };
 
@@ -305,15 +401,15 @@ export default function AuthPage() {
     return (
       <div className="lx-shell">
         <div className="lx-col lx-enter">
-          <button type="button" className="lx-back" onClick={goLogin} aria-label="back to login">
+          <button type="button" className="lx-back" onClick={goLogin} aria-label="Back to login">
             <BackIcon />
           </button>
 
           <form className="lx-card" onSubmit={registerForm.handleSubmit(onRegSubmit)} noValidate>
             <div className="lx-head">
-              <h1 className="lx-h2">get started on luvax</h1>
+              <h1 className="lx-h2">Get started on Luvax</h1>
               <p className="lx-sub">
-                create an account to connect with friends, family, and communities of people who
+                Create an account to connect with friends, family, and communities of people who
                 share your interests.
               </p>
             </div>
@@ -321,7 +417,7 @@ export default function AuthPage() {
             <div className="lx-row">
               <Field
                 id="rg-user"
-                label="username"
+                label="Username"
                 type="text"
                 autoComplete="username"
                 error={errors.username?.message}
@@ -329,7 +425,7 @@ export default function AuthPage() {
               />
               <Field
                 id="rg-name"
-                label="display name"
+                label="Display name"
                 type="text"
                 autoComplete="name"
                 error={errors.name?.message}
@@ -339,7 +435,7 @@ export default function AuthPage() {
 
             <Field
               id="rg-email"
-              label="email address"
+              label="Email address"
               type="email"
               autoComplete="email"
               error={errors.email?.message}
@@ -348,7 +444,7 @@ export default function AuthPage() {
 
             <Field
               id="rg-pw"
-              label="password"
+              label="Password"
               type={showRegPw ? 'text' : 'password'}
               autoComplete="new-password"
               error={errors.password?.message}
@@ -365,6 +461,8 @@ export default function AuthPage() {
               }
             />
 
+            <TurnstileWidget {...registerChallenge.widgetProps} />
+
             {regServerError ? (
               <p style={{ color: 'var(--lx-error-text)', fontSize: '14px', margin: 0 }}>
                 {regServerError}
@@ -375,28 +473,36 @@ export default function AuthPage() {
               type="submit"
               className="lx-btn-primary"
               style={{ marginTop: '4px' }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !registerToken}
             >
-              create account
+              Create account
             </button>
+            {registerChallenge.ready && !registerToken && !registerChallenge.unavailable ? (
+              <p
+                style={{ color: 'var(--lx-ink-2)', fontSize: '13px', margin: 0 }}
+                aria-live="polite"
+              >
+                Complete the challenge above to continue.
+              </p>
+            ) : null}
 
             <div className="lx-divider">
               <span />
-              <em>or continue with</em>
+              <em>Or continue with</em>
               <span />
             </div>
 
             <button type="button" className="lx-btn-oauth" onClick={handleGoogle}>
               <GoogleIcon />
-              <span>continue with google</span>
+              <span>Continue with Google</span>
             </button>
 
             <button type="button" className="lx-btn-secondary" onClick={goLogin}>
-              i already have an account
+              I already have an account
             </button>
             <p className="lx-legal">
-              by creating an account you agree to our <a href="#terms">terms</a> and{' '}
-              <a href="#privacy">privacy policy</a>
+              By creating an account you agree to our <a href="#terms">Terms</a> and{' '}
+              <a href="#privacy">Privacy policy</a>
             </p>
           </form>
         </div>
@@ -411,7 +517,7 @@ export default function AuthPage() {
       return (
         <div className="lx-shell">
           <div className="lx-col lx-enter">
-            <button type="button" className="lx-back" onClick={goLogin} aria-label="back to login">
+            <button type="button" className="lx-back" onClick={goLogin} aria-label="Back to login">
               <BackIcon />
             </button>
             <div className="lx-card">
@@ -419,9 +525,9 @@ export default function AuthPage() {
                 <MailIcon />
               </div>
               <div className="lx-head">
-                <h1 className="lx-h2">check your inbox</h1>
+                <h1 className="lx-h2">Check your inbox</h1>
                 <p className="lx-sub">
-                  if an account exists for that address, a reset link is on its way to:
+                  If an account exists for that address, a reset link is on its way to:
                 </p>
               </div>
               <p className="lx-sent-mail">{fpEmailValue}</p>
@@ -434,10 +540,10 @@ export default function AuthPage() {
                   forgotForm.reset({ email: '' });
                 }}
               >
-                send to a different email
+                Send to a different email
               </button>
               <button type="button" className="lx-linkbtn" onClick={goLogin}>
-                back to log in
+                Back to log in
               </button>
             </div>
           </div>
@@ -448,27 +554,29 @@ export default function AuthPage() {
     return (
       <div className="lx-shell">
         <div className="lx-col lx-enter">
-          <button type="button" className="lx-back" onClick={goLogin} aria-label="back to login">
+          <button type="button" className="lx-back" onClick={goLogin} aria-label="Back to login">
             <BackIcon />
           </button>
 
           <form className="lx-card" onSubmit={forgotForm.handleSubmit(onForgotSubmit)} noValidate>
             <div className="lx-head">
-              <h1 className="lx-h2">reset your password</h1>
+              <h1 className="lx-h2">Reset your password</h1>
               <p className="lx-sub">
-                enter the email on your account and we&apos;ll send you a link to set a new
+                Enter the email on your account and we&apos;ll send you a link to set a new
                 password.
               </p>
             </div>
 
             <Field
               id="fp-email"
-              label="email address"
+              label="Email address"
               type="email"
               autoComplete="email"
               error={errors.email?.message}
               register={forgotForm.register('email')}
             />
+
+            <TurnstileWidget {...forgotChallenge.widgetProps} />
 
             {fpServerError ? (
               <p style={{ color: 'var(--lx-error-text)', fontSize: '14px', margin: 0 }}>
@@ -480,13 +588,33 @@ export default function AuthPage() {
               type="submit"
               className="lx-btn-primary"
               style={{ marginTop: '4px' }}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !forgotToken}
             >
-              send reset link
+              Send reset link
             </button>
+            {forgotChallenge.ready && !forgotToken && !forgotChallenge.unavailable ? (
+              <p
+                style={{ color: 'var(--lx-ink-2)', fontSize: '13px', margin: 0 }}
+                aria-live="polite"
+              >
+                Complete the challenge above to continue.
+              </p>
+            ) : null}
             <button type="button" className="lx-linkbtn" onClick={goLogin}>
-              back to log in
+              Back to log in
             </button>
+            {/*
+              A reset link is no use to somebody who has lost the address it
+              would be sent to, and that same loss makes the signed appeal link
+              and the public form's email confirmation useless too. This is the
+              only place the product can offer them anything.
+            */}
+            <p className="lx-foot">
+              Lost access to this email?{' '}
+              <a className="lx-support-link" href={ROUTES.SUPPORT_PUBLIC}>
+                Contact support
+              </a>
+            </p>
           </form>
         </div>
       </div>
@@ -518,11 +646,11 @@ export default function AuthPage() {
           onSubmit={loginForm.handleSubmit(onLoginSubmit)}
           noValidate
         >
-          <h2 className="lx-h2-lg">log in to luvax</h2>
+          <h2 className="lx-h2-lg">Log in to Luvax</h2>
 
           <Field
             id="lg-user"
-            label="username or email"
+            label="Username or email"
             type="text"
             autoComplete="username"
             error={loginErrors.identifier?.message}
@@ -531,7 +659,7 @@ export default function AuthPage() {
 
           <Field
             id="lg-pw"
-            label="password"
+            label="Password"
             type={showLoginPw ? 'text' : 'password'}
             autoComplete="current-password"
             error={loginErrors.password?.message}
@@ -554,34 +682,68 @@ export default function AuthPage() {
             </p>
           ) : null}
           {serverError ? (
-            <p style={{ color: 'var(--lx-error-text)', fontSize: '14px', margin: 0 }}>
-              {serverError}
-            </p>
+            <div role="alert" style={{ fontSize: '14px' }}>
+              <p style={{ color: 'var(--lx-error-text)', margin: 0 }}>{serverError.text}</p>
+              {serverError.offerSupport ? (
+                <p style={{ color: 'var(--lx-ink-2)', margin: '6px 0 0' }}>
+                  If you think that is wrong,{' '}
+                  <a className="lx-support-link" href={ROUTES.SUPPORT_PUBLIC}>
+                    Ask us to look at it
+                  </a>
+                  .
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
-          <button type="submit" className="lx-btn-primary" disabled={loginSubmitting}>
-            log in
+          <TurnstileWidget {...loginChallenge.widgetProps} />
+
+          <button
+            type="submit"
+            className="lx-btn-primary"
+            disabled={loginSubmitting || !loginToken}
+          >
+            Log in
           </button>
+          {loginChallenge.ready && !loginToken && !loginChallenge.unavailable ? (
+            <p style={{ color: 'var(--lx-ink-2)', fontSize: '13px', margin: 0 }} aria-live="polite">
+              Complete the challenge above to continue.
+            </p>
+          ) : null}
           <button type="button" className="lx-btn-forgot" onClick={goForgot}>
-            forgotten password
+            Forgotten password
           </button>
 
           <div className="lx-divider">
             <span />
-            <em>or continue with</em>
+            <em>Or continue with</em>
             <span />
           </div>
 
           <button type="button" className="lx-btn-oauth" onClick={handleGoogle}>
             <GoogleIcon />
-            <span>continue with google</span>
+            <span>Continue with Google</span>
           </button>
 
           <p className="lx-foot">
-            don&apos;t have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button type="button" onClick={goRegister}>
-              sign up
+              Sign up
             </button>
+          </p>
+          {/*
+            Present whether or not a sign-in has been attempted. Somebody who
+            cannot get in may never reach the refusal above - a forgotten
+            username produces no account state to name - and until this line
+            existed no signed-out surface in the product linked to support at
+            all, so the public form was reachable only from an email nobody
+            still has.
+          */}
+          <p className="lx-foot">
+            Can&apos;t get into your account?{' '}
+            <a className="lx-support-link" href={ROUTES.SUPPORT_PUBLIC}>
+              Contact support
+            </a>
           </p>
         </form>
       </main>

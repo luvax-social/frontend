@@ -1,5 +1,7 @@
 # Adopting the Backend Changes
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The backend delivered a batch of work in response to the frontend's findings report.
 
 Several items made existing frontend behaviour wrong rather than merely unfinished: a control was hidden that now works, a marker was missing that can now be rendered, a vague warning stood where a number is now available, and the sign-up form enforced looser rules than the server.

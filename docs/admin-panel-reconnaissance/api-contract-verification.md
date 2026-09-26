@@ -1,5 +1,7 @@
 # API Contract Verification
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 5.
 Every claim below was checked by calling the running backend on 2026-08-21, `develop@c297b03`, unless it is explicitly labelled read from source.
 Bearer and refresh tokens are redacted to their first eight characters where shown.

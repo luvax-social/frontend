@@ -1,5 +1,7 @@
 # Stale Findings
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Audit claims acted on in this stage that turned out to be wrong, already closed, or contradicted by the design source.
 
 The brief warned that the audits are several stages old and that two had already been caught stating something false.

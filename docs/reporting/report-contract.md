@@ -1,5 +1,7 @@
 # Report Contract
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The verified contract for `POST /api/v1/reports`, every failure case with its observed response,
 and the one disagreement found between the backend enum and the design export.
 

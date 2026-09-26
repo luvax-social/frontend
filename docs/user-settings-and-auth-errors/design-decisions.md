@@ -1,5 +1,7 @@
 # Design decisions
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## 1. The grouping, and the reasoning behind it
 
 Three groups, seven categories. Two group names were given by the brief; the third was added

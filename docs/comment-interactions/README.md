@@ -1,5 +1,7 @@
 # Comment Interactions
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The first phase that builds a feature rather than infrastructure.
 
 Three steps of the demo walkthrough were impossible: liking a comment, editing your own, and deleting your own.

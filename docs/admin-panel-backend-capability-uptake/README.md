@@ -1,5 +1,7 @@
 # What Changed, For Someone Who Knew The Previous Panel
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 If you used the panel before this phase, this is what is different. Everything here exists because
 the backend gained a capability the panel had been working around.
 

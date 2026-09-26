@@ -1,5 +1,7 @@
 # Token Audit
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 An earlier audit claimed the token layer was fully conformant.
 That claim was not carried over.
 The comparison below was redone from both sources and then checked against both running applications.

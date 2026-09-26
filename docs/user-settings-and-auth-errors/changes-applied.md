@@ -1,5 +1,7 @@
 # Changes applied, by area
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## The settings surface
 
 ### Added

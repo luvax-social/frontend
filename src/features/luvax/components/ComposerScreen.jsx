@@ -9,6 +9,7 @@ import { useMediaUpload } from '../hooks/useMediaUpload';
 import { useMediaConstraints } from '../hooks/useMediaConstraints';
 import { useLuvaxTweaks } from '../LuvaxTweaksContext';
 import { useHashtagSearch } from '@/features/search/hooks/useSearch';
+import { useTrendingHashtags } from '../hooks/useHashtag';
 import { extractPageContent } from '@/utils/helpers';
 import {
   MAX_CAROUSEL_ITEMS,
@@ -61,13 +62,21 @@ export function ComposerScreen() {
     );
   }, [caption]);
   const hashtagResult = useHashtagSearch(hashtagQuery);
-  const hashtagSuggestions = useMemo(
-    () =>
-      (hashtagResult.data?.pages?.flatMap((page) => extractPageContent(page)) || [])
-        .filter((tag) => tag?.name && !allTags.includes(String(tag.name).toLowerCase()))
-        .slice(0, 5),
-    [allTags, hashtagResult.data]
-  );
+  // Two states of one surface, not two surfaces: suggestions while the caption has nothing to
+  // search on, live search results the moment it does. The idle query is only issued in the idle
+  // state, so typing does not keep a second request in flight behind the one being read.
+  const isIdle = hashtagQuery.length === 0;
+  const idleResult = useTrendingHashtags('for-you', 8, isIdle);
+  const hashtagSuggestions = useMemo(() => {
+    const searched = (hashtagResult.data?.pages?.flatMap((page) => extractPageContent(page)) || [])
+      .filter((tag) => tag?.name && !allTags.includes(String(tag.name).toLowerCase()))
+      .slice(0, 5);
+    if (!isIdle || searched.length > 0) return searched;
+    return (idleResult.data?.data?.content || [])
+      .filter((tag) => tag?.name && !allTags.includes(String(tag.name).toLowerCase()))
+      .map((tag) => ({ id: tag.hashtagId, name: tag.name }))
+      .slice(0, 5);
+  }, [allTags, hashtagResult.data, idleResult.data, isIdle]);
 
   const handleCaptionChange = (value) => {
     setCaption(clampCaption(value));

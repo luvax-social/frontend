@@ -1,5 +1,7 @@
 # Verification evidence
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything below was driven in a real browser through Playwright against the running
 application and the running backend, or measured in the page. Console and network were captured
 throughout. Screenshots are in `screens/` and linked from the check they evidence.

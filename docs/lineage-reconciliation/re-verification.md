@@ -1,5 +1,7 @@
 # Re-Verification
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Six phases were merged into a tree none of them were written against.
 This document records what was exercised in the running application after the merge, feature by feature.
 Each item states what was done and what was observed.

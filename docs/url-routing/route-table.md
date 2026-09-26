@@ -1,5 +1,7 @@
 # Route Table
 
+> Superseded by `src/config/constants.js` (the `ROUTES` object) and the route table in `.claude/rules/struct.md`. Record of work done on 2026-08-10; not maintained.
+
 ## How the screens were enumerated
 
 Derived from `LuvaxApp.jsx` as it stood before this phase, not from any prior list.

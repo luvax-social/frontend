@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 One entry per change: what was missing, the evidence, what was built, and the file touched.
 
 ## 1. No client for any of the three search endpoints

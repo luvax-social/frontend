@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every claim here was observed in a real browser (Chromium via Playwright) against the running dev server at `http://localhost:5173`, proxying to the backend at `http://localhost:8080`, on 2026-08-21.
 Where a session was needed on both sides of a check, the two sessions are named.
 Fixtures were created through the public API and, for a story target, through direct SQL because no story-upload flow exists in the panel.

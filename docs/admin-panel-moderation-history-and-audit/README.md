@@ -1,5 +1,7 @@
 # Admin Panel — Discipline History and Audit
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 This phase adds the discipline record and the audit trail to the moderation panel. A reviewer can
 now see an account's warnings and strikes, issue a warning, browse everything an account has posted
 or commented, and read back the log of moderation actions including the metadata that exists only

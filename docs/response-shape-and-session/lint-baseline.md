@@ -1,5 +1,7 @@
 # Lint Baseline
 
+> Record of work done on 2026-08-09. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The goal of this work item was an accurate count, not a lower one.
 
 `npm run lint` reported 9,863 problems before this branch, of which 9,812 were a single repeated message.

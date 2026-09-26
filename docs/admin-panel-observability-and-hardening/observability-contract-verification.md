@@ -1,5 +1,7 @@
 # Observability Contract Verification
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything below was observed against the running backend on this machine, or read from the backend
 source at `../backend/src/main/java/...`. Where a fact comes from source rather than from a call it
 is labelled **read from source**. Nothing here is inferred from the OpenAPI document alone.

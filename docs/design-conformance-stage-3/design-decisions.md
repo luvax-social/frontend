@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every decision taken in this stage, with its reasoning and what was rejected.
 Derived treatments are labelled as such.
 

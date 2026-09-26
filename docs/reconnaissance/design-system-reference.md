@@ -1,5 +1,7 @@
 # Design System Reference
 
+> Superseded by `DESIGN.md` at the repository root. Record of work done on 2026-08-01; not maintained.
+
 Extracted from the Claude Design export `Luvax.html`.
 
 ## Locating and extracting the export

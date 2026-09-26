@@ -1,6 +1,6 @@
 import { axiosClient } from '@/api/axiosClient';
 
-import { buildBody, pickParams } from '../lib/requestContract';
+import { buildBody, pickParams } from '@/utils/requestContract';
 
 /**
  * Panel API surface.

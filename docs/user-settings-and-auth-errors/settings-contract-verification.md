@@ -1,5 +1,7 @@
 # Settings contract verification
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything below was produced by calling the running backend or by driving the real
 interface in a browser. Nothing here is inferred from the OpenAPI document alone; where
 the document and the running server disagreed, the server is recorded.

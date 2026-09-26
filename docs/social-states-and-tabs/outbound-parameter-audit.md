@@ -1,5 +1,7 @@
 # Outbound Query Parameter Audit
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 This document answers a question the backend team asked directly.
 
 The question was whether the frontend sends query parameters the backend does not declare, anywhere at all.

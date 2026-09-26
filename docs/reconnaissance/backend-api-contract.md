@@ -1,5 +1,7 @@
 # Backend API Contract
 
+> Superseded by the OpenAPI spec served at `http://localhost:8080/api-docs` under the dev profile. Record of work done on 2026-08-01; not maintained.
+
 Every entry below was produced against a running instance on `http://localhost:8080` at commit
 `450212e996881360abf5b04becfa1ee765a72946`.
 

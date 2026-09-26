@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Browser-level before and after for every fix that has a user-reachable path, plus the `curl` evidence behind each contract claim.
 
 Environment: backend `450212e` on `develop` at `http://localhost:8080`, Vite dev server at `http://localhost:5173`, PostgreSQL, Redis, RabbitMQ, and Elasticsearch running from `docker-compose`.

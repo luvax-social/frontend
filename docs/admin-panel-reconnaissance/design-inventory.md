@@ -1,5 +1,7 @@
 # Design Inventory
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 6, sections 6.5 and 6.6.
 All from the code on branch `chore/admin/panel-reconnaissance`.
 

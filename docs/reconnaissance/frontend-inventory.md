@@ -1,5 +1,7 @@
 # Frontend Inventory
 
+> Superseded by the source tree in `.claude/rules/struct.md`. Record of work done on 2026-08-01; not maintained.
+
 The frontend as it actually is at commit `102923c2194b37b6033b033c53000ab4e5da9de2`.
 
 80 JavaScript and JSX files under `src/`.

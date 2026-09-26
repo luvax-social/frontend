@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 One entry per change, with what was wrong, the evidence, what changed and where.
 
 Every entry was exercised in a browser; the evidence is in `verification-evidence.md`.

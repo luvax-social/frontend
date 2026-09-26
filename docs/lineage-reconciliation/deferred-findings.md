@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Defects and gaps found during verification that the merge did not cause, and process notes.
 None of these were fixed, in keeping with the rule to fix what the merge broke and record the rest.
 

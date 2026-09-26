@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 By area, with anything touched outside the panel's own directories called out separately with its justification.
 
 ## The panel (`src/features/admin/`, all new)

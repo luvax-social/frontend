@@ -1,5 +1,7 @@
 # Accounts and Hashtags — Contract Verification
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 3. Written from live calls against the running backend (dev profile) and, where marked,
 from the backend source. Committed before any feature code.
 

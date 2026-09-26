@@ -26,9 +26,50 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // The route tree is already lazily split, so what remained in the entry chunk was the
+          // shared validation layer plus the React and router runtime - together enough to carry
+          // it past the 500 kB warning threshold. These three change far less often than
+          // application code, so giving each its own chunk both takes the entry back under the
+          // threshold and keeps them cached across deploys, where re-downloading them on every
+          // release was the larger cost. Nothing is deferred: all three are still static imports
+          // fetched in parallel with the entry, so the sign-in form has its schema on first
+          // interaction without an extra round trip.
+          manualChunks(id) {
+            const path = id.replace(/\\/g, '/');
+            if (!path.includes('/node_modules/')) return undefined;
+            if (path.includes('/node_modules/zod/')) return 'vendor-zod';
+            if (path.includes('/node_modules/react-router')) return 'vendor-router';
+            if (
+              path.includes('/node_modules/react/') ||
+              path.includes('/node_modules/react-dom/') ||
+              path.includes('/node_modules/scheduler/')
+            ) {
+              return 'vendor-react';
+            }
+            return undefined;
+          },
+        },
+      },
+    },
     server: {
       port: 5173,
       strictPort: true,
+      proxy: {
+        '/api': {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+    // The preview server serves the production bundle, and without this it had no proxy at all,
+    // so a production build could only be exercised against a separately hosted API. Anything
+    // that only reproduces in a production build - stacking contexts, CSS ordering, minified
+    // class names - was therefore untestable locally.
+    preview: {
       proxy: {
         '/api': {
           target: proxyTarget,

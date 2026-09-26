@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 One entry per change, with the file touched, grouped by the commit that carries it.
 
 ## Scale

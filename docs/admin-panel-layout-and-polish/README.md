@@ -1,5 +1,7 @@
 # What changed, for someone who knew the previous panel
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The panel does the same things it did before. It does not look the same doing
 them, and one screen no longer makes you go back and forth.
 

@@ -49,9 +49,9 @@ const describeFailure = (error) => {
     return {
       tone: 'problem',
       icon: 'clock',
-      title: 'that sign-in link had expired',
+      title: 'That sign-in link had expired',
       message:
-        'the link google sent us is only good for a couple of minutes, and this one had already been used or run out of time. starting again takes a moment.',
+        'The link Google sent us is only good for a couple of minutes, and this one had already been used or run out of time. Starting again takes a moment.',
     };
   }
 
@@ -59,9 +59,9 @@ const describeFailure = (error) => {
     return {
       tone: 'problem',
       icon: 'lock',
-      title: 'this account is not available',
+      title: 'This account is not available',
       message:
-        'we cannot sign you in to this account at the moment. if you think that is wrong, get in touch and we will look into it.',
+        'We cannot sign you in to this account at the moment. If you think that is wrong, get in touch and we will look into it.',
     };
   }
 
@@ -69,18 +69,18 @@ const describeFailure = (error) => {
     return {
       tone: 'problem',
       icon: 'alert',
-      title: 'that sign-in did not come through',
+      title: 'That sign-in did not come through',
       message:
-        'the return from google was missing something we needed. signing in again should sort it.',
+        'The return from Google was missing something we needed. Signing in again should sort it.',
     };
   }
 
   return {
     tone: 'problem',
     icon: 'alert',
-    title: 'we could not finish signing you in',
+    title: 'We could not finish signing you in',
     message:
-      'something went wrong between google and us. it was not anything you did. trying again usually works.',
+      'Something went wrong between Google and us. It was not anything you did. Trying again usually works.',
   };
 };
 
@@ -90,7 +90,7 @@ const describeCallbackError = (raw) => {
     return {
       tone: 'calm',
       icon: 'back',
-      title: 'you did not finish signing in',
+      title: 'You did not finish signing in',
       message:
         'no problem — nothing was shared and no account was created. you can try google again, or sign in with your email and password.',
     };
@@ -99,9 +99,9 @@ const describeCallbackError = (raw) => {
   return {
     tone: 'problem',
     icon: 'alert',
-    title: 'google could not sign you in',
+    title: 'Google could not sign you in',
     message:
-      'google stopped the sign-in before it finished. trying again, or using your email and password, will get you in.',
+      'Google stopped the sign-in before it finished. Trying again, or using your email and password, will get you in.',
   };
 };
 
@@ -148,18 +148,18 @@ export default function OAuthCallbackPage() {
           setOutcome({
             tone: 'problem',
             icon: 'alert',
-            title: 'that sign-in did not come through',
+            title: 'That sign-in did not come through',
             message:
-              'the return from google was missing something we needed. signing in again should sort it.',
+              'The return from Google was missing something we needed. Signing in again should sort it.',
           });
           return;
         }
 
         const exchange = await authApi.exchangeOAuthCode(code);
-        if (!exchange?.accessToken) throw new Error('no session');
+        if (!exchange?.accessToken) throw new Error('No session');
 
         const profile = exchange.user ?? (await authApi.getCurrentUser());
-        if (!profile) throw new Error('no profile');
+        if (!profile) throw new Error('No profile');
 
         setAuth({
           accessToken: exchange.accessToken,
@@ -183,9 +183,9 @@ export default function OAuthCallbackPage() {
       ? {
           tone: 'problem',
           icon: 'lock',
-          title: 'we could not finish signing you in',
+          title: 'We could not finish signing you in',
           message:
-            'this sign-in arrived in a form we no longer accept, for security reasons. signing in again from the start will work.',
+            'This sign-in arrived in a form we no longer accept, for security reasons. Signing in again from the start will work.',
         }
       : outcome;
 
@@ -197,12 +197,12 @@ export default function OAuthCallbackPage() {
         title={shown.title}
         message={shown.message}
         actions={[
-          { label: 'try google again', to: ROUTES.LOGIN, primary: true },
-          { label: 'sign in another way', to: ROUTES.LOGIN },
+          { label: 'Try Google again', to: ROUTES.LOGIN, primary: true },
+          { label: 'Sign in another way', to: ROUTES.LOGIN },
         ]}
       />
     );
   }
 
-  return <PageLoader label="finishing your google sign-in" />;
+  return <PageLoader label="Finishing your Google sign-in" />;
 }

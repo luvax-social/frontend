@@ -1,5 +1,7 @@
 # Backend Capability Verification
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every claim in the backend's delivery report, checked against the running server before any frontend code was written.
 
 This document was written and committed first, ahead of the feature commits, because the previous phase skipped that step and built on an assumption that turned out to be false.

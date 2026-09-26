@@ -1,5 +1,7 @@
 # Admin Panel Foundation and Report Review
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 This phase built the frontend foundation for the administrative and moderation panel and the first vertical slice on top of it: the report review workflow.
 
 ## What this phase delivered

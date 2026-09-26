@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Decisions taken during this work, the reasoning, and what was rejected.
 
 The design export contains a search input and an explore grid but no results screen, no saved screen, and no treatment for an unavailable profile tab.

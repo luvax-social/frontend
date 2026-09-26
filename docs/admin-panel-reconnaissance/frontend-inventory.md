@@ -1,5 +1,7 @@
 # Frontend Inventory
 
+> Superseded by the source tree in `.claude/rules/struct.md`. Record of work done on 2026-08-21; not maintained.
+
 Work Item 6, sections 6.1 through 6.4, 6.7, and 6.8.
 Mapped from the code on branch `chore/admin/panel-reconnaissance`, cut from `develop`.
 Design primitives and tokens are in `design-inventory.md`.

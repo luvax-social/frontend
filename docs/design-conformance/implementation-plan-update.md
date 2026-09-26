@@ -1,5 +1,7 @@
 # Implementation Plan Update
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Replaces the three provisional estimates in `implementation-plan.md` with measured ones, and places everything this phase found into the three-stage sequence.
 
 Run date: 2026-08-13.

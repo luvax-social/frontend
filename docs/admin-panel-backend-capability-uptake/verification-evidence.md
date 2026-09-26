@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every check this phase ran, what was driven, and what was observed. Contract-level evidence — request
 and response for each endpoint — is in `uptake-contract-verification.md`; this document is the
 interface, driven through a real browser against the running stack.

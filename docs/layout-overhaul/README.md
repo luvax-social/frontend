@@ -1,5 +1,7 @@
 # Layout Overhaul
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 A change of direction and the finish of design conformance stage 3, combined because they touch the same files.
 
 ## What changed, in plain language

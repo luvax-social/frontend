@@ -1,5 +1,7 @@
 # Session Restoration
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The previous phase concluded that a session could not survive a reload and said exactly what the backend would have to provide.
 The backend has since provided it, merged at `1e36f54`.
 

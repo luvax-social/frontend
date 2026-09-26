@@ -3,6 +3,7 @@ import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxDropdownMenu } from '@/components/ui/lx-dropdown-menu';
 import { AvatarVisual } from './AvatarVisual';
+import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 /**
  * One row in the conversation list.
@@ -291,9 +292,13 @@ export function ConvRow({
             color: v.ink,
           }}
         >
-          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {thread.name}
-          </span>
+          <LxVerifiedName
+            name={thread.name}
+            verified={thread.isVerified}
+            category={thread.verifiedCategory}
+            size={12}
+            textStyle={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          />
           {thread.pinned ? <LxIcon name="pin" size={10} filled color={v.ink3} /> : null}
           {thread.muted ? <LxIcon name="bellOff" size={11} color={v.ink3} /> : null}
         </div>

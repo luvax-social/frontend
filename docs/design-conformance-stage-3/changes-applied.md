@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 One entry per change.
 Each records the design's value where one exists, the previous value, what it is now, and the file touched.
 

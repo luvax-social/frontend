@@ -1,5 +1,7 @@
 # Open Decisions
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Decisions a human has to make, derived from what the audit actually found.
 
 Settled decisions are recorded first, with a note where the backend changes the picture.

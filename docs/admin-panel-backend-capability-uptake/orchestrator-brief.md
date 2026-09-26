@@ -1,5 +1,7 @@
 # Orchestrator Brief — Backend Capability Uptake
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 For the planner. Nothing here needs the codebase or a running application.
 
 ---

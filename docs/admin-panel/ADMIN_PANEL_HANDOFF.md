@@ -1,5 +1,7 @@
 # Admin and Moderator Panel: Backend Handoff Package
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 This document is the complete contract for the administrative and moderation panel.
 It is written for an engineer who has the backend repository available but has never run it, and who cannot ask a follow-up question.
 Everything needed is stated here.

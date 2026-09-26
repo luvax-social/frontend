@@ -1,5 +1,4 @@
 import {
-  AUTH_WITH_CREDENTIALS,
   axiosClient,
   getRefreshTokenFromResponse,
   getTokenFromResponse,
@@ -107,6 +106,7 @@ export const authApi = {
       buildRequestBody({
         identifier: normalizeIdentifier(values?.identifier ?? values?.email),
         password: values?.password,
+        turnstileToken: values?.turnstileToken,
       })
     );
 
@@ -121,6 +121,7 @@ export const authApi = {
         username: values?.username,
         email: normalizeEmail(values?.email),
         password: values?.password,
+        turnstileToken: values?.turnstileToken,
       })
     );
 
@@ -137,10 +138,7 @@ export const authApi = {
       '/auth/logout',
       buildRequestBody({
         refreshToken: refreshToken ?? undefined,
-      }),
-      {
-        withCredentials: AUTH_WITH_CREDENTIALS,
-      }
+      })
     );
   },
 
@@ -151,7 +149,6 @@ export const authApi = {
         refreshToken: refreshToken ?? undefined,
       }),
       {
-        withCredentials: AUTH_WITH_CREDENTIALS,
         skipAuthRefresh: true,
       }
     );
@@ -185,6 +182,7 @@ export const authApi = {
       '/auth/verify-email/resend',
       buildRequestBody({
         email: normalizeEmail(values?.email),
+        turnstileToken: values?.turnstileToken,
       })
     );
 
@@ -196,6 +194,7 @@ export const authApi = {
       '/auth/forgot-password',
       buildRequestBody({
         email: normalizeEmail(values?.email),
+        turnstileToken: values?.turnstileToken,
       })
     );
 
@@ -207,12 +206,13 @@ export const authApi = {
     const nextPassword = values?.newPassword ?? values?.password ?? '';
 
     // The backend rejects unrecognised fields on this endpoint, so the body must
-    // carry exactly token + newPassword.
+    // carry exactly token + newPassword + turnstileToken.
     const response = await publicClient.post(
       '/auth/reset-password',
       buildRequestBody({
         token: verification.token || undefined,
         newPassword: nextPassword,
+        turnstileToken: values?.turnstileToken,
       })
     );
 

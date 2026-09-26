@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { v } from '@/config/tokens';
 import { formatCount } from '@/utils/helpers';
 import { useAuthStore } from '@/store/useAuthStore';
-import { LxAvatar, LxBtn, LxIcon } from './primitives';
+import { LxAvatar, LxBtn } from './primitives';
 import { useFollow, useUnfollow } from '../hooks/useSocial';
 import { useUserProfile } from '../hooks/useUsers';
+import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 
 export function UserCard({
   user,
@@ -134,7 +135,11 @@ export function UserCard({
           >
             {user.displayName || user.username || 'Unknown'}
           </span>
-          {user.isVerified && <LxIcon name="check" size={14} color={v.accent} />}
+          <LxVerifiedBadge
+            verified={user.isVerified}
+            category={user.verifiedCategory}
+            size={compact ? 13 : 15}
+          />
         </div>
         <div
           style={{

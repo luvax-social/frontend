@@ -1,5 +1,7 @@
 # Response Shape Correction, Session Persistence, and Lint Baseline
 
+> Record of work done on 2026-08-09. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## What changed, in plain language
 
 The previous phase made login work.

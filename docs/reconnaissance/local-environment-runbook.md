@@ -2,7 +2,11 @@
 
 Exact steps to bring both applications up from a clean state, and every error hit while doing it.
 
-Verified on Windows 11 with Git Bash, Docker Desktop, JDK 23, and Node with npm.
+Verified on Windows 11 with Git Bash, Docker Desktop, JDK 23, and Node with npm, on 2026-08-12.
+
+The service table and the mail section were corrected on 2026-09-12 against `docker-compose.yaml`
+and `application.yaml`; the step-by-step bring-up below has not been re-run since the original
+verification date.
 
 ## Prerequisites
 
@@ -40,7 +44,7 @@ The values that must be real for a full local run:
 | `JWT_SECRET`, `APP_COOKIE_SIGNING_SECRET` | Token signing | Backend fails to start |
 | `ELASTICSEARCH_URIS` | Search | Post search silently returns empty results |
 | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `MEDIA_CDN_BASE_URL` | Media pre-signed URLs | `POST /media/upload` fails; posts with media cannot be created |
-| `MAIL_FROM_ADDRESS`, and the SMTP settings pointing at Mailpit on `localhost:1025` | Outbound email | Verification and reset emails are never delivered |
+| `MAIL_FROM_ADDRESS`, `RESEND_API_KEY` | Outbound email | Verification and reset emails are never delivered |
 | `CORS_ALLOWED_ORIGINS` | Must include `http://localhost:5173` | Browser requests and the WebSocket handshake are rejected |
 
 `frontend/.env`:
@@ -69,10 +73,10 @@ Five services start:
 | Service | Port | Image |
 |---------|------|-------|
 | postgres | 5432 | built from `docker/postgres` |
-| rabbitmq | 5672 | `rabbitmq:latest` |
+| rabbitmq | 5672 broker, 15672 management UI | `rabbitmq:4-management` |
 | redis | 6379 | `redis:7-alpine`, password-protected |
 | elasticsearch | 9200 | `docker.elastic.co/elasticsearch/elasticsearch:9.0.3`, single-node, security disabled |
-| mailpit | 1025 SMTP, 8025 web | `axllent/mailpit`, catches every outbound mail |
+| gorse | 8088 | `zhenghaoz/gorse-in-one:0.5.11`, the recommender behind the personalised feed |
 
 The postgres image is built locally on first run, which takes a minute or so.
 Elasticsearch is capped at `-Xms512m -Xmx512m`.
@@ -144,7 +148,20 @@ On the first run after a config change Vite re-optimises dependencies, which add
 
 This step is completed entirely through the API and the browser.
 
-Mail is delivered locally by Mailpit, which accepts every address, so verification links now arrive
+> **Mail no longer works the way the rest of this section describes.**
+> Mailpit was removed from `docker-compose.yaml`. The transport is now Resend in every profile
+> (`app.mail.transport: resend`), with a non-network `noop` transport selectable in the `dev`
+> profile only via `APP_MAIL_TRANSPORT=noop`; `MailTransportGuard` refuses `noop` outside `dev`
+> and logs the resolved transport at startup.
+> `noop` sends nothing and opens no connection: it records the rendered mail into
+> `SentMailRecorder` and writes an `email_deliveries` row with a null `provider_message_id`.
+> `app.mail.allowed-recipient-domains` additionally restricts which recipient domains a machine
+> may send to, defaulting to a reserved domain that cannot receive mail.
+> The Mailpit steps below are kept as the record of how this was done in August 2026; they have
+> not been re-verified against the current transports, and the `localhost:8025` interface they
+> refer to does not exist any more.
+
+Mail was delivered locally by Mailpit, which accepted every address, so verification links arrived
 and the manual database write this section used to require is no longer needed.
 
 Registration works:

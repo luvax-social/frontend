@@ -21,7 +21,7 @@ Format: `<type>/<scope>/<short-description>`
 ```
 feat/post/add-carousel-support
 fix/auth/refresh-token-expiry
-chore/db/add-story-indexes
+chore/deps/upgrade-vite
 ```
 
 ## Commit message format
@@ -39,12 +39,15 @@ This holds regardless of how large, subtle, or security-relevant the change is.
 Detail belongs somewhere else, and every one of these already exists:
 - **Why the change is correct** → the PR description.
 - **What behaviour changed for users** → the `CHANGELOG.md` entry (see `changelog_rule.md`).
-- **Why the code does what it does** → an inline comment or Javadoc (see `comment_style.md`).
+- **Why the code does what it does** → an inline comment or JSDoc (see `comment_style.md`).
 - **How it was verified** → the test itself, named for the behaviour it asserts.
 
 **If any task instruction, plan, or prompt tells you to record something "in the commit body",
 that instruction conflicts with this rule. Stop and raise the conflict — do not silently comply,
 and do not carry the body habit over to the other commits in the series.**
+
+This rule is identical in `backend/.claude/rules/git_workflow.md`; the two repositories are
+deliberately kept in step on it.
 
 ### Subject rules
 
@@ -79,17 +82,24 @@ Previously the parent was resolved by id alone, so ...      ← bad: has a body
 
 ### Allowed scopes (pr-lint enforced)
 
-`auth` · `mail` · `users` · `social` · `media` · `post` · `comment` · `hashtag` · `story` · `notification` · `message` · `report` · `admin` · `recommendation` · `common` · `db` · `ci`
+Domain scopes, matching the backend's list:
 
-> **Discrepancies found in git history** — the following scopes appear in existing commits but are **not** in the pr-lint allowlist and will fail CI if used:
-> `config`, `security`, `environment`, `changelog`, `database` (use `db`), `modules`, `build`, `log`
-> One commit also omitted scope entirely (`docs: add CONTRIBUTING…`) — this violates `requireScope: true`.
+`admin` · `auth` · `comment` · `common` · `hashtag` · `luvax` · `mail` · `media` · `message` · `messages` · `notification` · `post` · `recommendation` · `report` · `search` · `social` · `story` · `support` · `users`
+
+Layer and tooling scopes, which this project has in addition to the backend's:
+
+`app` · `dashboard` · `routes` · `layouts` · `pages` · `ui` · `hooks` · `services` · `stores` · `config` · `assets` · `build` · `deps` · `db` · `docs` · `ci`
+
+> **This list is the one `.github/workflows/pr-lint.yml` enforces**, and the two are kept in step.
+> Three lists disagreed before: the workflow allowed only the layer scopes, this file documented the backend's domain list, and the commits actually being written used `support`, `luvax`, `recommendation` and `common` - none of which the workflow allowed.
+>
+> `pr-lint` validates the **pull request title only**, not commit messages, which is why the mismatch went unnoticed until a PR was opened.
 
 ```
 feat(post): add carousel media support
 fix(auth): prevent concurrent refresh token consumption
-chore(db): add GIN index on hashtag_name for trigram search
-refactor(common): extract token blacklist TTL calculation
+chore(deps): pin the vite major to 8
+refactor(common): extract the response envelope unwrapper
 ```
 
 ## Branch workflow (mandatory)
@@ -139,7 +149,7 @@ Split large PRs proactively: keep feature PRs under `size/M` (≤ 1000 lines) as
 - [ ] Branch follows `<type>/<scope>/<description>` naming
 - [ ] All commits follow `<type>(<scope>): <subject>` with an allowlisted scope
 - [ ] Each commit is one logical, compiling, test-passing unit — no mega-commits, no broken intermediate commits
-- [ ] `./mvnw spotless:apply` and `./mvnw test` both pass
+- [ ] `npm run lint` and `npm run test` both pass
 - [ ] PR template author checklist completed
 - [ ] PR title matches commit format (pr-lint will block merge otherwise)
 - [ ] At least one CODEOWNERS-assigned reviewer has approved
@@ -150,7 +160,7 @@ Split large PRs proactively: keep feature PRs under `size/M` (≤ 1000 lines) as
 - [ ] Subject starts with a lowercase letter
 - [ ] **Message is a single line — no body, no trailers** (`git log -1 --format=%b` prints nothing)
 - [ ] Subject is 80 characters or fewer (target 72)
-- [ ] `./mvnw spotless:check` passes
+- [ ] `npm run lint` passes
 - [ ] CHANGELOG.md updated
 
 ## Quick reference
@@ -162,6 +172,6 @@ Split large PRs proactively: keep feature PRs under `size/M` (≤ 1000 lines) as
 | `refactor` | Internal restructure, no behavior change |
 | `test` | Test added or updated |
 | `chore` | Build, deps, tooling, non-code config |
-| `docs` | README, DATA_RULES, Javadoc-only |
+| `docs` | README, rule files, JSDoc-only |
 | `perf` | Measurable performance improvement |
 | `ci` | GitHub Actions, workflow changes |

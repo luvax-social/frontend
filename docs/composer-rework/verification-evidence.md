@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every path below was exercised through a real browser against both applications running, with real files.
 
 The browser was driven with dev tools attached, and the console was checked at the end of the session.

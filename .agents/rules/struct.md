@@ -3,167 +3,352 @@ trigger: always_on
 description: Load when working on app-fe (social network). Contains the authoritative project map.
 ---
 
-# Project Structure
+# Frontend Project Structure
 
 ## Overview
 
-This project is a React single-page application built with Vite.
+React 19 single-page application (SPA) for an Instagram-style social network, built with Vite 8.
 
-Core stack:
-- React 19
-- React Router 7 data router
-- TanStack Query for server state and async caching
-- Zustand with `persist` middleware for auth/session state
-- Axios for HTTP requests
-- Tailwind CSS v4
-- shadcn/ui component scaffolding with Radix primitives
-- React Hook Form + Zod for forms and validation
+Every mechanically derivable figure in this document - the slice inventory, the route table, the
+dependency versions, the script list, the environment variables - is produced by
+`./scripts/regenerate_struct_figures.sh`.
+Run it and paste the section back rather than editing a number by hand.
 
-Current architecture direction:
-- Feature-based organization under `src/features`
-- Shared app shell, routes, services, stores, hooks, and utilities under `src/*`
-- Shared UI primitives under `src/components/ui`
-- Layout-driven routing with route guards available through common components
+### Core Stack
 
-Current maturity:
-- The repository is still a scaffold/starter state
-- `auth` is the most developed feature slice
-- `dashboard` and several shared folders exist as extension points
-- Some folders currently contain placeholders only
+| Component | Value |
+|-----------|-------|
+| Framework | React 19 |
+| Build Tool | Vite 8 |
+| Package Manager | npm |
+| Node.js Requirement | LTS (see `.nvmrc` if present; Vite 8 requires Node 20+) |
+| Styling | Tailwind CSS v4 (`@tailwindcss/vite` plugin) |
+| UI Components | shadcn/ui + Radix primitives (`components.json` configures aliases and paths) |
+| Server State | TanStack Query v5 (`QueryClientProvider` in `src/main.jsx`) |
+| Global Client State | Zustand v5 (with `persist` middleware for auth session) |
+| HTTP Client | Axios v1 — `src/api/axiosClient.js` exports `axiosClient` (auth) and `publicClient` (no-auth) |
+| Realtime | STOMP over SockJS (`@stomp/stompjs`, `sockjs-client`) via `src/services/realtime/stompConnection.js` |
+| Routing | React Router DOM v7 — config router (`createBrowserRouter`) |
+| Forms | React Hook Form v7 + Zod v4 |
+| Testing | Vitest 3 + Testing Library, jsdom |
+| Language | JavaScript (no TypeScript; `jsconfig.json` provides IDE path resolution) |
 
-## Root Map
+There is no icon-set dependency. The 38 declared packages contain no `lucide-react`, no
+`react-icons` and no `@heroicons`; icons are the local `src/components/ui/lx-icon.jsx`.
 
-```text
-.
-├── .agents/                 # Project-specific agent rules and local skills
-├── .github/                 # GitHub workflows and repo automation
-├── public/                  # Static assets served as-is by Vite
-├── src/                     # Application source code
-├── AGENTS.md                # Entry instruction telling agents to read .agents/
-├── package.json             # Dependencies, scripts, and toolchain definition
-├── vite.config.js           # Vite config with React, Tailwind v4, and @ alias
-├── components.json          # shadcn/ui configuration and path aliases
-└── struct.md                # This architecture and folder reference
-```
+---
 
-## Source Map
+## Full `src/` Tree
 
 ```text
 src/
-├── assets/                  # Static assets imported from application code
-├── components/              # Shared presentational and routing-support components
-│   ├── common/              # App-level reusable pieces such as route guards / shared pages
-│   └── ui/                  # shadcn/ui primitive components
-├── config/                  # Global constants and app-wide configuration values
-├── context/                 # Reserved for React context providers when needed
-├── features/                # Feature-first modules; business logic should grow here
-│   ├── auth/                # Authentication feature slice
-│   │   ├── components/      # Auth-specific UI such as login page/form
-│   │   ├── hooks/           # Auth TanStack Query hooks and feature orchestration
-│   │   ├── services/        # Auth API calls built on the shared Axios client
-│   │   ├── store/           # Reserved for auth-local state if global store becomes too broad
-│   │   └── utils/           # Auth validation schemas and feature helpers
-│   └── dashboard/           # Dashboard feature slice
-│       └── components/      # Dashboard page-level UI
-├── hooks/                   # Shared reusable hooks not tied to one feature
-├── layouts/                 # Route layout shells such as app shell and auth shell
-├── pages/                   # Route-level pages not yet moved into a feature module
-├── routes/                  # Central React Router configuration
-├── services/                # Shared API infrastructure and cross-feature service utilities
-├── stores/                  # Global Zustand stores
-└── utils/                   # Generic helpers such as class merging and common utilities
-```
-
-## Important Files
-
-These files matter disproportionately for orientation and should be checked first in a new session:
-
-```text
-src/
-├── main.jsx                 # App bootstrap; mounts RouterProvider and QueryClientProvider
-├── index.css                # Tailwind v4 import plus design tokens/theme variables
-├── routes/
-│   └── index.jsx            # Central route tree built with createBrowserRouter
-├── layouts/
-│   ├── MainLayout.jsx       # Primary app shell wrapping routed content
-│   └── AuthLayout.jsx       # Centered auth shell for login/register flows
-├── services/
-│   └── axiosInstance.js     # Shared Axios client and interceptor entrypoint
-├── stores/
-│   └── authStore.js         # Persisted global auth/session store
+├── api/
+│   ├── authApi.js             # Auth endpoints; uses publicClient. Login sends `identifier`
+│   ├── axiosClient.js         # Axios instances + interceptors; exports axiosClient, publicClient
+│   └── media.service.js       # Pre-signed upload URL flow
+├── assets/                    # Static assets imported from application code
+├── components/
+│   ├── common/                # App-level reusable pieces
+│   │   ├── AuthSessionBootstrap.jsx   # Bootstraps auth state on app mount
+│   │   ├── ConfirmModal.jsx           # Shared confirmation dialog
+│   │   ├── ErrorBoundary.jsx          # React error boundary
+│   │   ├── GuestRoute.jsx             # Sends an authenticated visitor to their role's landing route
+│   │   ├── NotFoundPage.jsx           # 404 page
+│   │   ├── PageLoader.jsx             # Full-page loading spinner
+│   │   ├── ProtectedRoute.jsx         # Redirects unauthenticated users to /login
+│   │   └── RouterErrorPage.jsx        # Error fallback for router-level errors
+│   └── ui/                    # shadcn/ui primitives plus Luvax-specific shared UI
+│       ├── button.jsx
+│       ├── card.jsx
+│       ├── input.jsx
+│       ├── label.jsx
+│       ├── lx-avatar.jsx
+│       ├── lx-dropdown-menu.jsx
+│       ├── lx-icon.jsx
+│       ├── lx-toggle.jsx
+│       └── lx-verified-badge.jsx
 ├── config/
-│   └── constants.js         # Route constants, API URL, and shared app constants
-└── features/
-    └── auth/
-        ├── hooks/useAuth.js         # Login/logout/current-user query hooks
-        ├── services/authService.js  # Auth endpoints
-        ├── utils/authSchemas.js     # Zod validation schemas
-        └── components/LoginForm.jsx # Best current example of app form patterns
+│   ├── constants.js           # ROUTES, API_URL, STALE_TIME, HTTP_STATUS, CHAR_LIMITS, APP_NAME
+│   ├── roles.js               # ROLES, normalizeRole, isPanelRole, isAdminRole, landingPathForRole
+│   └── tokens.js              # `v` design-token object consumed by the luvax screens
+├── context/                   # Reserved - empty
+├── features/                  # Six slices; sizes are measured, not estimated
+│   ├── admin/                 # Moderation panel
+│   │   ├── adminRoutes.jsx    # The /admin route subtree
+│   │   ├── api/               # Panel-specific API modules
+│   │   ├── components/
+│   │   ├── guards/            # Role gates for the panel
+│   │   ├── hooks/
+│   │   ├── lib/
+│   │   └── screens/           # One file per panel screen
+│   ├── auth/
+│   │   ├── components/        # AuthField.jsx, AuthPage.jsx/.css
+│   │   ├── services/          # authService.js
+│   │   ├── store/             # Reserved - empty
+│   │   └── utils/             # authSchemas.js — Zod schemas mirroring backend validation
+│   ├── luvax/                 # Authenticated application shell and screens
+│   │   ├── components/        # shell.jsx, primitives.jsx, and one file per screen
+│   │   ├── constants/
+│   │   ├── hooks/
+│   │   ├── utils/
+│   │   ├── LuvaxApp.jsx       # Feature root; renders the shell around the routed screen
+│   │   └── LuvaxTweaksContext.jsx
+│   ├── messages/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── utils/
+│   │   └── MessagesScreen.jsx
+│   ├── search/
+│   │   ├── components/
+│   │   └── hooks/
+│   └── support/               # Help centre, tickets, appeals, verification requests
+│       ├── components/
+│       ├── hooks/
+│       ├── services/
+│       └── utils/
+├── hooks/                     # Shared hooks: useCommon, useCountdown, useEscapeKey,
+│                              # useImpressionTracking, useRateLimitCooldown, useThemeChoice
+├── pages/
+│   ├── auth/
+│   │   ├── EmailVerificationPage.jsx
+│   │   ├── OAuthCallbackPage.jsx
+│   │   ├── ResetPasswordPage.jsx
+│   │   └── VerifyEmailNoticePage.jsx
+│   ├── dashboard/
+│   │   └── DashboardPage.jsx
+│   └── LuvaxPage.jsx
+├── routes/
+│   ├── appScreens.jsx         # The authenticated screen table the router and shell both read
+│   └── index.jsx              # createBrowserRouter - central route tree
+├── services/                  # Shared API modules used across slices
+│   ├── axiosInstance.js       # Re-exports axiosClient
+│   ├── config.service.js
+│   ├── hashtag.service.js
+│   ├── impressionQueue.js
+│   ├── message.service.js
+│   ├── notification.service.js
+│   ├── post.service.js
+│   ├── realtime/stompConnection.js
+│   ├── recommendation.service.js
+│   ├── report.service.js
+│   ├── search.service.js
+│   ├── social.service.js
+│   ├── story.service.js
+│   ├── suggestion.service.js
+│   └── user.service.js
+├── store/
+│   └── useAuthStore.js        # Zustand; persists user + isAuthenticated only, never tokens
+├── utils/
+│   ├── cn.js
+│   ├── helpers.js
+│   ├── requestContract.js
+│   └── validationFields.js
+├── App.jsx
+├── App.css
+├── index.css                  # Tailwind v4 import + CSS custom properties
+└── main.jsx                   # RouterProvider + QueryClientProvider + global error handling
 ```
 
-## Architecture Notes
+### Slice sizes
 
-### Routing
-- Routing is centralized in `src/routes/index.jsx`
-- `MainLayout` is the root layout shell
-- `AuthLayout` exists for auth routes but is not yet wired into the router
-- `ProtectedRoute` exists in `src/components/common` for guarding authenticated routes
+Generated by `./scripts/regenerate_struct_figures.sh slices`; tracked files only.
 
-### State Management
-- Server state uses TanStack Query, initialized in `src/main.jsx`
-- Global client state uses Zustand
-- Auth state is persisted to `localStorage` through `src/stores/authStore.js`
+| Slice | Files | Lines |
+|-------|-------|-------|
+| `admin` | 79 | 13795 |
+| `auth` | 8 | 1629 |
+| `luvax` | 56 | 16796 |
+| `messages` | 16 | 4913 |
+| `search` | 4 | 990 |
+| `support` | 13 | 2838 |
 
-### API Layer
-- All HTTP calls should flow through `src/services/axiosInstance.js`
-- Feature-specific API wrappers belong in `src/features/<feature>/services`
-- Auth interceptor and global error handling are scaffolded but not fully implemented yet
+Total tracked lines under `src/`: 48394.
 
-### UI System
-- Tailwind CSS v4 is configured through `@tailwindcss/vite`
-- `src/index.css` defines CSS variable-based design tokens
-- shadcn/ui is configured through `components.json`
-- Shared primitives live in `src/components/ui`
+---
 
-### Feature Strategy
-- Business features should prefer `src/features/<feature>` as the default home
-- Shared cross-feature logic belongs in `components`, `hooks`, `services`, `stores`, or `utils`
-- `src/pages` currently contains generic route pages/stubs and may shrink as features mature
+## Module / Feature Organization Pattern
 
-## Folder Intent By Area
+Feature-based ("vertical slice") under `src/features/`. Each feature owns its components,
+hooks, services, and utilities. Shared cross-feature concerns live at the `src/` top-level
+layers (`components/`, `hooks/`, `services/`, `store/`, `utils/`).
 
-### `src/features/auth`
-Most complete slice in the project. Demonstrates the intended vertical pattern:
-- page/form components
-- feature hooks wrapping TanStack Query
-- feature service layer wrapping Axios
-- feature-local validation schemas
-- optional local store space if the slice outgrows pure shared/global state
+### Pattern for a feature slice:
 
-### `src/features/dashboard`
-Currently a simple page slice. It indicates that authenticated product areas are expected to become independent feature modules over time.
+```text
+src/features/<feature>/
+├── components/      # Page/form/UI components for this feature
+├── hooks/           # TanStack Query hooks and feature orchestration
+├── services/        # API calls; must use axiosClient or publicClient — no direct fetch/axios
+├── store/           # Optional: local Zustand slice if feature outgrows global store
+└── utils/           # Zod schemas, helpers specific to this feature
+```
 
-### `src/components`
-Reserved for reusable building blocks that should not belong to exactly one feature:
-- `ui/` for low-level design-system primitives
-- `common/` for route guards and reusable shared pages/components
+The `admin` slice adds `screens/`, `guards/`, `lib/` and its own `adminRoutes.jsx`, because the
+panel is a separate route tree with its own role gate rather than a screen inside the app shell.
 
-### `src/services` and `src/stores`
-These are app-wide integration layers:
-- `services/` for shared API clients and cross-feature infrastructure
-- `stores/` for global Zustand stores that multiple features consume
+---
 
-### `src/config`, `src/hooks`, `src/utils`
-These support the rest of the app:
-- `config/` for constants and environment-driven values
-- `hooks/` for reusable hooks
-- `utils/` for framework-agnostic helpers
+## Routing Setup
 
-## Current Gaps
+- Config-based routing using `createBrowserRouter` in `src/routes/index.jsx`
+- `src/routes/appScreens.jsx` holds the authenticated screen table; the router builds its child
+  routes from it and the app shell reads the same list back, so the two cannot disagree about
+  which address renders which screen
+- `src/features/admin/adminRoutes.jsx` holds the `/admin` subtree
+- `ProtectedRoute` (in `src/components/common/`) guards authenticated routes
+- `GuestRoute` (in `src/components/common/`) sends an already-authenticated visitor to
+  `landingPathForRole(role)`, so a moderator or administrator lands in the panel rather than in
+  the user-facing application
 
-These are useful to know before extending the project:
-- Router currently exposes only the home page and 404 fallback
-- Auth screens/components exist, but auth routes are not yet connected
-- `context/` is empty and reserved for future provider-based state
-- Some pages/components are duplicated in scaffold form and may need consolidation later
-- The app uses plain JavaScript, not TypeScript
+**Every authenticated screen has its own address.**
+An earlier revision of this document said the opposite - that the whole application lived at a
+single `/app` route and no authenticated screen could be linked, bookmarked or reloaded. That
+stopped being true when the screen table was introduced, and the route constants below are the
+evidence.
+
+### Declared routes
+
+`ROUTES` in `src/config/constants.js` is the single declaration of every path; the router and
+every `navigate()` call read it back. Regenerate with
+`./scripts/regenerate_struct_figures.sh routes`.
+
+| Constant | Path |
+|----------|------|
+| `HOME` | `/` |
+| `APP` | `/app` |
+| `LOGIN` | `/login` |
+| `REGISTER` | `/register` |
+| `VERIFY_EMAIL` | `/verify-email` |
+| `VERIFY_EMAIL_NOTICE` | `/verify-email-notice` |
+| `FORGOT_PASSWORD` | `/forgot-password` |
+| `RESET_PASSWORD` | `/reset-password` |
+| `OAUTH_CALLBACK` | `/oauth2/callback` |
+| `DASHBOARD` | `/dashboard` |
+| `FEED` | `/app` |
+| `EXPLORE` | `/app/explore` |
+| `HASHTAG` | `/app/tags/:name` |
+| `HASHTAG_DEEP_LINK` | `/tags/:name` |
+| `COMPOSE` | `/app/compose` |
+| `NOTIFICATIONS` | `/app/notifications` |
+| `MESSAGES` | `/app/messages` |
+| `SETTINGS` | `/app/settings` |
+| `SETTINGS_CATEGORY` | `/app/settings/:category` |
+| `EDIT_PROFILE` | `/app/settings/profile` |
+| `SETTINGS_NOTIFICATIONS` | `/app/settings/notifications` |
+| `SETTINGS_APPEARANCE` | `/app/settings/appearance` |
+| `SETTINGS_PRIVACY` | `/app/settings/privacy` |
+| `SETTINGS_ACCOUNT` | `/app/settings/account` |
+| `SETTINGS_REQUESTS` | `/app/settings/requests` |
+| `SETTINGS_SUPPORT` | `/app/settings/support` |
+| `CHANGE_PASSWORD` | `/app/settings/password` |
+| `BLOCKED_USERS` | `/app/settings/blocked` |
+| `SAVED` | `/app/settings/saved` |
+| `SUPPORT` | `/app/support` |
+| `SUPPORT_TICKET` | `/app/support/:ticketId` |
+| `SUPPORT_APPEAL` | `/support/appeal` |
+| `SUPPORT_CONFIRM` | `/support/confirm` |
+| `SUPPORT_PUBLIC` | `/support/new` |
+| `ONBOARDING` | `/app/onboarding` |
+| `STORY_COMPOSE` | `/app/stories/new` |
+| `PROFILE` | `/app/profile` |
+| `USER_PROFILE` | `/app/u/:userId` |
+| `USER_FOLLOWERS` | `/app/u/:userId/followers` |
+| `USER_FOLLOWING` | `/app/u/:userId/following` |
+| `POST_DETAIL` | `/app/p/:postId` |
+| `STORY_VIEW` | `/app/stories/:storyId` |
+| `SEARCH` | `/app/search` |
+| `ADMIN` | `/admin` |
+| `ADMIN_REPORTS` | `/admin/reports` |
+| `ADMIN_REPORT_DETAIL` | `/admin/reports/:reportId` |
+| `ADMIN_ESCALATED` | `/admin/escalated` |
+| `ADMIN_MY_ESCALATIONS` | `/admin/my-escalations` |
+| `ADMIN_ACTIONS` | `/admin/actions` |
+| `ADMIN_USERS` | `/admin/users` |
+| `ADMIN_USER` | `/admin/users/:userId` |
+| `ADMIN_HASHTAGS` | `/admin/hashtags` |
+| `ADMIN_SUPPORT` | `/admin/support` |
+| `ADMIN_STATISTICS` | `/admin/statistics` |
+| `ADMIN_ACTIVITY` | `/admin/activity` |
+| `NOT_FOUND` | `*` |
+
+The three `/support/*` addresses sit outside the authenticated tree on purpose: a banned or
+suspended account is refused a session by design, and that is exactly the population an appeal
+exists for. Two of them are already built into moderation and confirmation mail that has been
+sent, so their shapes are fixed by messages already in inboxes.
+
+---
+
+## State Management
+
+| Layer | Library | What lives here |
+|-------|---------|-----------------|
+| Server state | TanStack Query | API data, pagination, caching, mutations |
+| Global client state | Zustand | Auth session (`useAuthStore`), cross-feature state |
+| Feature-local state | React `useState` / `useReducer` | UI state local to one component/feature |
+
+`useAuthStore` persistence:
+- Persisted to `localStorage` under key `luvax-auth-session`
+- Only `user` (without `role`) and `isAuthenticated` are persisted; `accessToken`, `refreshToken`
+  and `role` are in-memory only
+
+---
+
+## API Client Setup
+
+All BE API calls must go through `src/api/axiosClient.js`. Never call `fetch` or `axios.create`
+directly in components or hooks. `src/services/axiosInstance.js` is a re-export of `axiosClient`,
+kept so the shared service modules can import a default; it is the same instance, not a second one.
+
+| Client | When to use |
+|--------|-------------|
+| `axiosClient` | Authenticated requests; auto-injects `Authorization: Bearer <token>`, auto-refreshes on 401 |
+| `publicClient` | Unauthenticated requests (login, register, forgot-password, OAuth exchange) |
+
+Base URL: `VITE_API_URL` env var, falling back to the relative `/api/v1` when it is unset.
+`.env.example` sets it to `http://localhost:8080/api/v1`, so local development calls the API
+cross-origin and does not pass through the Vite `/api` proxy; production calls
+`api.luvax.online` from `luvax.online`, also cross-origin.
+The proxy is used only when `VITE_API_URL` is left empty.
+
+The refresh token is delivered as an HttpOnly cookie, path-scoped to `/api/v1/auth`.
+Both clients default to `withCredentials: true`: across origins a browser discards a `Set-Cookie`
+and withholds the cookie unless the request carries credentials, so a sign-in request without
+them leaves no cookie and the next full page reload signs the user out.
+The refresh call never reads the token from JavaScript; the cookie alone completes it.
+
+---
+
+## Environment Variable Prefix Convention
+
+All FE environment variables must use the `VITE_` prefix (required by Vite for client-side access).
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_API_URL` | BE base URL (e.g., `http://localhost:8080/api/v1`) |
+| `VITE_GOOGLE_AUTH_URL` | Google OAuth initiation endpoint on BE |
+| `VITE_GOOGLE_REDIRECT_PATH` | FE route BE redirects back to after OAuth |
+| `VITE_APP_NAME` | Application name displayed in UI |
+| `VITE_APP_ENV` | Environment tag (development / production) |
+| `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key for the auth forms, the report dialog and the public support form |
+
+Reference: `.env.example` at the repository root.
+
+---
+
+## Key Scripts
+
+```bash
+npm run dev          # Vite dev server with proxy (scripts/dev-server.mjs)
+npm run dev:reset    # Dev server with state reset
+npm run build        # Vite production build
+npm run lint         # ESLint
+npm run preview      # Preview production build locally
+npm run test         # Vitest, vitest.config.js
+npm run test:watch   # Vitest in watch mode
+npm run test:live    # Vitest against a running backend, vitest.live.config.js
+npm run test:all     # test then test:live
+```
+
+`./scripts/regenerate_struct_figures.sh` regenerates the slice table, the route table, the
+dependency list, this script list and the environment variable list. It cannot check a prose
+claim, only a count, a list, a path or a declared route.

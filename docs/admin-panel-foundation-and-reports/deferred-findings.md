@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything noticed and deliberately not acted on, tagged with the phase it belongs to.
 
 ## Deferred to the next phase (account and violations surfaces)

@@ -1,5 +1,7 @@
 # Profile Tabs
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Investigation only. Nothing was changed.
 
 Two documents contradict each other on this and the question was asked so it can be settled with facts.

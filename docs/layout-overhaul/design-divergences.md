@@ -1,5 +1,7 @@
 # Design Divergences
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every place this task now deliberately differs from the design export, and why.
 
 Where this task and the design disagree, this task wins, and the divergence is recorded here rather than argued.

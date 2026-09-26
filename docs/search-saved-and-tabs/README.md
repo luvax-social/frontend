@@ -1,5 +1,7 @@
 # Search Results, Saved Posts, and Profile Tabs
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Four surfaces that are lists of posts or users, built against endpoints verified first against the running backend.
 
 Two of them turned out to have no backend support at all, and this documents that rather than faking it.

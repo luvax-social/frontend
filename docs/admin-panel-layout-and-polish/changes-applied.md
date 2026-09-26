@@ -1,5 +1,7 @@
 # Changes applied, by area
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 No dependency was added. No file was moved, renamed or reorganised. No
 TypeScript file exists. Nothing in the backend repository was modified — its
 working tree is clean and its branch pointer is untouched.

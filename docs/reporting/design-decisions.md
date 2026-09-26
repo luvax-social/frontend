@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The decisions behind the report modal, its entry points, and the duplicate handling.
 
 Each records what was chosen, why, and what was rejected.

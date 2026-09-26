@@ -1,5 +1,7 @@
 # Workarounds Removed
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The handoff names five workarounds the new capabilities replace. All five are gone. Each is recorded
 with where it was, what replaced it, and the evidence it is no longer there.
 

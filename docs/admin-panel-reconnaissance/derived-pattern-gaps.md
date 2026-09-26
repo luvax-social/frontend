@@ -1,5 +1,7 @@
 # Derived Pattern Gaps
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 7.
 The design export defines no administrative screen, so the panel is derived work.
 For each pattern: the existing token or primitive it would be built from, and the decision that remains open.

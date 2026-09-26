@@ -1,5 +1,7 @@
 # Design Conformance Gaps
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Per-screen divergence between the design export `Luvax.html` and the frontend at commit
 `102923c2194b37b6033b033c53000ab4e5da9de2`.
 

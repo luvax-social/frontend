@@ -527,6 +527,31 @@
   text-decoration: underline;
 }
 
+/* The way to support from a signed-out screen. Underlined at rest rather than
+   on hover: on a touch screen there is no cursor to change, so a coloured word
+   alone is not an affordance, and the reader who needs this one is a banned or
+   locked-out account on a phone. 44px tall for the same reason. */
+.lx-support-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--lx-accent-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The global focus rule in index.css names button, input, textarea and select
+   and stops there, so no link on these screens drew a ring at all - not the
+   terms and privacy links, not the ones added here. Same treatment as that
+   rule, scoped to the two roots the auth surfaces render under. */
+.lx-page a:focus-visible,
+.lx-shell a:focus-visible {
+  outline: 2px solid var(--lx-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 /* login responsive */
 @media (max-width: 959px) {
   .lx-page {

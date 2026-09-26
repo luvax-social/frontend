@@ -1,5 +1,7 @@
 # Backend Request — From the Admin and Moderator Panel
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every item the four panel phases deferred to the backend, collected in one place. They were
 previously scattered across four `deferred-findings.md` files and nobody had gathered them.
 

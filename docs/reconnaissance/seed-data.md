@@ -2,6 +2,9 @@
 
 `tools/seed/seed.py` creates the demo data set through the public HTTP API only.
 
+This document covers `seed.py` alone. `tools/seed/` also holds `seed_rich.py`, a larger curated
+dataset with real media, which is documented in `tools/seed/README.md` rather than here.
+
 It never writes to the database.
 That is deliberate: because every row it creates is created by a request a browser could make, the
 script doubles as an executable check of the contract in `backend-api-contract.md`.

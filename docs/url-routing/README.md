@@ -1,5 +1,7 @@
 # Real Routing and Session Restoration
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Two changes that meet at the same place: what happens when you reload the page.
 
 Before this work the whole signed-in application lived at one address, `/app`.

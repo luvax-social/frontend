@@ -1,5 +1,7 @@
 # Layout Decisions
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every layout value chosen in this task, and the reasoning for each.
 
 ## Content width

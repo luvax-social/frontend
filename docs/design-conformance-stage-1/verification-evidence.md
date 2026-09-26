@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Both applications were running.
 The frontend was served by Vite on port 5173 with hot module replacement, and the backend answered on port 8080 with `{"status":"UP"}`.
 

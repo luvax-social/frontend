@@ -1,5 +1,7 @@
 # Design Decisions — Accounts and Hashtags
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every derived pattern reused here is labelled derived; the new decisions this phase settles follow.
 
 ## Reused derived patterns (from prior phases, unchanged)

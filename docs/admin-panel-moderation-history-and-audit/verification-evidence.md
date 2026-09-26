@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every check below was driven against the running application at `http://localhost:5173`
 (backend `http://localhost:8080`) in a real browser through the Playwright plugin. Reasoning is
 never counted as verification. Two browser contexts held a moderator (`seed_mod`) and an

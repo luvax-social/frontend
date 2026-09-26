@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Link, useLocation } from 'react-router-dom';
 
+import { TurnstileWidget } from '@/components/common/TurnstileWidget';
+import { useTurnstile } from '@/hooks/useTurnstile';
+import { CAPTCHA_FAILURE_MESSAGE, isCaptchaFailure } from '@/utils/captchaErrors';
 import Field from '@/features/auth/components/AuthField';
 import '@/features/auth/components/AuthPage.css';
 import { ROUTES } from '@/config/constants';
@@ -21,11 +24,22 @@ export default function VerifyEmailNoticePage() {
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(emailSchema),
-    defaultValues: { email: emailFromState },
+    defaultValues: { email: emailFromState, turnstileToken: '' },
   });
+
+  // Held in the form's own values so the Zod schema decides whether a
+  // submission may go out, rather than a second piece of state beside it.
+  const setChallengeToken = useCallback(
+    (challengeToken) => setValue('turnstileToken', challengeToken ?? '', { shouldValidate: false }),
+    [setValue]
+  );
+  const challenge = useTurnstile(setChallengeToken);
+  const turnstileToken = useWatch({ control, name: 'turnstileToken' });
 
   const onSubmit = (values) => {
     setSuccessMessage('');
@@ -33,6 +47,9 @@ export default function VerifyEmailNoticePage() {
       onSuccess: () => {
         setSuccessMessage('If this email is registered, a new verification link has been sent.');
       },
+      // Single-use token: re-armed on every failure, not only a refused
+      // challenge, so the next attempt carries a fresh one.
+      onError: () => challenge.reset(),
     });
   };
 
@@ -41,9 +58,9 @@ export default function VerifyEmailNoticePage() {
       <div className="lx-col lx-enter">
         <div className="lx-card">
           <div className="lx-head">
-            <h1 className="lx-h2">check your inbox.</h1>
+            <h1 className="lx-h2">Check your inbox.</h1>
             <p className="lx-sub">
-              we sent a verification link to your email address. click the link to activate your
+              We sent a verification link to your email address. Click the link to activate your
               account.
             </p>
           </div>
@@ -55,16 +72,20 @@ export default function VerifyEmailNoticePage() {
           >
             <Field
               id="ven-email"
-              label="email address"
+              label="Email address"
               type="email"
               autoComplete="email"
               error={errors.email?.message}
               register={register('email')}
             />
 
+            <TurnstileWidget {...challenge.widgetProps} />
+
             {resendMutation.error ? (
               <p style={{ color: 'var(--lx-error-text)', fontSize: '14px', margin: 0 }}>
-                {resendMutation.error.message}
+                {isCaptchaFailure(resendMutation.error)
+                  ? CAPTCHA_FAILURE_MESSAGE
+                  : resendMutation.error.message}
               </p>
             ) : null}
             {successMessage ? (
@@ -76,14 +97,22 @@ export default function VerifyEmailNoticePage() {
             <button
               type="submit"
               className="lx-btn-primary"
-              disabled={isSubmitting || resendMutation.isPending}
+              disabled={isSubmitting || resendMutation.isPending || !turnstileToken}
             >
-              resend verification email
+              Resend verification email
             </button>
+            {challenge.ready && !turnstileToken && !challenge.unavailable ? (
+              <p
+                style={{ color: 'var(--lx-ink-2)', fontSize: '13px', margin: 0 }}
+                aria-live="polite"
+              >
+                Complete the challenge above to continue.
+              </p>
+            ) : null}
           </form>
 
           <div className="lx-foot-block">
-            already verified? <Link to={ROUTES.LOGIN}>sign in</Link>
+            Already verified? <Link to={ROUTES.LOGIN}>Sign in</Link>
           </div>
         </div>
       </div>

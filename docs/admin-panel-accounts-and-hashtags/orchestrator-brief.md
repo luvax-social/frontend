@@ -1,5 +1,7 @@
 # Orchestrator Brief
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 For the planner, who knows the product but has not seen this code and will not run the app.
 
 ## What was built

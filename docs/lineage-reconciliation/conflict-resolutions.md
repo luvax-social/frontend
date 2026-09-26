@@ -1,5 +1,7 @@
 # Conflict Resolutions
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 This document catalogues every merge conflict between the two lineages before any of them were resolved.
 The pre-resolution analysis in this file was committed before a single hunk was resolved.
 The resolution column records what was actually done and is filled in during the resolution commit.

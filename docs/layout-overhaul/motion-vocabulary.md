@@ -1,5 +1,7 @@
 # Motion Vocabulary
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 One set of durations and easings for the whole app, defined once in `src/index.css`, plus how reduced motion is handled and how the scrim was treated.
 
 ## Durations

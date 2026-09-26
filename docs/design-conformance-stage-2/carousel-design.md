@@ -1,5 +1,7 @@
 # Carousel Design
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The interaction as built.
 
 ## There was no reference

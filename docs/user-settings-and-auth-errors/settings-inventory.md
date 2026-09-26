@@ -1,5 +1,7 @@
 # Settings inventory
 
+> Record of work done on 2026-08-25. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every setting the backend supports, what reads it, what writes it, its constraints, and the
 group it landed in. Derived entirely from `settings-contract-verification.md`, which was
 produced by calling the running server.

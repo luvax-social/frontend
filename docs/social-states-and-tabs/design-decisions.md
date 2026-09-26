@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every decision below records what was chosen, why, and what was rejected.
 Treatments the design export does not define are labelled as derived.
 

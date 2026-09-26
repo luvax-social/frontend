@@ -177,10 +177,14 @@ export const SETTINGS_CSS = `
 .lx-settings-measure:focus,
 .lx-settings-measure:focus-visible { outline: none; }
 
+/* Only rendered below the split breakpoint, which is to say only where the
+   pointer is a finger. It measured 40px tall, so it is the one control on this
+   screen a phone user must tap and could miss. */
 .lx-settings-back {
   display: none;
   align-items: center;
   gap: var(--space-1);
+  min-height: 44px;
   border: none;
   background: none;
   cursor: pointer;
@@ -260,6 +264,28 @@ export const SETTINGS_CSS = `
   line-height: 1.5;
   color: var(--lx-ink-2);
   margin: 0;
+}
+
+/* A navigation offered inside a section body rather than from the group list.
+   Underlined and accent-toned, because a bare coloured word is not an
+   affordance on a touch screen where there is no cursor to change, and it is
+   44px tall so it can be hit at 390. The rule is defined here rather than
+   inline: an inline style outranks the stylesheet whatever its specificity, so
+   a focus ring declared globally can be silently defeated by one, which is
+   exactly what P7-A11Y-001 recorded across three support screens. */
+.lx-settings-textlink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--lx-accent-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
 /* Empty, loading and failed states share one frame so a category never renders

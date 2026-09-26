@@ -214,7 +214,7 @@ export const PANEL_CSS = `
 
 /* One focus ring for the whole panel, on a token that stays visible against
    every surface in both themes. */
-.lx-admin-shell :is(a, button, select, input, [tabindex]):focus-visible {
+.lx-admin-shell :is(a, button, select, input, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--lx-accent-text);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
@@ -292,6 +292,11 @@ export const PANEL_CSS = `
 }
 /* The table sizes to the region it is in rather than to its standalone
    minimum, so the list pane never clips a column or scrolls sideways. */
+/* Deliberately NOT table-layout: fixed. Fixed layout honours the declared
+   widths but clips anything wider than its share rather than growing it, which
+   truncated the status badge mid-word and ran it under the next column. Auto
+   layout keeps the badges intact; the subject gets its share by being the one
+   column that declares a large width while the rest size to their content. */
 .lx-admin-split-list table { min-width: 0 !important; }
 .lx-admin-split-list {
   min-width: 0;
@@ -389,6 +394,15 @@ export const PANEL_CSS = `
   .lx-admin-split { grid-template-columns: minmax(320px, 40%) minmax(0, 1fr); }
 }
 
+/* From 1400 up the list takes the larger share. The detail pane holds a
+   two-line empty state whenever nothing is selected, which on a queue screen is
+   most of the time, so the wider viewport is better spent on the rows a
+   moderator is actually reading. Below this the 44 percent split still gives
+   the detail enough room for a claimed ticket's body. */
+@media (min-width: 1400px) {
+  .lx-admin-split { grid-template-columns: minmax(720px, 62%) minmax(0, 1fr); }
+}
+
 /* At a narrow width the split is not a split: the list is the screen, and a
    selected record replaces it with a full-width detail carrying a way back.
    This is a layout change rather than a horizontal scroll. */
@@ -430,6 +444,34 @@ export const PANEL_CSS = `
      than scrolls, putting the last options out of reach entirely. */
   .lx-admin-filter-group { flex: 1 1 100%; min-width: 0; }
   .lx-admin-filter-clear { margin-left: 0; }
+}
+
+/* The hit region and the drawn shape are allowed to differ, and here they do.
+   The header's three controls are 30px tall by design and measured 32x30 at
+   390, well under the 44x44 a touch target needs. Rather than inflating the
+   pills - which would change the header's proportions on every screen - each
+   control gets a centred overlay that is at least 44x44. The pill still looks
+   the same; the area that responds to a thumb is bigger than the pill.
+
+   The controls sit 8px apart, so a 7px overhang on each side cannot make two
+   targets overlap. */
+@media (max-width: 860px) {
+  .lx-admin-header-actions .lx-admin-control,
+  .lx-admin-header-actions .lx-admin-signout {
+    position: relative;
+  }
+  .lx-admin-header-actions .lx-admin-control::after,
+  .lx-admin-header-actions .lx-admin-signout::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 /* Below this the header's three controls cannot hold their labels and the row

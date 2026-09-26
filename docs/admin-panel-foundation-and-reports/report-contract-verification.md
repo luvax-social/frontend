@@ -1,5 +1,7 @@
 # Report Contract Verification
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Work Item 4.
 Every claim below was produced by calling the running backend at `http://localhost:8080` on 2026-08-21, against a freshly reset seed fixture.
 This document is committed before any feature code, per the Definition of Done item 1.

@@ -270,7 +270,12 @@ export function LuvaxApp() {
 
       return (
         <LuvaxTweaksProvider value={tweakContext}>
-          <div style={{ background: v.base }}>
+          {/* lx-bg-frozen: opening this overlay re-renders the screen underneath from a fresh
+              element rather than the `<Outlet/>` that had it a moment ago (see resolveBaseScreen
+              above), which remounts it and would replay its entrance animation right as the
+              overlay's own animation plays over it. This class kills every animation and
+              transition in that subtree so the background reads as untouched. */}
+          <div style={{ background: v.base }} className="lx-bg-frozen">
             {viewport === 'mobile' ? (
               !messagesThreadOpen ? (
                 <LxAppBar screen={base.screen} navigate={navigate} />
@@ -317,9 +322,12 @@ export function LuvaxApp() {
 
     return (
       <LuvaxTweaksProvider value={tweakContext}>
-        <LxShell screen={base.screen} navigate={navigate} showRightRail={baseShowRail}>
-          {base.element}
-        </LxShell>
+        {/* See the lx-bg-frozen comment in the messages branch above - same remount, same fix. */}
+        <div className="lx-bg-frozen">
+          <LxShell screen={base.screen} navigate={navigate} showRightRail={baseShowRail}>
+            {base.element}
+          </LxShell>
+        </div>
         <Outlet />
         <ToastHost />
       </LuvaxTweaksProvider>

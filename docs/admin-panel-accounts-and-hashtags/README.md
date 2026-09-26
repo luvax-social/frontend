@@ -1,5 +1,7 @@
 # Admin Panel — Accounts and Hashtags
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 This phase adds the account surface and the hashtag registry to the moderation panel. A reviewer can
 now find any account, see its state, and take every lifecycle action the server permits, and can
 manage the hashtag vocabulary. The audit log gained its actor filter.

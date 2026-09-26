@@ -1,5 +1,7 @@
 # Lineage Reconciliation
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Two lines of development ran in parallel without either being merged into develop.
 This work reconciles both into develop and then verifies, by using the application, that no capability from either line was lost.
 

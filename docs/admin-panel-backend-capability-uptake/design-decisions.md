@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every decision this phase was asked to state, with the option that was rejected and why. Evidence
 is in `uptake-contract-verification.md` and `verification-evidence.md`.
 

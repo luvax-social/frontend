@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every decision this phase was asked to state, the derived patterns reused or extended, the tokens
 they were built from, and the reasoning. Patterns from the previous phase are reused, not
 rebuilt; where one was extended, that is called out.

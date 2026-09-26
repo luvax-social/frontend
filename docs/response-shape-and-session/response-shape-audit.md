@@ -1,5 +1,7 @@
 # Response Shape Audit
 
+> Record of work done on 2026-08-09. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every response type the frontend consumes, compared field by field against a real response body captured from the running server.
 
 Backend commit under test: `450212e` on `develop`.

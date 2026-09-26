@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything found and deliberately not acted on, plus the parts of this stage's own brief that were not completed.
 
 ## Work items from this brief that were not done

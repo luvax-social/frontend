@@ -1,5 +1,7 @@
 # Realtime, and the Verification Gaps That Came First
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Two pieces of work: closing the open browser-verification gaps left by the previous phase, then building the frontend's first WebSocket client.
 
 ## Branch

@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every change below was exercised in a real browser against both applications running, with dev tools attached.
 
 Account: `luvax_ava`, logged in through the login form.

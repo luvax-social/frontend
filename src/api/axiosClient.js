@@ -2,16 +2,17 @@ import axios from 'axios';
 
 import { useAuthStore } from '@/store/useAuthStore';
 
-const ENV_API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
-const API_BASE_URL = import.meta.env.DEV
-  ? '/api/v1'
-  : ENV_API_URL || 'http://localhost:8080/api/v1';
-// The refresh token is delivered as an HttpOnly cookie, so every endpoint that
-// issues, rotates, or clears it must send credentials. In dev the browser talks
-// to the Vite proxy, which is same-origin and would carry the cookie anyway; a
-// cross-origin production deployment would not. Gating this on an environment
-// variable therefore breaks session restoration exactly where it matters, which
-// is why it is unconditional.
+const API_BASE_URL = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '') || '/api/v1';
+// The refresh token is delivered as an HttpOnly cookie. The API sits on a
+// different origin from the SPA in every environment (localhost:8080 against
+// localhost:5173 in development, api.luvax.online against luvax.online in
+// production), and a browser both discards a cross-origin Set-Cookie and
+// withholds the cookie unless the request is made with credentials. Login,
+// email verification and the OAuth exchange issue the cookie, refresh rotates
+// it and logout clears it, so it is a client default rather than a per-call
+// option: a per-call flag was once missing from login, which let the browser
+// drop the cookie and signed every user out on the next full page reload. The
+// cookie is path-scoped to /api/v1/auth, so no other endpoint receives it.
 const AUTH_WITH_CREDENTIALS = true;
 const REFRESH_PATH = '/auth/refresh';
 
@@ -22,6 +23,7 @@ const createClient = (config = {}) =>
     headers: {
       'Content-Type': 'application/json',
     },
+    withCredentials: AUTH_WITH_CREDENTIALS,
     ...config,
   });
 
@@ -133,7 +135,6 @@ const refreshAccessToken = async () => {
   // has lost the in-memory copy, still rotate a session.
   const response = await publicClient.post(REFRESH_PATH, refreshToken ? { refreshToken } : {}, {
     skipAuthRefresh: true,
-    withCredentials: AUTH_WITH_CREDENTIALS,
   });
 
   const payload = response?.data;

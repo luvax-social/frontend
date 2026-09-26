@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every check this phase ran, what was driven, and what was observed. Two browser contexts were used
 throughout — an administrator and a moderator, signed in simultaneously — and both the console and
 the network were captured.

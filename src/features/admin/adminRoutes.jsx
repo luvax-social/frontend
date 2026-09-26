@@ -6,6 +6,7 @@ import { ROUTES } from '@/config/constants';
 import AdminRouteGuard from './guards/AdminRouteGuard';
 import AdminOnlyRoute from './guards/AdminOnlyRoute';
 import { NotAvailable } from './components/NotAvailable';
+import { SupportTicketQueueScreen } from './screens/SupportTicketQueueScreen';
 
 /**
  * The panel route subtree, registered in the central router.
@@ -67,6 +68,7 @@ export const adminRoute = {
         // violations, content, and issue a warning, so neither sits behind the
         // administrator-only guard.
         { path: rel(ROUTES.ADMIN_ACTIONS), element: <AuditLogScreen /> },
+        { path: rel(ROUTES.ADMIN_SUPPORT), element: <SupportTicketQueueScreen /> },
         // Both roles: the endpoint scopes by caller, not by role, so an
         // administrator reaches its own escalations here too.
         { path: rel(ROUTES.ADMIN_MY_ESCALATIONS), element: <MyEscalationsScreen /> },

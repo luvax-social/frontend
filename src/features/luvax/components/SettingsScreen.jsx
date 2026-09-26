@@ -5,6 +5,11 @@ import { LxIcon } from '@/components/ui/lx-icon';
 import { ROUTES } from '@/config/constants';
 import { v } from '@/config/tokens';
 
+// Support is a slice of its own, and the settings screen renders its body the
+// way the shell already renders the messages slice's hooks from here: the
+// category is a settings concern, the request form behind it is not.
+import { SupportCenter } from '@/features/support/components/SupportCenter';
+
 import { isUnknownCategory, resolveCategory, SETTINGS_GROUPS } from './settingsCatalog';
 import {
   AccountCategory,
@@ -27,6 +32,7 @@ const CATEGORY_VIEWS = {
   requests: RequestsCategory,
   blocked: BlockedCategory,
   account: AccountCategory,
+  support: SupportCenter,
 };
 
 /**

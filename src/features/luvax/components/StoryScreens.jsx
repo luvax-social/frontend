@@ -19,6 +19,7 @@ import { routeTo, CHAR_LIMITS } from '@/config/constants';
 import { buildAcceptAttribute, validateFile, validateDuration } from '../utils/composerMedia';
 import { formatRelativeTime } from '../hooks/useRelativeTime';
 import { toast } from './Toast';
+import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
 
 const STORY_CARD_RADIUS = 18;
 const STORY_RATIO = 9 / 16;
@@ -155,6 +156,7 @@ function StoryPeek({ side, item, onClick, height }) {
       >
         {entry.userDisplayName || entry.username}
       </span>
+      <LxVerifiedBadge verified={entry.isVerified} category={entry.verifiedCategory} size={11} />
     </button>
   );
 }

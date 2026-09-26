@@ -10,9 +10,11 @@ import { RecordTable } from '../components/RecordTable';
 import { LoadMore } from '../components/LoadMore';
 import { LocalTime } from '../components/LocalTime';
 import { ReporterName } from '../components/ReporterName';
-import { ActionDetailDrawer } from '../components/ActionDetailDrawer';
+import { SplitView } from '../components/SplitView';
+import { ActionDetailPanel } from '../components/ActionDetailPanel';
 import { AccountSearchPicker } from '../components/AccountSearchPicker';
 import { DateRangeControl } from '../components/DateRangeControl';
+import { getSplitSelection, withSelection } from '../lib/splitSelection';
 import { useActions } from '../hooks/useActions';
 import { useVocabularies } from '../hooks/useVocabularies';
 import { useResolveUsername } from '../hooks/useResolveUsername';
@@ -129,7 +131,7 @@ function TargetFilter({ targetUserId, onChange }) {
  *
  * Every filter lives in the URL, so a filtered view is a shareable link. Rows
  * never show `metadata` — it exists only on the per-action fetch, which opens
- * in the drawer.
+ * in the right region beside the log.
  */
 function ActionTypeFilter({ actions, value, onChange }) {
   return (
@@ -216,7 +218,6 @@ export function AuditLogScreen() {
   const actionType = searchParams.get('type') || '';
   const actorId = searchParams.get('actor') || '';
   const targetUserId = searchParams.get('target') || '';
-  const openActionId = searchParams.get('action') || null;
 
   // The window lives in the URL as two ISO instants so a filtered view is a
   // shareable link, and is read back as milliseconds for the range control.
@@ -278,8 +279,11 @@ export function AuditLogScreen() {
     );
   };
 
-  const openAction = (row) => setParam('action', row.id);
-  const closeDrawer = () => setParam('action', '');
+  // The open action is carried in the same `selected` parameter every other
+  // split screen in the panel uses, so one helper governs all four.
+  const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
+  const openAction = (row) => setSearchParams(withSelection(searchParams, row.id));
+  const closeRecord = () => setSearchParams(withSelection(searchParams, null));
 
   const columns = [
     {
@@ -374,7 +378,7 @@ export function AuditLogScreen() {
     },
   ];
 
-  return (
+  const list = (
     <div>
       <PageHeader title={isAdmin ? 'action log' : 'my actions'} />
       <PanelCard padded={false}>
@@ -401,7 +405,9 @@ export function AuditLogScreen() {
         <RecordTable
           columns={columns}
           rows={rows}
+          keyField="id"
           onRowClick={openAction}
+          selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
           errorMessage={error?.message}
@@ -422,8 +428,19 @@ export function AuditLogScreen() {
           }
         />
       </PanelCard>
-
-      <ActionDetailDrawer actionId={openActionId} onClose={closeDrawer} />
     </div>
+  );
+
+  return (
+    <SplitView
+      list={list}
+      hasSelection={hasSelection}
+      onClose={closeRecord}
+      backLabel="back to the log"
+      emptyIcon="clock"
+      emptyTitle="no action open"
+      emptyHint="pick a row from the log to see who acted, on what, and everything the record carries."
+      detail={selectedId ? <ActionDetailPanel key={selectedId} actionId={selectedId} /> : null}
+    />
   );
 }

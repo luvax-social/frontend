@@ -1,5 +1,7 @@
 # Reporting Content and Accounts
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Users can now report someone else's post, someone else's comment, and someone else's account.
 
 Before this, nothing on the client could report anything.

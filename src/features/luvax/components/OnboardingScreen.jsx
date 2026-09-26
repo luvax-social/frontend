@@ -14,7 +14,8 @@ function inputStyle() {
     border: `1px solid ${v.border}`,
     borderRadius: 8,
     padding: '11px 14px',
-    outline: 'none',
+    // No outline reset: an inline style outranks the stylesheet, so this suppressed the global
+    // :focus-visible ring on every field here. The ring is drawn by src/index.css.
     boxSizing: 'border-box',
   };
 }

@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Browser-level before and after for every item, including the failure cases.
 
 All of it was captured against both applications running with seed data loaded, signed in through the interface rather than through the API.

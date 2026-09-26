@@ -1,5 +1,7 @@
 # Verified Authentication Contract
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every statement in this document was verified twice.
 Once by reading the backend request record and its validation annotations.
 Once by issuing the request against a running server and recording the response.

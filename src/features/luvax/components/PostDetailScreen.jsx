@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { v } from '@/config/tokens';
+import { CaptionText } from './CaptionText';
 import {
   copyPostLink,
   extractPageContent,
@@ -32,6 +33,7 @@ import { useUserProfile } from '../hooks/useUsers';
 import { useRelativeTime } from '../hooks/useRelativeTime';
 import { useViewport } from '../hooks/useViewport';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ReportModal } from './ReportModal';
 import { toast } from './Toast';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
@@ -39,6 +41,9 @@ import { REPORT_TYPES } from '@/services/report.service';
 import { routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
+import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
+import { useQuery } from '@tanstack/react-query';
+import { getCommentContext } from '@/services/notification.service';
 
 const HEART_COLOR = 'var(--lx-error)';
 const COMMENT_MAX_LENGTH = CHAR_LIMITS.comment;
@@ -143,7 +148,7 @@ const COMMENT_EMOJI_GROUPS = [
 // every reply, including a reply to a reply, sits at depth 1 under the same
 // thread root and carries an @mention of the person it answers. rootId is the
 // top-level comment a reply belongs to.
-function CommentRow({ comment, onReply, depth = 0, rootId = null, postId }) {
+function CommentRow({ comment, onReply, depth = 0, rootId = null, postId, isFirstPinned = false }) {
   const [heartBurst, setHeartBurst] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [commentMenuOpen, setCommentMenuOpen] = useState(false);
@@ -374,7 +379,7 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId }) {
           <LxAvatar size={isReply ? 28 : 34} src={author.avatarUrl} />
         </div>
         <div style={{ minWidth: 0 }}>
-          {comment.pinned ? (
+          {isFirstPinned ? (
             <div
               style={{
                 display: 'inline-flex',
@@ -402,19 +407,24 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId }) {
               wordBreak: 'break-word',
             }}
           >
-            <span
-              onClick={() => author.id && navigate(routeTo.userProfile(author.id))}
-              style={{
+            <LxVerifiedName
+              name={authorName}
+              verified={author.isVerified}
+              category={author.verifiedCategory}
+              size={12}
+              gap={7}
+              onClick={author.id ? () => navigate(routeTo.userProfile(author.id)) : undefined}
+              textStyle={{
                 fontFamily: v.fontBody,
                 fontSize: 12.5,
                 fontWeight: 600,
                 color: v.ink,
-                cursor: author.id ? 'pointer' : 'default',
-                marginRight: 7,
               }}
-            >
-              {authorName}
-            </span>
+              // Same gap the name keeps before the badge, kept after it too: the badge is the
+              // last thing before the comment body starts, and without this it sits flush
+              // against the first letter of the comment.
+              style={{ marginRight: 7 }}
+            />
             {editing ? null : (
               <span
                 style={{
@@ -493,7 +503,9 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId }) {
             {/* editedAt is set only by a content change. updatedAt also moves when
                 the comment is liked or replied to, so it cannot carry this marker. */}
             {comment.editedAt ? <span title="this comment was edited">edited</span> : null}
-            <span>{likeCount} likes</span>
+            <span>
+              {likeCount} {likeCount === 1 ? 'like' : 'likes'}
+            </span>
             <button
               type="button"
               onClick={() =>
@@ -681,10 +693,19 @@ export function PostDetailScreen({ overlay = false }) {
   const commentInputRef = useRef(null);
   const commentEmojiGroupRefs = useRef({});
   const viewport = useViewport();
-  // A notification about a comment opens the post and asks, through history state,
-  // that the comment be focused. Kept in a ref so the flash fires once per target.
   const location = useLocation();
-  const highlightCommentId = location.state?.highlightComment || null;
+  // A notification about a comment opens the post with ?comment={id} in the URL rather
+  // than router state, so the target survives a reload or a link shared outside the app
+  // (D9). GET /comments/{id}/context resolves the full ancestor chain, which the router
+  // state carrier never had, so a reply or a comment on a later page can be pinned too.
+  const [searchParams] = useSearchParams();
+  const highlightCommentId = searchParams.get('comment');
+  const { data: commentContext, isError: commentContextError } = useQuery({
+    queryKey: ['comments', 'context', highlightCommentId],
+    queryFn: ({ signal }) => getCommentContext(highlightCommentId, signal),
+    enabled: Boolean(highlightCommentId),
+    retry: false,
+  });
   const flashedCommentRef = useRef(null);
 
   // Keep the comment field's height matched to its content, up to three lines.
@@ -796,25 +817,53 @@ export function PostDetailScreen({ overlay = false }) {
   const mediaWidth = `calc(${mediaHeight} * ${A})`;
   const popupHeight = `max(${mediaHeight}, ${POPUP_MIN_HEIGHT})`;
   const twoPaneContainerWidth = `calc(${mediaWidth} + ${COMMENT_PANE_WIDTH}px)`;
-  const comments = commentsResponse?.pages?.flatMap((page) => extractPageContent(page)) || [];
+  const comments = useMemo(
+    () => commentsResponse?.pages?.flatMap((page) => extractPageContent(page)) || [],
+    [commentsResponse]
+  );
+  // The deep-linked thread (the target and every ancestor) is pinned above the normal list,
+  // de-duplicated against rows the ordinary page already fetched, so a reply or a comment on
+  // a later page - previously unreachable at all (D9) - renders even before its own page loads.
+  const pinnedThread = useMemo(
+    () => (highlightCommentId && !commentContextError ? (commentContext?.thread ?? []) : []),
+    [highlightCommentId, commentContextError, commentContext]
+  );
+  const commentsWithPinnedThread = useMemo(() => {
+    if (pinnedThread.length === 0) return comments;
+    const existingIds = new Set(comments.map((c) => c.id));
+    const newOnes = pinnedThread.filter((c) => !existingIds.has(c.id));
+    return [...newOnes, ...comments];
+  }, [comments, pinnedThread]);
+  // The one comment in the top-level list allowed to carry the "top comment" label. comment.pinned
+  // used to gate this directly, but the backend can legitimately mark more than one row pinned
+  // across a thread's lifetime, and CommentRow has no view of its siblings to break the tie itself.
+  const firstPinnedId = useMemo(() => comments.find((c) => c.pinned)?.id ?? null, [comments]);
 
   // Once the comments are loaded, scroll the notification's target comment into
-  // view and flash it briefly. It fires once per target. A comment that is a reply
-  // or sits on a later page is not in the DOM yet, so the post still opens and the
-  // flash is simply skipped rather than forced.
+  // view and flash it briefly. It fires once per target. A comment the context call could
+  // not resolve (deleted, removed, or the caller cannot see it) skips the flash and instead
+  // renders the unavailable line below, never a generic error toast.
   useEffect(() => {
     if (!highlightCommentId || commentsLoading) return;
+    if (commentContextError) return;
+    if (!commentContext) return;
     if (flashedCommentRef.current === highlightCommentId) return;
     const pane = commentsPaneRef.current;
     const row = pane?.querySelector(`[data-comment-id="${highlightCommentId}"]`);
     if (!row) return;
     flashedCommentRef.current = highlightCommentId;
-    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
     const flashTarget = row.firstElementChild || row;
     flashTarget.classList.add('lx-comment-flash');
     const timer = setTimeout(() => flashTarget.classList.remove('lx-comment-flash'), 2200);
     return () => clearTimeout(timer);
-  }, [highlightCommentId, commentsLoading, comments.length]);
+  }, [
+    highlightCommentId,
+    commentsLoading,
+    commentContext,
+    commentContextError,
+    commentsWithPinnedThread.length,
+  ]);
 
   // Read from the query data, exactly as this file already does for comment
   // like state a few hundred lines above. The previous local copies started at
@@ -835,14 +884,7 @@ export function PostDetailScreen({ overlay = false }) {
     commentInputRef.current?.focus();
   }, [replyingTo]);
 
-  useEffect(() => {
-    if (!overlay || typeof document === 'undefined') return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [overlay]);
+  useBodyScrollLock(overlay, location.state?.backgroundScrollY);
 
   const closePost = () => navigate(-1);
   // The post detail is a route overlay rather than an LxModal, so it did not
@@ -1119,20 +1161,20 @@ export function PostDetailScreen({ overlay = false }) {
           <LxAvatar size={32} src={authorAvatarUrl} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            onClick={() => targetUserId && navigate(routeTo.userProfile(targetUserId))}
-            style={{
+          <LxVerifiedName
+            name={authorName}
+            verified={author.isVerified}
+            category={author.verifiedCategory}
+            size={14}
+            onClick={targetUserId ? () => navigate(routeTo.userProfile(targetUserId)) : undefined}
+            textStyle={{
               fontFamily: v.fontBody,
               fontSize: 13.5,
               fontWeight: 600,
               color: v.ink,
               lineHeight: 1.15,
-              cursor: targetUserId ? 'pointer' : 'default',
-              display: 'inline-block',
             }}
-          >
-            {authorName}
-          </div>
+          />
         </div>
         <button
           ref={menuButtonRef}
@@ -1189,7 +1231,7 @@ export function PostDetailScreen({ overlay = false }) {
             wordBreak: 'break-word',
           }}
         >
-          {post.caption}
+          <CaptionText text={post.caption} />
         </div>
         {tags.length > 0 ? (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
@@ -1243,7 +1285,7 @@ export function PostDetailScreen({ overlay = false }) {
           >
             we couldn't load comments. try again.
           </div>
-        ) : comments.length === 0 ? (
+        ) : commentsWithPinnedThread.length === 0 ? (
           <div
             style={{
               padding: 20,
@@ -1256,14 +1298,29 @@ export function PostDetailScreen({ overlay = false }) {
             no comments yet.
           </div>
         ) : (
-          comments.map((comment) => (
-            <CommentRow
-              key={comment.id}
-              comment={comment}
-              onReply={handleReplySelect}
-              postId={postId}
-            />
-          ))
+          <>
+            {highlightCommentId && commentContextError ? (
+              <div
+                style={{
+                  padding: '12px 16px',
+                  fontFamily: v.fontBody,
+                  fontSize: 12,
+                  color: v.ink3,
+                }}
+              >
+                This comment is no longer available.
+              </div>
+            ) : null}
+            {commentsWithPinnedThread.map((comment) => (
+              <CommentRow
+                key={comment.id}
+                comment={comment}
+                onReply={handleReplySelect}
+                postId={postId}
+                isFirstPinned={comment.id === firstPinnedId}
+              />
+            ))}
+          </>
         )}
         {hasNextComments ? (
           <button
@@ -1331,6 +1388,9 @@ export function PostDetailScreen({ overlay = false }) {
           </button>
           <button
             type="button"
+            // The only control in this row with no text beside its glyph, so it
+            // is the only one with no accessible name to take from its content.
+            aria-label="share post"
             onClick={() => setShareOpen(true)}
             style={{
               background: 'none',

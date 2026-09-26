@@ -1,5 +1,7 @@
 # Reconnaissance
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 A full-stack audit of the Luvax backend and frontend, carried out before any feature work on the
 post, comment, and social modules.
 

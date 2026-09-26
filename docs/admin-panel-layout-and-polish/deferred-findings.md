@@ -1,5 +1,7 @@
 # Deferred findings
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Noticed during this phase, deliberately not acted on. Each is tagged with who
 owns it.
 

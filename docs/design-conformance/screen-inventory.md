@@ -1,5 +1,7 @@
 # Screen Inventory
 
+> Superseded by `src/routes/appScreens.jsx`, which the router and the shell both read. Record of work done on 2026-08-13; not maintained.
+
 Every screen on both sides, and the correspondence between them.
 
 All findings in this file are **[source]** unless marked otherwise.

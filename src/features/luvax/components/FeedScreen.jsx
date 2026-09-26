@@ -184,10 +184,70 @@ export function StoriesCarousel({ viewport }) {
 }
 
 import { PostCard } from './PostCard';
+import { interleaveFeed } from '../utils/feedInterleave';
+import { useSuggestions, useFollowSuggestion, useDismissSuggestion } from '../hooks/useSuggestions';
+import { useTrendingPreviews } from '../hooks/useTrendingPreviews';
+import { FeedPeopleCard } from './feed/FeedPeopleCard';
+import { FeedHashtagCard } from './feed/FeedHashtagCard';
+
+/** How many account-suggestion cards one feed may carry, however many accounts are available. */
+const MAX_PEOPLE_CARDS = 3;
+
+/**
+ * One tab's posts with the suggestion cards placed among them.
+ *
+ * Exported for its own test. The cadence itself lives in `feedInterleave` and is tested there; this
+ * component only renders what that function returns, so the two concerns fail separately.
+ *
+ * `cards` maps a type to a factory taking that type's appearance index and returning an element or
+ * null, and `availability` says how many times each type may appear. The factory is what lets the
+ * people card carry a different page of accounts each time; a plain element could only ever be the
+ * same card twice.
+ */
+export function FeedInjectedList({
+  posts,
+  cards,
+  availability,
+  dismissed = [],
+  tweaks,
+  viewport,
+  betweenPosts,
+  assumeFollowing,
+}) {
+  const items = interleaveFeed(posts, availability, dismissed);
+
+  return (
+    <div
+      className="lx-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: betweenPosts }}
+    >
+      {items.map((item) =>
+        item.kind === 'post' ? (
+          <PostCard
+            key={item.post.id}
+            post={item.post}
+            density={tweaks.density}
+            showTags={tweaks.showTags}
+            viewport={viewport}
+            surface="feed"
+            assumeFollowing={assumeFollowing}
+          />
+        ) : (
+          <div key={item.key}>{cards[item.type]?.(item.occurrence)}</div>
+        )
+      )}
+    </div>
+  );
+}
 
 // The single-column content width, before the root scale is applied. The root
 // zoom multiplies it, so the rendered column reads near the photo-first target
 // the owner asked for. See docs/layout-overhaul/layout-decisions.md.
+//
+// Widening this to 560 when the rail left the screen made a post with a large image no longer fit
+// in one frame, which is the thing the column width exists to protect. Back to 412: the suggestion
+// cards size themselves as a fraction of the column, so they follow it down rather than forcing it
+// wider.
 const FEED_COLUMN = 412;
 
 // The story rail spans wider than the post column, so it reads as its own band
@@ -241,6 +301,57 @@ function FeedTabPanel({
   const posts = (data?.pages?.flatMap((page) => extractPageContent(page)) || []).filter(
     canViewerSeePost
   );
+
+  // Session-scoped, keyed by card type, and deliberately not persisted. Dismissing a card is a
+  // "not this kind of thing", unlike
+  // dismissing an account, which is permanent and goes to the server.
+  const [dismissedCards, setDismissedCards] = useState([]);
+  const dismissCard = (key) =>
+    setDismissedCards((prev) => (prev.includes(key) ? prev : [...prev, key]));
+
+  const { data: trendingRows } = useTrendingPreviews(3);
+  const { data: suggestionRows } = useSuggestions(8);
+  const followSuggestion = useFollowSuggestion();
+  const dismissSuggestion = useDismissSuggestion();
+
+  // Rendered elements rather than raw data, so FeedInjectedList stays ignorant of what each card
+  // needs and the "no data means no card" rule is one null check instead of three.
+  // One card shows what fits without scrolling; the rest are carried by later cards rather than by
+  // a control the reader has to find and operate.
+  const perPeopleCard = viewport === 'mobile' ? 1 : 2;
+  const peopleRows = suggestionRows ?? [];
+  const peopleCards = Math.min(Math.ceil(peopleRows.length / perPeopleCard), MAX_PEOPLE_CARDS);
+
+  const cards = {
+    people: (occurrence) => {
+      const page = peopleRows.slice(
+        occurrence * perPeopleCard,
+        occurrence * perPeopleCard + perPeopleCard
+      );
+      return page.length ? (
+        <FeedPeopleCard
+          rows={page}
+          viewport={viewport}
+          onFollow={(id) => followSuggestion.mutate(id)}
+          onDismissUser={(id) => dismissSuggestion.mutate(id)}
+          onDismiss={() => dismissCard('people')}
+        />
+      ) : null;
+    },
+    hashtags: () =>
+      trendingRows?.length ? (
+        <FeedHashtagCard
+          rows={trendingRows}
+          viewport={viewport}
+          onDismiss={() => dismissCard('hashtags')}
+        />
+      ) : null,
+  };
+
+  const availability = {
+    people: peopleCards,
+    hashtags: Boolean(trendingRows?.length),
+  };
 
   return (
     <div
@@ -307,22 +418,16 @@ function FeedTabPanel({
         </div>
       ) : (
         <div style={{ width: '100%', maxWidth: isMobile ? '100%' : FEED_COLUMN, margin: '0 auto' }}>
-          <div
-            className="lx-fade-in"
-            style={{ display: 'flex', flexDirection: 'column', gap: betweenPosts }}
-          >
-            {posts.map((p) => (
-              <PostCard
-                key={p.id}
-                post={p}
-                density={tweaks.density}
-                showTags={tweaks.showTags}
-                viewport={viewport}
-                surface="feed"
-                assumeFollowing={assumeFollowing}
-              />
-            ))}
-          </div>
+          <FeedInjectedList
+            posts={posts}
+            cards={cards}
+            availability={availability}
+            dismissed={dismissedCards}
+            tweaks={tweaks}
+            viewport={viewport}
+            betweenPosts={betweenPosts}
+            assumeFollowing={assumeFollowing}
+          />
 
           {hasNextPage && (
             <div

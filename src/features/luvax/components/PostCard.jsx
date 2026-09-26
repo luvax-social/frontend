@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
+import { CaptionText } from './CaptionText';
 import { copyPostLink, extractPageContent, getDisplayName, getUserSummary } from '@/utils/helpers';
 import {
   LxAvatar,
@@ -25,6 +26,7 @@ import { REPORT_TYPES } from '@/services/report.service';
 import { ROUTES, routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
+import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 const HEART_COLOR = 'var(--lx-error)';
 
@@ -352,9 +354,13 @@ export function PostCard({
             style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
           >
             <LxAvatar size={26} src={avatarUrl} />
-            <span style={{ fontFamily: v.fontBody, fontSize: 13, fontWeight: 600, color: v.ink }}>
-              {authorName}
-            </span>
+            <LxVerifiedName
+              name={authorName}
+              verified={author.isVerified}
+              category={author.verifiedCategory}
+              size={13}
+              textStyle={{ fontFamily: v.fontBody, fontSize: 13, fontWeight: 600, color: v.ink }}
+            />
           </div>
           <button
             ref={menuButtonRef}
@@ -405,7 +411,7 @@ export function PostCard({
             whiteSpace: 'pre-wrap',
           }}
         >
-          {post.caption}
+          <CaptionText text={post.caption} />
         </p>
 
         {showTags && tags.length > 0 ? (

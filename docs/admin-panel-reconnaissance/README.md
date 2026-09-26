@@ -1,5 +1,7 @@
 # Admin Panel Reconnaissance
 
+> Record of work done on 2026-08-21. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 What this phase established, and what the next phase can rely on.
 Read the other seven files for the evidence.
 

@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { LxDropdownMenu } from '@/components/ui/lx-dropdown-menu';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 export { LxIcon, LxAvatar, LxDropdownMenu };
 
@@ -67,7 +67,14 @@ export function LxBtn({
     danger: { background: 'transparent', color: v.error, border: `1px solid ${v.error}` },
   };
   if (disabled) {
+    // Every variant has to read as disabled, not only the filled one. An
+    // outlined button that keeps its full contrast looks clickable and then
+    // does nothing, which is how a support reviewer ends up clicking "close as
+    // rejected" repeatedly without being told the reply box is what is empty.
     variants.primary = { background: v.surfaceRaised, color: v.ink3, border: 'none' };
+    variants.secondary = { background: v.surface, color: v.ink3, border: `1px solid ${v.border}` };
+    variants.ghost = { background: 'transparent', color: v.ink3, border: `1px solid ${v.border}` };
+    variants.danger = { background: 'transparent', color: v.ink3, border: `1px solid ${v.border}` };
   }
   return (
     <button
@@ -99,13 +106,7 @@ export function LxDivider({ mx = 0 }) {
 
 export function LxBottomSheet({ open, onClose, children, height = '70vh' }) {
   useEscapeKey(open, onClose);
-
-  useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
+  useBodyScrollLock(open);
 
   // Render nothing when closed. A sheet left mounted parks its shadowed, rounded
   // panel just below the fold; with one sheet per post, dozens stack and their

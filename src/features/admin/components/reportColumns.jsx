@@ -55,6 +55,9 @@ export const buildReportColumns = (reasonLabel) => [
     key: 'created',
     header: 'reported',
     nowrap: true,
-    render: (row) => <LocalTime value={row.createdAt} />,
+    // showZone omitted, as every other panel table does: the zone is the viewer's own and
+    // identical on every row, so repeating it per row is noise that costs the column its width.
+    // The full instant, in UTC, stays on hover.
+    render: (row) => <LocalTime value={row.createdAt} showZone={false} />,
   },
 ];

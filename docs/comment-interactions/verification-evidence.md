@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Both applications running against the seeded database.
 Signed in as `luvax_ava` in Chromium with the console captured.
 Surface exercised: the post detail overlay at `/app/p/32d5030a-4181-4059-be06-b4b1dc325f2a`.

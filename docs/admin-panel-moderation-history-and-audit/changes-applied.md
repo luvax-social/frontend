@@ -1,5 +1,7 @@
 # Changes Applied
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 By area, not by line. Everything is inside the panel's own directories except where called out.
 
 ## New files (panel)

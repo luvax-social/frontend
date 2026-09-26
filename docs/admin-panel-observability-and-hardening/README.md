@@ -1,5 +1,7 @@
 # Admin Panel — Observability and Hardening
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The final phase. It adds the last two screens, expands the last carry-over surface, and audits the
 whole panel as one product for the first time.
 

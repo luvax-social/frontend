@@ -1,5 +1,7 @@
 # Test Media Created
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 What this audit created, how, and where it lives.
 
 All of it was left in place.

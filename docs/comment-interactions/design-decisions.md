@@ -1,5 +1,7 @@
 # Design Decisions
 
+> Record of work done on 2026-08-10. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Each decision, why it went that way, and what was rejected.
 
 ---

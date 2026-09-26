@@ -45,8 +45,28 @@ const STATUS_TONE = {
   deactivated: 'critical',
   // Handed up for a higher decision.
   escalated: 'attention',
+  // Support ticket lifecycle. open and in_progress are work still to do; answered
+  // is a closed-with-an-outcome state and reads as positive, while rejected is
+  // closed with the request refused and is understated rather than red, matching
+  // how a dismissed report is treated.
+  open: 'caution',
+  in_progress: 'caution',
+  answered: 'positive',
+  rejected: 'neutral',
   // Closed with no action taken; deliberately understated rather than red.
   dismissed: 'neutral',
+  // Whether a ticket has an owner. Rendered as a badge rather than the bare word
+  // "no" so it reads as the same kind of thing as the status beside it, which is
+  // what a reader scanning the column expects. Unclaimed is the state that wants
+  // a moderator's attention, so it takes the caution tone rather than a critical
+  // one: nothing is wrong, it is simply waiting.
+  claimed: 'positive',
+  unclaimed: 'caution',
+  // Not a status. A support ticket carries this alongside its status to say it
+  // contests a moderation decision, which is a different axis from where the
+  // ticket sits in its lifecycle. It takes the attention tone for the same
+  // reason `escalated` does: it is the row a reviewer should look at first.
+  appeal: 'attention',
 };
 
 export function StatusBadge({ status, size = 'md' }) {

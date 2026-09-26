@@ -1,5 +1,7 @@
 # Design Conformance Stage 3
 
+> Record of work done on 2026-08-14. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 ## This stage is incomplete
 
 Seven of the brief's work items were delivered.

@@ -7,6 +7,7 @@ import { ROUTES, routeTo, CHAR_LIMITS } from '@/config/constants';
 import {
   canViewerSeePost,
   extractPageContent,
+  formatPostCount,
   getUserSummary,
   isPageDegraded,
 } from '@/utils/helpers';
@@ -117,7 +118,7 @@ function SuggestedHashtags({ hashtags, navigate }) {
           <button
             key={tag.id || tag.name}
             type="button"
-            onClick={() => navigate(`${ROUTES.SEARCH}?q=${encodeURIComponent(tag.name)}&type=tags`)}
+            onClick={() => navigate(routeTo.hashtag(tag.name))}
             style={{
               border: `1px solid ${v.border}`,
               background: v.surface,
@@ -648,12 +649,22 @@ export function SearchScreen() {
                 {rows.map((tag) => (
                   <div
                     key={tag.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(routeTo.hashtag(tag.name))}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigate(routeTo.hashtag(tag.name));
+                      }
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
                       padding: '12px 16px',
                       borderBottom: `1px solid ${v.borderSubtle}`,
+                      cursor: 'pointer',
                     }}
                   >
                     <div
@@ -689,7 +700,7 @@ export function SearchScreen() {
                           marginTop: 2,
                         }}
                       >
-                        {tag.postCount} {tag.postCount === 1 ? 'post' : 'posts'}
+                        {formatPostCount(tag.postCount)}
                       </div>
                     </div>
                   </div>

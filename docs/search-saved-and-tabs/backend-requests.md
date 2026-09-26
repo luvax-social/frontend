@@ -1,5 +1,7 @@
 # Requests to the Backend Team
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Two profile views cannot be built because the data they need cannot be requested.
 
 This document describes what was observed and what the frontend needs.

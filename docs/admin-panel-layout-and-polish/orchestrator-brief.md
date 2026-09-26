@@ -1,5 +1,7 @@
 # Orchestrator brief — admin panel: layout, entry point, visual polish
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 For the planner. No codebase access assumed, no application run required.
 
 ## Outcome

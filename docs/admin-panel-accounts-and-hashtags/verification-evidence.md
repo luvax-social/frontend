@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every check, what was driven, what was observed. Both role contexts were exercised. Screenshots are
 in `screens/` and linked from the check they evidence.
 

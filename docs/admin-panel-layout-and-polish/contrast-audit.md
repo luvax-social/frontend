@@ -1,5 +1,7 @@
 # Contrast audit
 
+> Record of work done on 2026-08-24. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every text role in the panel, measured against the surface it actually sits on,
 in both themes, before and after.
 

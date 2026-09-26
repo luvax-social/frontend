@@ -78,7 +78,7 @@ export default function EmailVerificationPage() {
       restartCountdown();
       setResendState({
         error: '',
-        success: 'a new verification link is on its way.',
+        success: 'A new verification link is on its way.',
       });
     } catch {
       setResendState({
@@ -93,13 +93,13 @@ export default function EmailVerificationPage() {
       <div className="lx-col lx-enter">
         <div className="lx-card">
           <div className="lx-head">
-            <h1 className="lx-h2">{tokenError ? 'that link has expired' : 'verify your email.'}</h1>
+            <h1 className="lx-h2">{tokenError ? 'That link has expired' : 'Verify your email.'}</h1>
             <p className="lx-sub">
               {tokenError
-                ? 'verification links stop working after a while, and each one can only be used once. send yourself a fresh one and it will work.'
+                ? 'Verification links stop working after a while, and each one can only be used once. Send yourself a fresh one and it will work.'
                 : email
                   ? `we sent a verification link to ${email}.`
-                  : 'check your inbox for a verification link.'}
+                  : 'Check your inbox for a verification link.'}
             </p>
           </div>
           {resendState.error ? (
@@ -117,7 +117,7 @@ export default function EmailVerificationPage() {
             style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}
           >
             <p style={{ fontSize: '14px', color: 'var(--lx-ink-2)', margin: 0 }}>
-              didn&apos;t receive the email?
+              Didn&apos;t receive the email?
             </p>
             <button
               type="button"
@@ -125,12 +125,12 @@ export default function EmailVerificationPage() {
               onClick={handleResend}
               disabled={!canResend || !email}
             >
-              {canResend ? 'resend email' : `resend in ${countdown}s`}
+              {canResend ? 'Resend email' : `resend in ${countdown}s`}
             </button>
           </div>
 
           <Link className="lx-linkbtn" to={ROUTES.LOGIN}>
-            back to log in
+            Back to log in
           </Link>
         </div>
       </div>

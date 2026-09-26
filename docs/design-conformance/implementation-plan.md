@@ -1,5 +1,7 @@
 # Implementation Plan
 
+> Record of work done on 2026-08-13. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Effort size per screen, what drives each estimate, and a proposed sequence.
 
 Sizes are relative, not absolute: **small** is under a day, **medium** is one to three days, **large** is more than three days, for one engineer already familiar with the codebase.

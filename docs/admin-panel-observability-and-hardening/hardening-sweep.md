@@ -1,5 +1,7 @@
 # Hardening Sweep — Section 15, All 51 Items
 
+> Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Every item in section 15 of `docs/admin-panel/ADMIN_PANEL_HANDOFF.md`, walked against the built
 panel in the browser. This is a review of all four phases as one product, not of this phase's work.
 

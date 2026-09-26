@@ -1,5 +1,7 @@
 # Scale Decisions
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 How the scale was changed at the root, what the new values are, and what it did to the frozen pages.
 
 ## The instrument

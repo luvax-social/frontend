@@ -1,5 +1,7 @@
 # Deferred Findings
 
+> Record of work done on 2026-08-15. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Everything found and not acted on, with where it belongs.
 
 ## The ConfirmModal titles are lower case

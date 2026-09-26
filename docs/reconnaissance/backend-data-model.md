@@ -1,5 +1,7 @@
 # Backend Data Model
 
+> Superseded by `backend/database/schema.sql`, which is regenerated from the migration set. Record of work done on 2026-08-01; not maintained.
+
 Schema facts, enums, and behavioural rules that the API shape alone does not reveal.
 
 Sources are the running PostgreSQL 18.4 database at Flyway version 44, the JPA entities, and the

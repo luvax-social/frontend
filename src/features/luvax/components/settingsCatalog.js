@@ -98,6 +98,17 @@ export const SETTINGS_GROUPS = [
         icon: 'shield',
         description: 'your email address, where your account stands, and your password.',
       },
+      {
+        id: 'support',
+        path: ROUTES.SETTINGS_SUPPORT,
+        label: 'support',
+        icon: 'mail',
+        // The help centre's own subtitle, moved here because the category
+        // region renders the description and the category no longer draws a
+        // heading of its own.
+        description:
+          'ask us something, appeal a decision, or request a verified badge. one request, one reply.',
+      },
     ],
   },
 ];

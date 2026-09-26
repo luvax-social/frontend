@@ -1,5 +1,7 @@
 # Verification Evidence
 
+> Record of work done on 2026-08-12. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 Browser-level evidence for all three target types, covering the happy path and every failure case.
 
 ## Environment

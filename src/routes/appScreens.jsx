@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { Navigate } from 'react-router-dom';
 
 import { ROUTES } from '@/config/constants';
 import { ScreenNotFound } from '@/features/luvax/components/ScreenNotFound';
@@ -32,6 +33,11 @@ const ComposerScreen = lazy(() =>
     default: m.ComposerScreen,
   }))
 );
+const SupportTicketDetailScreen = lazy(() =>
+  import('@/features/support/components/TicketDetailScreen').then((m) => ({
+    default: m.TicketDetailScreen,
+  }))
+);
 const ExploreScreen = lazy(() =>
   import('@/features/luvax/components/ExploreScreen').then((m) => ({
     default: m.ExploreScreen,
@@ -48,13 +54,18 @@ const FollowingScreen = lazy(() =>
   }))
 );
 const NotificationsScreen = lazy(() =>
-  import('@/features/luvax/components/NotificationsScreen').then((m) => ({
+  import('@/features/luvax/notifications/NotificationsScreen').then((m) => ({
     default: m.NotificationsScreen,
   }))
 );
 const OnboardingScreen = lazy(() =>
   import('@/features/luvax/components/OnboardingScreen').then((m) => ({
     default: m.OnboardingScreen,
+  }))
+);
+const HashtagScreen = lazy(() =>
+  import('@/features/luvax/components/HashtagScreen').then((m) => ({
+    default: m.HashtagScreen,
   }))
 );
 const SearchScreen = lazy(() =>
@@ -98,17 +109,19 @@ const MessagesScreen = lazy(() =>
  * - `messages` the fixed full-height pane messages has always rendered in
  * - `bare`     no frame at all
  *
- * `rightRail` reproduces the existing rule that only the feed and explore show
- * the trending rail.
+ * `rightRail` marks the screens that show the trending rail: explore and the
+ * hashtag page. The feed dropped it when its suggestions moved inline.
  */
 export const APP_SCREENS = [
+  // No right rail: the feed carries trending hashtags and suggested accounts inline between its
+  // posts now, so the rail beside it would say the same things twice. Explore and the hashtag page
+  // still show it, because neither has an inline equivalent.
   {
     screen: 'feed',
     index: true,
     path: ROUTES.FEED,
     element: <FeedScreen />,
     chrome: 'shell',
-    rightRail: true,
   },
   {
     screen: 'explore',
@@ -118,6 +131,32 @@ export const APP_SCREENS = [
     rightRail: true,
   },
   { screen: 'search', path: ROUTES.SEARCH, element: <SearchScreen />, chrome: 'shell' },
+  // No right rail: a ticket is a request and a reply, and trending hashtags
+  // beside a ban appeal would be the wrong thing to offer.
+  {
+    screen: 'support',
+    path: ROUTES.SUPPORT_TICKET,
+    element: <SupportTicketDetailScreen />,
+    chrome: 'shell',
+  },
+  // Support moved into settings, where the rest of the account's own business
+  // already lives. This address kept nothing behind it, so rather than 404 an
+  // older link it sends the reader to the one real door.
+  {
+    screen: 'support',
+    path: ROUTES.SUPPORT,
+    element: <Navigate to={ROUTES.SETTINGS_SUPPORT} replace />,
+    chrome: 'shell',
+  },
+  // Carries the right rail: a hashtag page is a discovery surface, and the trending list beside it
+  // is the obvious next thing to look at from one.
+  {
+    screen: 'hashtag',
+    path: ROUTES.HASHTAG,
+    element: <HashtagScreen />,
+    chrome: 'shell',
+    rightRail: true,
+  },
   { screen: 'compose', path: ROUTES.COMPOSE, element: <ComposerScreen />, chrome: 'shell' },
   {
     screen: 'notifications',

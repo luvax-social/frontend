@@ -1,5 +1,7 @@
 # Follow-up Changes, Round 2
 
+> Record of work done on 2026-08-16. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 A third round of owner-requested changes, with the decisions and their reasons on the record.
 
 ## Decisions worth noting

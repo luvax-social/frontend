@@ -1,5 +1,7 @@
 # Demo Readiness
 
+> Record of work done on 2026-08-01. Not maintained; it is correct as of that date and is not updated as the code moves.
+
 The scenario an engineering lead will walk through, step by step.
 
 Verdict is one of **possible**, **partially possible**, or **impossible**.

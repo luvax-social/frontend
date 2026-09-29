@@ -142,6 +142,8 @@ Stated plainly rather than left implicit.
 | `LxHeaderSearch` frontend geometry | Carried over from the first audit, still not measured | One render measurement at 1440 |
 | Report modal step 2 and step 3 against the design, pixel by pixel | Completed this phase | Nothing outstanding |
 
+Note, 2026-09-30: `post_interaction_scores` never had a writer and was dropped in backend migration V132; the evidence above is kept as recorded.
+
 ## Working tree state
 
 Verified at the end of this phase.

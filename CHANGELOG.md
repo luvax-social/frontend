@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- The audit log says that new actions can take a few seconds to appear in the list, because it is now read from a replica; opening an action still shows it at once.
 - Each suggested account carries an options menu instead of a close button, offering follow, stop suggesting this account, block and report, with the two irreversible actions marked in red.
 - Suggestion sections are dismissed from an options menu in the section header rather than from a close button, so hiding a section is one choice among several instead of the only one on offer.
 - The banner, the avatar and the username of a suggested account all open that profile; previously only the username did.

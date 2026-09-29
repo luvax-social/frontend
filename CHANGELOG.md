@@ -93,6 +93,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- The account filter on the activity log no longer cuts its placeholder text off at the edge of the field.
 - The activity log now offers all nine event types the application writes as filters in every build; a production build offered only three, although the recommendation consumer writes six more there.
 - A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.
 - The verified badge beside a name now lines up with it everywhere it appears, instead of sitting visibly low against the name's optical centre.

@@ -124,7 +124,7 @@ export function ActivityLogScreen() {
             <AccountSearchPicker
               value={accountId ? { id: accountId, username } : null}
               onSelect={(account) => setParam('account', account?.id || '')}
-              placeholder="one account, or leave empty for every account…"
+              placeholder="every account, or search one…"
               id="activity-account-picker"
             />
             <span style={hint}>

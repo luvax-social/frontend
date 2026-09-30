@@ -325,6 +325,7 @@ SELECT count(*) FROM post_interaction_scores;
 
 The explore endpoint ranks from `post_interaction_scores`, which is populated by a background scheduler that has not run in this environment.
 The grid returned zero cards, so `MiniCard` could not be observed with media in it.
+Note, 2026-09-30: `post_interaction_scores` never had a writer and was dropped in backend migration V132; the evidence above is kept as recorded.
 
 The change to `MiniCard` is the same `MediaThumb` component verified on the profile grid and in search results, so the risk is low, but it was not observed and is not claimed as verified.
 

@@ -40,6 +40,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- The design conformance evidence documents now note that the `post_interaction_scores` table they mention never had a writer and was dropped by the backend.
+- The git workflow rules now require branch names, commit subjects and pull request titles to describe the change itself rather than an internal task label, matching the backend.
+- The audit log says that new actions can take a few seconds to appear in the list, because it is now read from a replica; opening an action still shows it at once.
 - Each suggested account carries an options menu instead of a close button, offering follow, stop suggesting this account, block and report, with the two irreversible actions marked in red.
 - Suggestion sections are dismissed from an options menu in the section header rather than from a close button, so hiding a section is one choice among several instead of the only one on offer.
 - The banner, the avatar and the username of a suggested account all open that profile; previously only the username did.
@@ -90,6 +93,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- The account filter on the activity log no longer cuts its placeholder text off at the edge of the field.
+- The activity log now offers all nine event types the application writes as filters in every build; a production build offered only three, although the recommendation consumer writes six more there.
 - A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.
 - The verified badge beside a name now lines up with it everywhere it appears, instead of sitting visibly low against the name's optical centre.
 - Opening a post's detail view no longer scrolls the feed behind it back to the top or replays its entrance animation; the feed now stays exactly where it was.

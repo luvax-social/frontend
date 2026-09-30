@@ -178,6 +178,7 @@ Each is argued in `design-decisions.md`.
 `post_interaction_scores` holds 0 rows, so the explore endpoint returns nothing and the grid renders no cards.
 
 The table is populated by a background scheduler that has not run in this environment.
+Note, 2026-09-30: `post_interaction_scores` never had a writer and was dropped in backend migration V132; the evidence above is kept as recorded.
 
 The `MiniCard` change could not be observed and is not claimed as verified.
 

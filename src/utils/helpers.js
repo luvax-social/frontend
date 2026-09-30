@@ -131,9 +131,8 @@ export function canViewerSeePost(post) {
  *
  * Compensates for a documented backend limitation: Gorse's own paginated
  * output cannot be filtered by an exclusion list, so a later page can
- * resurface an id an earlier page already served. See
- * backend/.workspace/reports/rec_onboarding/prompt2_verification.md,
- * "Residual known limitation" - do not remove this as redundant, the
+ * resurface an id an earlier page already served. The backend recommendation
+ * data rules describe this residual pagination limitation; the
  * duplication it guards against is real and unclosed on the backend side.
  *
  * Used as an infinite query's `select`, which TanStack Query applies only to

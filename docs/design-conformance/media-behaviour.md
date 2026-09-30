@@ -89,6 +89,7 @@ The explore endpoint returned nothing for this account, so the grid could not be
 
 This is **unknown by observation**.
 Determining it needs the explore ranking to return the audit posts, which depends on `post_interaction_scores` being populated by the background scheduler described in the workspace rules.
+Note, 2026-09-30: `post_interaction_scores` never had a writer and was dropped in backend migration V132; the evidence above is kept as recorded.
 
 ### Profile grid and photos tab
 

@@ -393,14 +393,22 @@ export function AuditLogScreen() {
         <TargetFilter targetUserId={targetUserId} onChange={(value) => setParam('target', value)} />
         {/* The rows above inset their content 16px from the card edge; this wrapper
             matches that and the statistics screen's own DateRangeControl, which sits
-            in a padded PanelCard rather than one tightened to 4px like this was. */}
-        <div style={{ padding: '16px' }}>
+            in a padded PanelCard rather than one tightened to 4px like this was.
+            The column gap is the DateRangeControl's own, so the note below sits one
+            row under its hint lines. */}
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <DateRangeControl
             value={range}
             maxDays={MAX_WINDOW_DAYS}
             onCommit={commitRange}
             unsetHint="no time window is applied — the log is showing every action. set both ends and apply to narrow it."
           />
+          {/* The list is read from a replica the backend fills a few seconds after each
+              action commits; the action's own screen and the detail panel read the source
+              of truth and show it at once. */}
+          <p style={{ margin: 0, fontFamily: v.fontBody, fontSize: 12, color: v.ink2 }}>
+            new actions can take a few seconds to appear here.
+          </p>
         </div>
         <RecordTable
           columns={columns}

@@ -38,14 +38,14 @@ const UNCONDITIONAL_EVENT_TYPES = [
 ];
 
 /**
- * Four more types that are written by a second consumer, and only where the
- * service that consumer depends on is actually running.
+ * Six more types, written by the recommendation feedback consumer for each
+ * engagement event it receives.
  *
- * That service is part of the default local stack and is set up for no
- * production deployment, so these four write rows in development and cannot in
- * production. Verified by producing each one against the local stack and
- * reading the log back (`uptake-contract-verification.md` §5.4) — not inferred
- * from configuration.
+ * The consumer runs wherever the service it feeds runs, and the production
+ * profile enables it, so all six write rows in production as well as in
+ * development. Verified by producing each one against a production-shaped stack
+ * (production profile, real Gorse, ClickHouse behind the outbox) and reading the
+ * log back, not inferred from configuration.
  */
 const ENGAGEMENT_EVENT_TYPES = [
   {
@@ -68,41 +68,25 @@ const ENGAGEMENT_EVENT_TYPES = [
     label: 'post comment',
     hint: 'written when an account comments on a post',
   },
+  {
+    key: 'comment_like',
+    label: 'comment like',
+    hint: 'written when an account likes a comment',
+  },
+  {
+    key: 'post_share',
+    label: 'post share',
+    hint: 'written when an account shares a post in a message',
+  },
 ];
 
 /**
- * Whether this build is talking to a stack that writes the engagement types.
+ * The event types worth offering as a filter: every type the application writes.
  *
- * Two signals, and both must agree, because either one alone gets a real case
- * wrong:
- *
- * - `VITE_APP_ENV` is the deployment's own tag, which is the thing that
- *   actually describes which stack the panel faces.
- * - `import.meta.env.DEV` is false in anything `vite build` produces. Without
- *   it, a production bundle built from a checkout whose `.env` still says
- *   `development` would offer four filters that can never match, against a
- *   server that answers 200 with an empty page — which is exactly the failure
- *   this gate exists to prevent.
- *
- * Requiring both errs toward offering fewer filters. That is the safe
- * direction: a filter that is missing costs a reviewer one unfiltered read,
- * where a filter that can never match costs them a false conclusion about the
- * log. Nothing is hidden either way — the unfiltered list still shows every
- * type a row carries.
+ * The `event_type` enumeration declares twenty values and most have no writer,
+ * so offering all of them would offer filters that can never match.
  */
-const writesEngagementEvents = () =>
-  import.meta.env.DEV && (import.meta.env.VITE_APP_ENV ?? 'development') === 'development';
-
-/**
- * The event types worth offering as a filter in this environment.
- *
- * Deliberately environment-dependent, and recorded in `design-decisions.md`
- * because a filter list that changes by build is exactly the kind of thing a
- * later reader assumes is a bug.
- */
-export const WRITTEN_EVENT_TYPES = writesEngagementEvents()
-  ? [...UNCONDITIONAL_EVENT_TYPES, ...ENGAGEMENT_EVENT_TYPES]
-  : UNCONDITIONAL_EVENT_TYPES;
+export const WRITTEN_EVENT_TYPES = [...UNCONDITIONAL_EVENT_TYPES, ...ENGAGEMENT_EVENT_TYPES];
 
 /**
  * One account's behavioural events, or every account's when `userId` is omitted.

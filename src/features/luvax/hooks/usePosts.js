@@ -60,9 +60,7 @@ export const useExploreSearch = (params = {}) => {
  * raw, unselected pages, so pagination is unaffected. See
  * dedupeInfinitePagesById in utils/helpers.js.
  *
- * Ranking is refit on the backend every 5 minutes (see
- * backend/.workspace/reports/rec_onboarding/prompt1_verification.md, "A6
- * outcome"), so a stale time shorter than that would re-request an order
+ * Ranking is refit on the backend every 5 minutes, so a stale time shorter than that would re-request an order
  * that has not actually changed; a stale time much longer would leave a
  * fresh fit invisible for the rest of a session. STALE_TIME.MEDIUM (5
  * minutes) matches the fit cadence. No polling: a ranked list reordering

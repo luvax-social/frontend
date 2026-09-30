@@ -59,12 +59,6 @@ describe('useNotificationList', () => {
   });
 });
 
-describe('useLiveNotifications', () => {
-  it('is not tested for socket wiring here - covered by the live E2E pass (plan Task 23), since stompConnection is mocked at the module boundary for every Vitest case', () => {
-    expect(true).toBe(true);
-  });
-});
-
 const renderRow = (item, navigate = vi.fn()) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },

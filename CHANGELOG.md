@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- The historical admin panel backend reference now identifies itself as an API contract and uses a descriptive filename.
 - The design conformance evidence documents now note that the `post_interaction_scores` table they mention never had a writer and was dropped by the backend.
 - The git workflow rules now require branch names, commit subjects and pull request titles to describe the change itself rather than an internal task label, matching the backend.
 - The audit log says that new actions can take a few seconds to appear in the list, because it is now read from a replica; opening an action still shows it at once.

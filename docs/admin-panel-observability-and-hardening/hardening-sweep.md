@@ -2,7 +2,7 @@
 
 > Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
 
-Every item in section 15 of `docs/admin-panel/ADMIN_PANEL_HANDOFF.md`, walked against the built
+Every item in section 15 of `docs/admin-panel/ADMIN_PANEL_BACKEND_CONTRACT.md`, walked against the built
 panel in the browser. This is a review of all four phases as one product, not of this phase's work.
 
 **Outcome key** — `pass`: satisfied as built. `fixed`: failed, and the fix is in this branch.

@@ -16,7 +16,7 @@ A moderator session and an administrator session were both obtained.
 
 ## What the next phase can rely on
 
-- The handoff (`docs/admin-panel/ADMIN_PANEL_HANDOFF.md`) is accurate.
+- The backend API contract (`docs/admin-panel/ADMIN_PANEL_BACKEND_CONTRACT.md`) is accurate.
 The 47-endpoint role matrix matches in 46 of 47 rows; the one difference (row 42 returns 201, not 200) is documented in the handoff's own section 9.8.
 All five headline traps and all six response-shape divergences hold exactly.
 Cursor scope, vocabularies, and the statistics and activity-log behaviour all match.

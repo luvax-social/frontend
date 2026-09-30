@@ -36,7 +36,7 @@ None exists; the statistics screen needs charts, and the settled position forbid
 
 ## Contradictions between the two handoff documents and the settled positions
 
-The backend handoff (`docs/admin-panel/ADMIN_PANEL_HANDOFF.md`) advises things the run configuration overrides.
+The backend API contract (`docs/admin-panel/ADMIN_PANEL_BACKEND_CONTRACT.md`) advises things the run configuration overrides.
 The run configuration wins; these are recorded so the next phase does not follow the handoff into them.
 
 1. TypeScript.

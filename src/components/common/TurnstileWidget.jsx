@@ -4,13 +4,10 @@ import { v } from '@/config/tokens';
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 const SCRIPT_ID = 'cf-turnstile-script';
 
-// The managed widget draws at a fixed 300x65. The space is reserved before the
-// script resolves so the card does not jump when it mounts, but the reservation
-// is a max-width rather than a width: at 390px the viewport is narrower than the
-// card's padding allows for 300px, and a fixed width there causes a horizontal
-// scroll on the one screen a signed-out visitor cannot avoid.
+// The normal managed widget draws at 300x65; the flexible variant fills its
+// container while keeping the same height. Reserve that height before the
+// script resolves so the card does not jump when the widget mounts.
 const WIDGET_HEIGHT = 65;
-const WIDGET_MAX_WIDTH = 300;
 
 /**
  * Loads the Turnstile script once, on demand.
@@ -86,7 +83,13 @@ const DEFAULT_UNAVAILABLE_MESSAGE =
  * @param {string} [props.unavailableMessage] the sentence shown in place of the challenge when it cannot run
  */
 export const TurnstileWidget = forwardRef(function TurnstileWidget(
-  { onToken, onUnavailable, onReady, unavailableMessage = DEFAULT_UNAVAILABLE_MESSAGE },
+  {
+    onToken,
+    onUnavailable,
+    onReady,
+    size = 'normal',
+    unavailableMessage = DEFAULT_UNAVAILABLE_MESSAGE,
+  },
   ref
 ) {
   const containerRef = useRef(null);
@@ -178,6 +181,7 @@ export const TurnstileWidget = forwardRef(function TurnstileWidget(
             );
           },
           theme: appTheme,
+          size,
         });
         setStatus('ready');
         handlersRef.current.onReady?.();
@@ -199,7 +203,7 @@ export const TurnstileWidget = forwardRef(function TurnstileWidget(
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, appTheme]);
+  }, [siteKey, appTheme, size]);
 
   return (
     <div style={{ marginBottom: 14 }}>
@@ -212,8 +216,7 @@ export const TurnstileWidget = forwardRef(function TurnstileWidget(
             className="lx-skeleton"
             style={{
               height: WIDGET_HEIGHT,
-              width: '100%',
-              maxWidth: WIDGET_MAX_WIDTH,
+              width: size === 'flexible' ? '100%' : 300,
               borderRadius: 8,
             }}
           />

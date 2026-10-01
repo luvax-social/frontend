@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - The historical admin panel backend reference now identifies itself as an API contract and uses a descriptive filename.
+- The sign-in challenge now expands to match the width of the login fields.
 - Feed pagination comments now describe the backend behavior directly, and an assertion-free notification test was removed.
 - The design conformance evidence documents now note that the `post_interaction_scores` table they mention never had a writer and was dropped by the backend.
 - The git workflow rules now require branch names, commit subjects and pull request titles to describe the change itself rather than an internal task label, matching the backend.

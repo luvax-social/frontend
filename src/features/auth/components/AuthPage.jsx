@@ -696,7 +696,7 @@ export default function AuthPage() {
             </div>
           ) : null}
 
-          <TurnstileWidget {...loginChallenge.widgetProps} />
+          <TurnstileWidget size="flexible" {...loginChallenge.widgetProps} />
 
           <button
             type="submit"

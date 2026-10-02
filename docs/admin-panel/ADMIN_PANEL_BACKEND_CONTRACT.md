@@ -1,11 +1,10 @@
-# Admin and Moderator Panel: Backend Handoff Package
+# Admin and moderator panel backend API contract
 
 > Record of work done on 2026-08-22. Not maintained; it is correct as of that date and is not updated as the code moves.
 
-This document is the complete contract for the administrative and moderation panel.
-It is written for an engineer who has the backend repository available but has never run it, and who cannot ask a follow-up question.
-Everything needed is stated here.
-Nothing in this document refers to a report, a commit, a diagram, or a conversation you cannot see.
+This document records the backend API contract used by the administrative and moderation panel.
+It includes the request and response shapes, authentication requirements, and observed behavior
+needed to implement the frontend against the captured backend revision.
 
 Every contract detail below was derived by calling the running application on 2026-08-21 against `develop` at commit `c297b03`.
 Every example is a real captured request and response.
@@ -18,9 +17,9 @@ Target stack for the panel: React 19, Vite, TanStack Query, Zustand, React Route
 
 ---
 
-## What changed since the previous package
+## API changes since the previous capture
 
-This document was regenerated against a running server after a round of backend work. If you built
+This contract was captured again against a running server after backend changes. If you built
 against the previous version, these are the things that are now different. Everything below was
 captured from a live call or read from the source, not carried over from notes.
 
@@ -200,7 +199,7 @@ See section 11.
 
 6. **The activity log's four engagement event types exist in development only.**
 Gate the filter on the environment or you will offer four filters that can never match in
-production. See "What changed since the previous package" above.
+production. See "API changes since the previous capture" above.
 
 7. **An out-of-range statistics granularity is refused with 400, never silently forced to daily.**
 Prevent the combination in your controls rather than handling the error. See section 9.
@@ -3875,7 +3874,7 @@ Empty state: "No recorded activity in this window." This is common and expected,
 
 ---
 
-## 15. Verification checklist for the frontend agent
+## 15. Frontend integration verification checklist
 
 Run these against your implementation when you believe it is complete.
 Each has an expected observable result.
@@ -3970,7 +3969,7 @@ These are written to catch a plausible wrong implementation, not merely a broken
 50. Open a user detail for an account suspended with no end date. **Expect** "Suspended indefinitely", not "Not suspended" and not a blank date.
 51. Open a report whose target is a user. **Expect** no empty content block where `text` would be; the field is null for user targets.
 
-### 15.13 The endpoints added since the previous package
+### 15.13 Endpoints added since the previous capture
 
 52. Open a report whose `reportType` is `story`. **Expect** remove and restore controls, not a read-only panel with copy saying the content cannot be taken down. If that copy is still there, you did not delete the workaround.
 53. Remove a reported story, then read the owner's profile and a follower's story feed. **Expect** the story absent from both, and **expect** exactly one `remove_story` row in the audit log.

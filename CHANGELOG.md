@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- An opt-in public homepage indexing policy with canonical metadata, a factual brand graph, robots discovery and a sitemap, plus deployment and HTTP verification guidance.
 - Suggestion cards in the feed: trending hashtags with post previews, and suggested accounts showing avatar, banner and follower count. A card appears after every fifth post, alternating between the two kinds, and each kind can be dismissed for the session.
 - An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
 - A screen for requesting a replacement appeal link when the moderation email never arrived, reachable from the appeal and status screens.
@@ -40,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Authentication views now use shareable query URLs, a stable visible primary heading, smaller responsive images and earlier font discovery, while the moderation support queue loads on demand.
 - The historical admin panel backend reference now identifies itself as an API contract and uses a descriptive filename.
 - The sign-in challenge now expands to match the width of the login fields.
 - Feed pagination comments now describe the backend behavior directly, and an assertion-free notification test was removed.
@@ -96,6 +98,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- Operational screens and rendering errors no longer retain homepage indexing metadata, unknown paths return real 404s, proxy redirects preserve HTTPS and mutable assets require cache revalidation.
+- Anonymous support pages now contain their primary heading and content in a main landmark.
 - The account filter on the activity log no longer cuts its placeholder text off at the edge of the field.
 - The activity log now offers all nine event types the application writes as filters in every build; a production build offered only three, although the recommendation consumer writes six more there.
 - A full page reload no longer signs the user out after a password, email-verification or Google sign-in, because the sign-in requests now let the browser keep the session cookie the API sets from its separate origin.
@@ -160,6 +164,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Nine regressions cover indexing configuration, generated documents, private metadata cleanup, rendering failures and authentication semantics, alongside an HTTP check for redirects, discovery, 404s, caching and gzip.
 - A regression test asserts that every request able to receive the session cookie is sent with credentials.
 - A Playwright end-to-end project covering the anonymous appeal paths, run with `npm run test:e2e`: the lost-link recovery form submits and reaches its one success state, the challenge is re-armed after a refusal so a retry succeeds, and the status screen renders a known appeal, persists no token and answers every dead link identically.
 - Coverage proving the anonymous status screen renders one identical state for an unknown, an expired and a malformed token, that it writes no token to storage, and that it offers no control that could change anything.

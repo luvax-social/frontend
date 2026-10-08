@@ -6,6 +6,10 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ARG VITE_SITE_URL
+ARG VITE_SEO_INDEXABLE=false
+ENV VITE_SITE_URL=${VITE_SITE_URL}
+ENV VITE_SEO_INDEXABLE=${VITE_SEO_INDEXABLE}
 RUN npm run build
 
 FROM nginx:1.27-alpine

@@ -14,22 +14,6 @@ import { authPageRegisterSchema, emailSchema, loginSchema } from '../utils/authS
 import Field from './AuthField';
 import './AuthPage.css';
 
-const HERO_IMAGES = ['/1.webp', '/2.webp', '/3.webp'];
-
-// The two halves render as one continuous headline, with `accent` only picking
-// up the accent colour. Sentence case belongs to the sentence, so only `main`
-// carries the capital: a blind pass over both gave "Explore the things You
-// love".
-const WELCOMES = [
-  { main: 'Explore the things ', accent: 'you love' },
-  { main: 'Connect with your kind of ', accent: 'fun' },
-  { main: 'Dive into ', accent: 'what you enjoy' },
-  { main: 'Your space for ', accent: 'good energy' },
-  { main: 'Share what makes ', accent: 'you smile' },
-  { main: 'Discover your next ', accent: 'obsession' },
-  { main: 'Bring your passions ', accent: 'here' },
-];
-
 // The registration form calls its display-name input `name`; the server calls
 // the same field `displayName`. Every other name matches.
 const SERVER_FIELD_TO_FORM_FIELD = {
@@ -203,9 +187,14 @@ export default function AuthPage() {
         ? 'forgot'
         : 'login';
 
-  const [view, setView] = useState(initialView);
-  const [heroImg] = useState(() => HERO_IMAGES[Math.floor(Math.random() * HERO_IMAGES.length)]);
-  const [welcome] = useState(() => WELCOMES[Math.floor(Math.random() * WELCOMES.length)]);
+  const view = initialView;
+  const setView = (nextView) => {
+    const params = new URLSearchParams(location.search);
+    if (nextView === 'login') params.delete('view');
+    else params.set('view', nextView);
+    const query = params.toString();
+    navigate(`${ROUTES.HOME}${query ? `?${query}` : ''}`, { state: location.state });
+  };
   const [showLoginPw, setShowLoginPw] = useState(false);
   const [showRegPw, setShowRegPw] = useState(false);
   // { text, offerSupport } once a sign-in has been refused, null before that.
@@ -399,7 +388,7 @@ export default function AuthPage() {
     const { errors, isSubmitting } = registerForm.formState;
 
     return (
-      <div className="lx-shell">
+      <main className="lx-shell">
         <div className="lx-col lx-enter">
           <button type="button" className="lx-back" onClick={goLogin} aria-label="Back to login">
             <BackIcon />
@@ -506,7 +495,7 @@ export default function AuthPage() {
             </p>
           </form>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -515,7 +504,7 @@ export default function AuthPage() {
 
     if (fpSent) {
       return (
-        <div className="lx-shell">
+        <main className="lx-shell">
           <div className="lx-col lx-enter">
             <button type="button" className="lx-back" onClick={goLogin} aria-label="Back to login">
               <BackIcon />
@@ -547,12 +536,12 @@ export default function AuthPage() {
               </button>
             </div>
           </div>
-        </div>
+        </main>
       );
     }
 
     return (
-      <div className="lx-shell">
+      <main className="lx-shell">
         <div className="lx-col lx-enter">
           <button type="button" className="lx-back" onClick={goLogin} aria-label="Back to login">
             <BackIcon />
@@ -617,7 +606,7 @@ export default function AuthPage() {
             </p>
           </form>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -627,15 +616,23 @@ export default function AuthPage() {
     <div className="lx-page">
       <aside className="lx-brand">
         <div className="lx-brand-top">
-          <img src="/luvax-mark.png" alt="luvax" className="lx-logo" />
+          <img src="/luvax-logo.webp" alt="Luvax" width="128" height="128" className="lx-logo" />
         </div>
         <div className="lx-brand-mid">
-          <h1 className="lx-welcome">
-            {welcome.main}
-            <span style={{ color: 'var(--lx-accent-text)' }}>{welcome.accent}</span>
-          </h1>
+          <p className="lx-welcome">
+            A quiet social network for{' '}
+            <span style={{ color: 'var(--lx-accent-text)' }}>your interests</span>
+          </p>
           <div className="lx-photo">
-            <img src={heroImg} alt="" />
+            <img
+              src="/luvax-interests-hero.webp"
+              srcSet="/luvax-interests-hero-small.webp 640w, /luvax-interests-hero.webp 1200w"
+              sizes="(max-width: 599px) 1px, (max-width: 959px) 80vw, 40vw"
+              width="1200"
+              height="992"
+              alt=""
+              decoding="async"
+            />
           </div>
         </div>
       </aside>
@@ -646,7 +643,11 @@ export default function AuthPage() {
           onSubmit={loginForm.handleSubmit(onLoginSubmit)}
           noValidate
         >
-          <h2 className="lx-h2-lg">Log in to Luvax</h2>
+          <h1 className="lx-h2-lg">Log in to Luvax</h1>
+          <p className="lx-sub">
+            Luvax is a quiet social network for sharing photos, following your interests and
+            connecting with people.
+          </p>
 
           <Field
             id="lg-user"

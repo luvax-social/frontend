@@ -83,6 +83,8 @@ export function MediaThumb({ post, radius = 0 }) {
         <img
           src={first.cdnUrl}
           alt={first.altText || ''}
+          loading="lazy"
+          decoding="async"
           style={fit}
           onError={() => setFailed(true)}
         />

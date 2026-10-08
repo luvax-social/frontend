@@ -26,7 +26,7 @@ export function NotificationAvatarStack({ actors, isSystem, category, size = 40 
         }}
       >
         <img
-          src="/luvax-mark.png"
+          src="/luvax-logo.webp"
           alt=""
           width={size * 0.55}
           height={size * 0.55}

@@ -523,7 +523,7 @@ function LxMark({ onClick }) {
       }}
     >
       <img
-        src="/luvax-mark.png"
+        src="/luvax-logo.webp"
         alt=""
         width={22}
         height={22}

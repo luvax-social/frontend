@@ -6,7 +6,6 @@ import { ROUTES } from '@/config/constants';
 import AdminRouteGuard from './guards/AdminRouteGuard';
 import AdminOnlyRoute from './guards/AdminOnlyRoute';
 import { NotAvailable } from './components/NotAvailable';
-import { SupportTicketQueueScreen } from './screens/SupportTicketQueueScreen';
 
 /**
  * The panel route subtree, registered in the central router.
@@ -20,6 +19,11 @@ import { SupportTicketQueueScreen } from './screens/SupportTicketQueueScreen';
  * strings still have a single source in the central constants file.
  */
 const AdminShell = lazy(() => import('./components/AdminShell'));
+const SupportTicketQueueScreen = lazy(() =>
+  import('./screens/SupportTicketQueueScreen').then((m) => ({
+    default: m.SupportTicketQueueScreen,
+  }))
+);
 const ReportQueueScreen = lazy(() =>
   import('./screens/ReportQueueScreen').then((m) => ({ default: m.ReportQueueScreen }))
 );

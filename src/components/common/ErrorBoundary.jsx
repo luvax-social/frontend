@@ -23,6 +23,13 @@ export default class GlobalErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
+    document.head.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
+    document.head
+      .querySelectorAll(
+        'link[rel="canonical"], script[data-lx-seo], meta[property^="og:"], meta[name^="twitter:"]'
+      )
+      .forEach((node) => node.remove());
+    document.title = 'Page unavailable | Luvax';
     // Replace with a real error-reporting integration (e.g. Sentry.captureException)
     if (import.meta.env.DEV) {
       console.error('[GlobalErrorBoundary]', error, info?.componentStack);

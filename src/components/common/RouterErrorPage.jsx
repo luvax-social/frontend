@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router-dom';
 
 import { ROUTES } from '@/config/constants';
+import RouteMetadata from './RouteMetadata';
 
 const CHUNK_RELOAD_KEY = 'lx-chunk-reload-attempted';
 
@@ -78,6 +79,7 @@ export default function RouterErrorPage() {
 
   return (
     <main className="router-error-page">
+      <RouteMetadata error />
       {statusCode ? <p className="router-error-page__code">{statusCode}</p> : null}
       <h1>{title}</h1>
       <p className="router-error-page__description">{description}</p>

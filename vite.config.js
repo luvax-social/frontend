@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { seoAssetsPlugin } from './scripts/seo-assets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,7 +14,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     cacheDir: path.resolve(__dirname, '.vite-cache'),
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), seoAssetsPlugin(env)],
     // sockjs-client is written for a CommonJS environment and dereferences the
     // Node `global` object at module scope, which does not exist in a browser
     // bundle. SockJS is not optional here: the backend refuses a raw WebSocket

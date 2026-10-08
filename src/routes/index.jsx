@@ -15,6 +15,7 @@ import NotFoundPage from '@/components/common/NotFoundPage';
 import PageLoader from '@/components/common/PageLoader';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import RouterErrorPage from '@/components/common/RouterErrorPage';
+import RouteMetadata from '@/components/common/RouteMetadata';
 import { ROUTES, routeTo } from '@/config/constants';
 import EmailVerificationPage from '@/pages/auth/EmailVerificationPage';
 import VerifyEmailNoticePage from '@/pages/auth/VerifyEmailNoticePage';
@@ -61,6 +62,7 @@ const AppealResendScreen = lazy(() =>
 function RootLayout() {
   return (
     <>
+      <RouteMetadata />
       <AuthSessionBootstrap />
       {/* Sends every navigation to the top of the page and returns the browser
           to its previous offset on back, replacing the manual scroll reset the

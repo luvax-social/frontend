@@ -2,6 +2,7 @@ import { Link, Navigate } from 'react-router-dom';
 
 import { ROUTES } from '@/config/constants';
 import { useAuthStore } from '@/store/useAuthStore';
+import RouteMetadata from './RouteMetadata';
 
 export default function NotFoundPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -16,6 +17,7 @@ export default function NotFoundPage() {
 
   return (
     <main className="not-found-page">
+      <RouteMetadata error />
       <p>404</p>
       <h1>That page does not exist.</h1>
       <Link to={ROUTES.LOGIN}>Back to authentication</Link>

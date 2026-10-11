@@ -1,3 +1,5 @@
+import type { AppScreen } from './appScreens';
+import type { RouteObject } from 'react-router-dom';
 import {
   Navigate,
   Outlet,
@@ -105,13 +107,20 @@ function HashtagDeepLinkRedirect() {
 // Each screen carries its identity on the route rather than in component state.
 // The layout reads it back through useMatches to pick the chrome, so adding a
 // screen means adding one row to APP_SCREENS and nothing else.
-const toRouteObject = ({ screen, index, path, element, chrome, rightRail }) => ({
+const toRouteObject = ({
+  screen,
+  index,
+  path,
+  element,
+  chrome,
+  rightRail,
+}: AppScreen): RouteObject => ({
   ...(index ? { index: true } : { path }),
   element,
   handle: { screen, chrome, rightRail },
 });
 
-const toOverlayRouteObject = ({ screen, path, element }) => ({
+const toOverlayRouteObject = ({ screen, path, element }: AppScreen): RouteObject => ({
   path,
   element,
   handle: { screen, chrome: 'overlay' },

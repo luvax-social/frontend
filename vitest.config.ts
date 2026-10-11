@@ -1,5 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -8,7 +7,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Unit project. Runs with no backend, no database, and no mail sink, which is what
 // makes it safe as the continuous integration gate. The live suite has its own config.
 export default defineConfig({
-  plugins: [react()],
   // Source files use JSX without importing React, so the automatic runtime has to be
   // explicit here: the test transform does not inherit it from the app build config.
   esbuild: { jsx: 'automatic' },

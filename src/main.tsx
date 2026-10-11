@@ -1,3 +1,4 @@
+import { getErrorResponse, getErrorMessage } from '@/utils/errors';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -5,7 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 
 import GlobalErrorBoundary from '@/components/common/ErrorBoundary';
 import { initImpressionQueue } from '@/services/impressionQueue';
-import router from './routes/index.jsx';
+import router from './routes/index';
 import './index.css';
 
 /**
@@ -50,8 +51,8 @@ initImpressionQueue();
  * Security: raw backend messages are logged only to the console here.
  * UI-facing messages are the responsibility of each hook/component.
  */
-const handleQueryError = (error) => {
-  const status = error?.response?.status;
+const handleQueryError = (error: unknown) => {
+  const status = getErrorResponse(error)?.status;
 
   // 401s are handled by the Axios refresh interceptor and clearAuthAndRedirect.
   // Do not double-handle them here.
@@ -61,7 +62,7 @@ const handleQueryError = (error) => {
 
   // Replace with your error-reporting SDK call (e.g. Sentry.captureException(error))
   if (import.meta.env.DEV) {
-    console.error('[QueryClient]', error?.message ?? error);
+    console.error('[QueryClient]', getErrorMessage(error, String(error)));
   }
 };
 
@@ -81,7 +82,7 @@ const queryClient = new QueryClient({
   },
 });
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>

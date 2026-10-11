@@ -10,21 +10,23 @@ const projectRoot = path.resolve(__dirname, '..');
 const shouldReset = process.argv.includes('--reset');
 const isWindows = process.platform === 'win32';
 
-function getListeningPids(port) {
+function getListeningPids(port: number) {
   try {
     if (isWindows) {
       const output = execSync(`netstat -ano -p tcp | findstr LISTENING | findstr :${port}`, {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
-        shell: true,
       });
-      return [...new Set(
-        output.split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .map((line) => Number(line.split(/\s+/).at(-1)))
-          .filter((pid) => Number.isFinite(pid) && pid > 0)
-      )];
+      return [
+        ...new Set(
+          output
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => Number(line.split(/\s+/).at(-1)))
+            .filter((pid) => Number.isFinite(pid) && pid > 0)
+        ),
+      ];
     } else {
       const output = execSync(`ss -tlnp sport = :${port}`, { encoding: 'utf8' });
       const pids = [];
@@ -38,12 +40,11 @@ function getListeningPids(port) {
   }
 }
 
-function getProcessName(pid) {
+function getProcessName(pid: number) {
   if (!isWindows) return null;
   try {
     const output = execSync(`tasklist /FI "PID eq ${pid}" /FO CSV /NH`, {
       encoding: 'utf8',
-      shell: true,
     }).trim();
     if (!output || output.startsWith('INFO:')) return null;
     const [imageName] = output.replace(/^"|"$/g, '').split('","');
@@ -53,14 +54,14 @@ function getProcessName(pid) {
   }
 }
 
-function sleep(milliseconds) {
+function sleep(milliseconds: number) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
 
-function killPid(pid) {
+function killPid(pid: number) {
   try {
     if (isWindows) {
-      execSync(`taskkill /PID ${pid} /T /F`, { stdio: 'ignore', shell: true });
+      execSync(`taskkill /PID ${pid} /T /F`, { stdio: 'ignore' });
     } else {
       process.kill(pid, 'SIGTERM');
     }
@@ -70,12 +71,14 @@ function killPid(pid) {
   }
 }
 
-function ensureStablePort(port) {
+function ensureStablePort(port: number) {
   let pids = getListeningPids(port);
 
   if (pids.length === 0) return;
 
-  console.log(`Port ${port} is in use by PID(s): ${pids.join(', ')}. Closing previous dev server(s)...`);
+  console.log(
+    `Port ${port} is in use by PID(s): ${pids.join(', ')}. Closing previous dev server(s)...`
+  );
 
   for (const pid of pids) {
     killPid(pid);
@@ -90,7 +93,9 @@ function ensureStablePort(port) {
 
   const remaining = getListeningPids(port);
   if (remaining.length > 0) {
-    const labels = remaining.map((pid) => `${pid}${getProcessName(pid) ? ` (${getProcessName(pid)})` : ''}`);
+    const labels = remaining.map(
+      (pid) => `${pid}${getProcessName(pid) ? ` (${getProcessName(pid)})` : ''}`
+    );
     console.error(`Unable to free port ${port}. Still in use by: ${labels.join(', ')}`);
     process.exit(1);
   }

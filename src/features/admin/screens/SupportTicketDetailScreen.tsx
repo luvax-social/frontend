@@ -1,3 +1,8 @@
+import type { ReactNode } from 'react';
+import { getErrorData, getErrorMessage } from '@/utils/errors';
+import type { UseMutationResult } from '@tanstack/react-query';
+import type { AppError } from '@/api/axiosClient';
+import type { VerificationQueueItemResponse } from '@/types/support';
 import { useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -24,17 +29,18 @@ const VERIFICATION_CATEGORY = 'VERIFICATION_REQUEST';
 // last two were `evidenceAward` and `evidenceOther`, which that record does not
 // carry, so the two pieces of evidence a requester is most likely to write prose
 // into were read as undefined and never shown to the reviewer deciding on them.
-const EVIDENCE_ROWS = [
-  ['evidenceWebsite', 'official website'],
-  ['evidenceOtherProfile', 'verified profile elsewhere'],
-  ['evidenceEmailDomain', 'organisational email domain'],
-  ['evidencePublishedWork', 'published work'],
-  ['evidencePress', 'press coverage'],
-  ['evidenceOfficialListing', 'official organisational listing'],
-  ['evidenceNote', 'note to the moderator'],
-];
+const EVIDENCE_ROWS: [Extract<keyof VerificationQueueItemResponse, `evidence${string}`>, string][] =
+  [
+    ['evidenceWebsite', 'official website'],
+    ['evidenceOtherProfile', 'verified profile elsewhere'],
+    ['evidenceEmailDomain', 'organisational email domain'],
+    ['evidencePublishedWork', 'published work'],
+    ['evidencePress', 'press coverage'],
+    ['evidenceOfficialListing', 'official organisational listing'],
+    ['evidenceNote', 'note to the moderator'],
+  ];
 
-const lower = (value) => (value ?? '').toLowerCase().replace(/_/g, ' ');
+const lower = (value: string | null | undefined) => (value ?? '').toLowerCase().replace(/_/g, ' ');
 
 /**
  * One labelled control in the actions card.
@@ -44,7 +50,17 @@ const lower = (value) => (value ?? '').toLowerCase().replace(/_/g, ' ');
  * exactly when "this one reaches the requester, this one never does" matters
  * most.
  */
-function FormField({ id, label, hint, children }) {
+function FormField({
+  id,
+  label,
+  hint,
+  children,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  children?: ReactNode;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label htmlFor={id} style={detailLabel}>
@@ -74,7 +90,13 @@ function FormField({ id, label, hint, children }) {
  * ticket does not carry, and the claim race, which is decided in an update
  * predicate. Both get their own sentence; neither is shown as a generic 403.
  */
-export function SupportTicketDetailScreen({ ticketId, onClaimed }) {
+export function SupportTicketDetailScreen({
+  ticketId,
+  onClaimed,
+}: {
+  ticketId: string;
+  onClaimed?: () => void;
+}) {
   const viewerId = useAuthStore((state) => state.user?.id);
   const role = useAuthStore((state) => state.role);
   const { data: ticket, isLoading, isError, refetch } = useSupportTicket(ticketId);
@@ -112,10 +134,10 @@ export function SupportTicketDetailScreen({ ticketId, onClaimed }) {
   }
 
   const caps = ticketCapabilities(ticket, { id: viewerId, role });
-  const blocked = blockedReasonLabel(caps.blockedReason, ticket);
+  const blocked = blockedReasonLabel(caps.blockedReason);
 
-  const handleFailure = (error) => {
-    const code = error?.response?.data?.code;
+  const handleFailure = (error: unknown) => {
+    const code = getErrorData(error)?.code;
     if (code === 'SUPPORT_CONFLICT_OF_INTEREST') {
       setRefusal(
         'you took the action this ticket is appealing, so you cannot act on it. hand it to another reviewer.'
@@ -143,10 +165,15 @@ export function SupportTicketDetailScreen({ ticketId, onClaimed }) {
       refetch();
       return;
     }
-    setRefusal(error?.message || 'that did not work.');
+    setRefusal(getErrorMessage(error, 'Something went wrong.') || 'that did not work.');
   };
 
-  const runAction = (mutation, payload, onDone, announcement) => {
+  const runAction = <T, V>(
+    mutation: Pick<UseMutationResult<T, AppError, V>, 'mutate'>,
+    payload: V,
+    onDone?: ((result: T) => void) | null,
+    announcement?: string
+  ) => {
     setRefusal('');
     setAnnouncement('');
     mutation.mutate(payload, {

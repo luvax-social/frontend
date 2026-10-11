@@ -16,7 +16,13 @@ import { ROLES } from '@/config/roles';
  */
 
 /** Statuses staff can filter the queue by. `pending_confirmation` is never shown. */
-export const TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'ESCALATED', 'ANSWERED', 'REJECTED'];
+export const TICKET_STATUSES = [
+  'OPEN',
+  'IN_PROGRESS',
+  'ESCALATED',
+  'ANSWERED',
+  'REJECTED',
+] as const;
 
 export const TICKET_STATUS_LABELS = {
   OPEN: 'open',

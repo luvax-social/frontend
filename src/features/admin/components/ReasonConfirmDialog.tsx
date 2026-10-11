@@ -41,7 +41,7 @@ export function ReasonConfirmDialog({
   onClose,
 }: {
   open: boolean;
-  title: string;
+  title?: string;
   description?: ReactNode;
   confirmLabel?: string;
   tone?: string;

@@ -14,7 +14,13 @@
  */
 
 /** `report_status` enum, in lifecycle order. */
-export const REPORT_STATUSES = ['pending', 'reviewing', 'resolved', 'dismissed', 'escalated'];
+export const REPORT_STATUSES = [
+  'pending',
+  'reviewing',
+  'resolved',
+  'dismissed',
+  'escalated',
+] as const;
 
 /**
  * The status filter values worth offering a moderator.
@@ -28,10 +34,10 @@ export const REPORT_STATUSES = ['pending', 'reviewing', 'resolved', 'dismissed',
  * The administrator's filter offers the full REPORT_STATUSES set, since an
  * administrator's list is not scoped.
  */
-export const MODERATOR_REPORT_STATUSES = ['pending', 'reviewing'];
+export const MODERATOR_REPORT_STATUSES = ['pending', 'reviewing'] as const;
 
 /** `report_type` enum. */
-export const REPORT_TYPES = ['post', 'comment', 'user', 'story', 'message'];
+export const REPORT_TYPES = ['post', 'comment', 'user', 'story', 'message'] as const;
 
 export const REPORT_STATUS_LABELS = {
   pending: 'pending',

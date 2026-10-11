@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errors';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -41,7 +42,7 @@ export function EscalatedQueueScreen() {
   const columns = useMemo(() => buildReportColumns(reasonLabel), [reasonLabel]);
 
   const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
-  const openRecord = (id) => setSearchParams(withSelection(searchParams, id));
+  const openRecord = (id: string) => setSearchParams(withSelection(searchParams, id));
   const closeRecord = () => setSearchParams(withSelection(searchParams, null));
 
   const list = (
@@ -57,7 +58,7 @@ export function EscalatedQueueScreen() {
           selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
-          errorMessage={error?.message}
+          errorMessage={getErrorMessage(error, 'Something went wrong.')}
           onRetry={refetch}
           emptyIcon="check"
           emptyTitle="no escalated reports"

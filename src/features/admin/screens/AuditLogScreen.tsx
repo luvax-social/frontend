@@ -1,3 +1,8 @@
+import { getErrorMessage } from '@/utils/errors';
+import type { Column } from '../components/RecordTable';
+import type { ModerationActionVocabularyResponse } from '@/types/domain';
+import type { AdminActionSummaryResponse } from '@/types/admin';
+import type { TimeRange } from '../lib/statistics';
 import { useSearchParams } from 'react-router-dom';
 
 import { v } from '@/config/tokens';
@@ -26,7 +31,13 @@ import { useResolveUsername } from '../hooks/useResolveUsername';
  * picker. The selected actor is held in the `actor` URL parameter so a
  * filtered-by-actor view is shareable, and its username is resolved for the chip.
  */
-function ActorFilter({ actorId, onChange }) {
+function ActorFilter({
+  actorId,
+  onChange,
+}: {
+  actorId: string;
+  onChange: (value: string) => void;
+}) {
   const { username } = useResolveUsername(actorId);
   return (
     <div
@@ -52,7 +63,7 @@ function ActorFilter({ actorId, onChange }) {
         actor
       </span>
       <AccountSearchPicker
-        value={actorId ? { id: actorId, username } : null}
+        value={actorId ? { id: actorId, username: username ?? undefined } : null}
         onSelect={(account) => onChange(account?.id || '')}
         placeholder="filter by who acted…"
         id="audit-actor-picker"
@@ -83,7 +94,13 @@ const MAX_WINDOW_DAYS = 365;
  * acted on gets an empty page rather than that administrator's rows — verified,
  * not assumed.
  */
-function TargetFilter({ targetUserId, onChange }) {
+function TargetFilter({
+  targetUserId,
+  onChange,
+}: {
+  targetUserId: string;
+  onChange: (value: string) => void;
+}) {
   const { username } = useResolveUsername(targetUserId);
   return (
     <div
@@ -109,7 +126,7 @@ function TargetFilter({ targetUserId, onChange }) {
         target
       </span>
       <AccountSearchPicker
-        value={targetUserId ? { id: targetUserId, username } : null}
+        value={targetUserId ? { id: targetUserId, username: username ?? undefined } : null}
         onSelect={(account) => onChange(account?.id || '')}
         placeholder="filter by who was acted on…"
         id="audit-target-picker"
@@ -133,7 +150,15 @@ function TargetFilter({ targetUserId, onChange }) {
  * never show `metadata` — it exists only on the per-action fetch, which opens
  * in the right region beside the log.
  */
-function ActionTypeFilter({ actions, value, onChange }) {
+function ActionTypeFilter({
+  actions,
+  value,
+  onChange,
+}: {
+  actions: ModerationActionVocabularyResponse[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <div
       style={{
@@ -245,7 +270,7 @@ export function AuditLogScreen() {
     to: range ? new Date(range.toMs).toISOString() : undefined,
   });
 
-  const setParam = (key, value) => {
+  const setParam = (key: string, value: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -262,7 +287,7 @@ export function AuditLogScreen() {
 
   // Both bounds move together, in one history entry, so back undoes the whole
   // window rather than half of it.
-  const commitRange = (next) => {
+  const commitRange = (next: TimeRange) => {
     setSearchParams(
       (prev) => {
         const params = new URLSearchParams(prev);
@@ -282,10 +307,11 @@ export function AuditLogScreen() {
   // The open action is carried in the same `selected` parameter every other
   // split screen in the panel uses, so one helper governs all four.
   const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
-  const openAction = (row) => setSearchParams(withSelection(searchParams, row.id));
+  const openAction = (row: AdminActionSummaryResponse) =>
+    setSearchParams(withSelection(searchParams, row.id));
   const closeRecord = () => setSearchParams(withSelection(searchParams, null));
 
-  const columns = [
+  const columns: Column<AdminActionSummaryResponse>[] = [
     {
       key: 'action',
       header: 'action',
@@ -418,7 +444,7 @@ export function AuditLogScreen() {
           selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
-          errorMessage={error?.message}
+          errorMessage={getErrorMessage(error, 'Something went wrong.')}
           onRetry={refetch}
           emptyIcon="clock"
           emptyTitle={isAdmin ? 'no actions yet' : 'no actions yet'}

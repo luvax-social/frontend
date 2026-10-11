@@ -1,3 +1,6 @@
+import { getErrorMessage } from '@/utils/errors';
+import type { Column } from '../components/RecordTable';
+import type { SupportTicketStaffResponse } from '@/types/support';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -37,7 +40,7 @@ const DEFAULT_STATUS = 'OPEN';
 // badges stay whole and the timestamp stays on one line. Declaring a width on
 // all five and switching to a fixed layout does the opposite: it clips whatever
 // exceeds its share, which truncated the status badge mid-word.
-const columns = [
+const columns: Column<SupportTicketStaffResponse>[] = [
   {
     key: 'subject',
     header: 'subject',
@@ -101,10 +104,10 @@ export function SupportTicketQueueScreen() {
   } = useSupportQueue({ status });
 
   const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
-  const openRecord = (id) => setSearchParams(withSelection(searchParams, id));
+  const openRecord = (id: string) => setSearchParams(withSelection(searchParams, id));
   const closeRecord = () => setSearchParams(withSelection(searchParams, null));
 
-  const setFilter = (key, value) => {
+  const setFilter = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
     next.set(key, value ?? '');
     setSearchParams(next, { replace: true });
@@ -161,7 +164,7 @@ export function SupportTicketQueueScreen() {
           selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
-          errorMessage={error?.message}
+          errorMessage={getErrorMessage(error, 'Something went wrong.')}
           onRetry={refetch}
           emptyIcon="check"
           emptyTitle="nothing waiting"

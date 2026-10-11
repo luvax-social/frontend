@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errors';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -54,7 +55,7 @@ export function MyEscalationsScreen() {
   const columns = useMemo(() => buildReportColumns(reasonLabel), [reasonLabel]);
 
   const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
-  const openRecord = (id) => setSearchParams(withSelection(searchParams, id));
+  const openRecord = (id: string) => setSearchParams(withSelection(searchParams, id));
   const closeRecord = () => setSearchParams(withSelection(searchParams, null));
 
   const list = (
@@ -70,7 +71,7 @@ export function MyEscalationsScreen() {
           selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
-          errorMessage={error?.message}
+          errorMessage={getErrorMessage(error, 'Something went wrong.')}
           onRetry={refetch}
           emptyIcon="check"
           emptyTitle="you have escalated nothing"

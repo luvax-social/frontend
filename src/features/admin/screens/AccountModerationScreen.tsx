@@ -31,7 +31,10 @@ import { useResolveUsername, shortId } from '../hooks/useResolveUsername';
  * id and drops its own "all accounts" link, because the split carries the way
  * back. Neither form changes what is fetched.
  */
-export function AccountModerationScreen({ userId: userIdProp, embedded = false }) {
+export function AccountModerationScreen({
+  userId: userIdProp,
+  embedded = false,
+}: { userId?: string | null; embedded?: boolean } = {}) {
   const params = useParams();
   const userId = userIdProp ?? params.userId;
   const role = useAuthStore((state) => state.role);

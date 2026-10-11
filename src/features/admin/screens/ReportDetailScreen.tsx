@@ -1,3 +1,15 @@
+import type { ReactNode } from 'react';
+import { getErrorMessage } from '@/utils/errors';
+interface ReasonAction {
+  key: string;
+  title: string;
+  description: ReactNode;
+  confirmLabel: string;
+  tone: string;
+  mutation: { isPending: boolean };
+  run: (reason: string) => void;
+}
+import type { AdminReportTargetResponse } from '@/types/admin';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -31,7 +43,15 @@ import {
   restoreSuccessMessage,
 } from '../lib/contentModeration';
 
-function TargetRegion({ target, isLoading, isError }) {
+function TargetRegion({
+  target,
+  isLoading,
+  isError,
+}: {
+  target: AdminReportTargetResponse | null;
+  isLoading: boolean;
+  isError: boolean;
+}) {
   if (isLoading) {
     return (
       <div style={{ color: v.ink2, fontFamily: v.fontBody, fontSize: 13 }}>loading content...</div>
@@ -96,7 +116,10 @@ function TargetRegion({ target, isLoading, isError }) {
  * is handed the id and drops its own "back to reports" link, because the split
  * carries the way back. Neither form changes what is fetched.
  */
-export function ReportDetailScreen({ reportId: reportIdProp, embedded = false }) {
+export function ReportDetailScreen({
+  reportId: reportIdProp,
+  embedded = false,
+}: { reportId?: string | null; embedded?: boolean } = {}) {
   const params = useParams();
   const reportId = reportIdProp ?? params.reportId;
   const role = useAuthStore((state) => state.role);
@@ -107,15 +130,18 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
   const { target, isLoading: targetLoading, isError: targetError } = useReportTarget(reportId);
   const actions = useReportActions(reportId);
 
-  const [activeAction, setActiveAction] = useState(null);
-  const [serverError, setServerError] = useState(null);
+  const [activeAction, setActiveAction] = useState<ReasonAction | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const closeDialog = () => {
     setActiveAction(null);
     setServerError(null);
   };
 
-  const handleActionError = (err, { keepOpenOnField = true } = {}) => {
+  const handleActionError = (
+    err: unknown,
+    { keepOpenOnField = true }: { keepOpenOnField?: boolean } = {}
+  ) => {
     const described = describeError(err);
     if (described.isConflict) {
       toast('another reviewer already handled this. refreshing.');
@@ -168,7 +194,10 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
       <div>
         <PageHeader title="report" />
         <PanelCard>
-          <FailedState message={error?.message} onRetry={refetch} />
+          <FailedState
+            message={getErrorMessage(error, 'Something went wrong.')}
+            onRetry={refetch}
+          />
         </PanelCard>
       </div>
     );
@@ -176,7 +205,8 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
 
   const status = report.status;
   const targetType = target?.reportType;
-  const isActionableTarget = target && ACTIONABLE_TARGET_TYPES.has(targetType);
+  const actionableType = targetType && targetType !== 'user' ? targetType : undefined;
+  const isActionableTarget = target && ACTIONABLE_TARGET_TYPES.has(targetType ?? '');
 
   // Conditional controls: render, never disable-and-403.
   const canMarkReviewing = status === 'pending';
@@ -188,7 +218,7 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
   const anyControl =
     canMarkReviewing || canEscalate || canResolveDismiss || canRemove || canRestore;
 
-  const openReason = (config) => {
+  const openReason = (config: ReasonAction) => {
     setServerError(null);
     setActiveAction(config);
   };
@@ -313,7 +343,7 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
                             toast('report escalated');
                             closeDialog();
                           },
-                          onError: handleActionError,
+                          onError: (error) => handleActionError(error),
                         }),
                     })
                   }
@@ -340,7 +370,7 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
                               toast('report resolved');
                               closeDialog();
                             },
-                            onError: handleActionError,
+                            onError: (error) => handleActionError(error),
                           }),
                       })
                     }
@@ -363,7 +393,7 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
                               toast('report dismissed');
                               closeDialog();
                             },
-                            onError: handleActionError,
+                            onError: (error) => handleActionError(error),
                           }),
                       })
                     }
@@ -381,19 +411,19 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
                     openReason({
                       key: 'remove',
                       title: `remove ${targetType}`,
-                      description: removeConfirmDescription(targetType),
+                      description: removeConfirmDescription(targetType ?? 'content'),
                       confirmLabel: 'remove',
                       tone: 'danger',
                       mutation: actions.removeContent,
                       run: (reason) =>
                         actions.removeContent.mutate(
-                          { targetType, entityId: target.entityId, reason },
+                          { targetType: actionableType!, entityId: target.entityId, reason },
                           {
                             onSuccess: () => {
-                              toast(removeSuccessMessage(targetType));
+                              toast(removeSuccessMessage(targetType ?? 'content'));
                               closeDialog();
                             },
-                            onError: handleActionError,
+                            onError: (error) => handleActionError(error),
                           }
                         ),
                     })
@@ -411,19 +441,19 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
                     openReason({
                       key: 'restore',
                       title: `restore ${targetType}`,
-                      description: restoreConfirmDescription(targetType),
+                      description: restoreConfirmDescription(targetType ?? 'content'),
                       confirmLabel: 'restore',
                       tone: 'primary',
                       mutation: actions.restoreContent,
                       run: (reason) =>
                         actions.restoreContent.mutate(
-                          { targetType, entityId: target.entityId, reason },
+                          { targetType: actionableType!, entityId: target.entityId, reason },
                           {
                             onSuccess: (data) => {
-                              toast(restoreSuccessMessage(targetType, data));
+                              toast(restoreSuccessMessage(targetType ?? 'content', data));
                               closeDialog();
                             },
-                            onError: handleActionError,
+                            onError: (error) => handleActionError(error),
                           }
                         ),
                     })
@@ -450,7 +480,7 @@ export function ReportDetailScreen({ reportId: reportIdProp, embedded = false })
 
       <ReasonConfirmDialog
         open={Boolean(activeAction)}
-        title={activeAction?.title}
+        title={activeAction?.title ?? ''}
         description={activeAction?.description}
         confirmLabel={activeAction?.confirmLabel}
         tone={activeAction?.tone}

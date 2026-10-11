@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errors';
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -61,7 +62,7 @@ export function ReportQueueScreen() {
 
   const columns = useMemo(() => buildReportColumns(reasonLabel), [reasonLabel]);
 
-  const setFilter = (key, value) => {
+  const setFilter = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
     if (value) {
       next.set(key, value);
@@ -83,7 +84,7 @@ export function ReportQueueScreen() {
   // The open record is a history entry of its own, so back walks from one
   // record to the record before it and finally to the bare list.
   const { selectedId, hasSelection } = getSplitSelection(searchParams, rows);
-  const openRecord = (id) => setSearchParams(withSelection(searchParams, id));
+  const openRecord = (id: string) => setSearchParams(withSelection(searchParams, id));
   const closeRecord = () => setSearchParams(withSelection(searchParams, null));
 
   const groups = [
@@ -115,7 +116,7 @@ export function ReportQueueScreen() {
           selectedKey={selectedId}
           isLoading={isLoading}
           isError={isError}
-          errorMessage={error?.message}
+          errorMessage={getErrorMessage(error, 'Something went wrong.')}
           onRetry={refetch}
           emptyIcon="check"
           emptyTitle="the queue is clear"

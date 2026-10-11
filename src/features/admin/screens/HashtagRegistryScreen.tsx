@@ -1,3 +1,6 @@
+import { getErrorMessage } from '@/utils/errors';
+import type { Column } from '../components/RecordTable';
+import type { HashtagAdminResponse, AdminCreateHashtagRequest } from '@/types/admin';
 import { useEffect, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -54,7 +57,10 @@ export function HashtagRegistryScreen() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [nameError, setNameError] = useState('');
-  const [confirm, setConfirm] = useState(null); // { type, tag }
+  const [confirm, setConfirm] = useState<{
+    type: 'ban' | 'unban' | 'restore' | 'delete';
+    tag: HashtagAdminResponse;
+  } | null>(null); // { type, tag }
 
   useEffect(() => {
     const described = searchResult.isError ? describeError(searchResult.error) : null;
@@ -67,7 +73,7 @@ export function HashtagRegistryScreen() {
   const view = searchResult.active ? searchResult : list;
   const busy = hashtagActions.update.isPending || hashtagActions.remove.isPending;
 
-  const submitCreate = ({ name, status: initialStatus, note }) => {
+  const submitCreate = ({ name, status: initialStatus, note }: AdminCreateHashtagRequest) => {
     setNameError('');
     hashtagActions.create.mutate(
       { name, status: initialStatus, note },
@@ -79,7 +85,7 @@ export function HashtagRegistryScreen() {
           toast('hashtag created');
           setCreateOpen(false);
         },
-        onError: (err) => {
+        onError: (err: unknown) => {
           const code = getErrorCode(err);
           if (code === 'HASHTAG_ALREADY_EXISTS') {
             setNameError('a hashtag with this name already exists');
@@ -99,16 +105,16 @@ export function HashtagRegistryScreen() {
     );
   };
 
-  const runConfirm = (reason) => {
+  const runConfirm = (reason: string) => {
     if (!confirm) {
       return;
     }
     const { type, tag } = confirm;
-    const done = (message) => () => {
+    const done = (message: string) => () => {
       toast(message);
       setConfirm(null);
     };
-    const onError = (err) => {
+    const onError = (err: unknown) => {
       const described = describeError(err);
       if (described.isConflict) {
         view.refetch();
@@ -138,8 +144,8 @@ export function HashtagRegistryScreen() {
     );
   };
 
-  const rowActions = (tag) => {
-    const buttons = [];
+  const rowActions = (tag: HashtagAdminResponse) => {
+    const buttons: ['ban' | 'unban' | 'restore' | 'delete', string, string][] = [];
     if (tag.status === 'active') {
       buttons.push(['ban', 'ban', v.error]);
       buttons.push(['delete', 'trash', v.ink2]);
@@ -183,7 +189,7 @@ export function HashtagRegistryScreen() {
     );
   };
 
-  const columns = [
+  const columns: Column<HashtagAdminResponse>[] = [
     {
       key: 'name',
       header: 'hashtag',
@@ -388,7 +394,7 @@ export function HashtagRegistryScreen() {
           rows={view.rows}
           isLoading={view.isLoading}
           isError={view.isError}
-          errorMessage={view.error?.message}
+          errorMessage={getErrorMessage(view.error, 'Something went wrong.')}
           onRetry={view.refetch}
           emptyIcon="hash"
           emptyTitle={searchResult.active ? 'no hashtags match' : 'no hashtags yet'}

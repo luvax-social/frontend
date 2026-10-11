@@ -1,3 +1,8 @@
+import type { ReactNode } from 'react';
+
+import type { Column } from '../components/RecordTable';
+import type { UserEventResponse } from '@/types/domain';
+import type { TimeRange } from '../lib/statistics';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -49,7 +54,7 @@ export function ActivityLogScreen() {
   const accountId = searchParams.get('account') || '';
   const eventType = searchParams.get('type') || '';
 
-  const [range, setRange] = useState(null);
+  const [range, setRange] = useState<TimeRange | null>(null);
   const cooldown = useRateLimitCooldown();
 
   const events = useUserEvents({ userId: accountId || undefined, range, eventType });
@@ -65,7 +70,7 @@ export function ActivityLogScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events.isError, events.error]);
 
-  const setParam = (key, value) => {
+  const setParam = (key: string, value: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -82,7 +87,7 @@ export function ActivityLogScreen() {
 
   const { username } = useResolveUsername(accountId || null);
 
-  const columns = [
+  const columns: Column<UserEventResponse>[] = [
     {
       key: 'createdAt',
       header: `when (${localZone()})`,
@@ -122,7 +127,7 @@ export function ActivityLogScreen() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <span style={mono}>account</span>
             <AccountSearchPicker
-              value={accountId ? { id: accountId, username } : null}
+              value={accountId ? { id: accountId, username: username ?? undefined } : null}
               onSelect={(account) => setParam('account', account?.id || '')}
               placeholder="every account, or search one…"
               id="activity-account-picker"
@@ -227,7 +232,7 @@ const mono = {
 
 const hint = { fontFamily: v.fontBody, fontSize: 12, color: v.ink2 };
 
-function EventTag({ type }) {
+function EventTag({ type }: { type: string }) {
   const known = WRITTEN_EVENT_TYPES.find((entry) => entry.key === type);
   return (
     <span
@@ -255,7 +260,7 @@ function EventTag({ type }) {
  * a time and cached. Until it resolves the short id is shown, which is honest
  * and stable, rather than a placeholder that looks like a name.
  */
-function AccountCell({ userId }) {
+function AccountCell({ userId }: { userId?: string | null }) {
   const { username } = useResolveUsername(userId);
   if (!userId) {
     return <span style={{ color: v.ink2 }}>-</span>;
@@ -285,7 +290,7 @@ function AccountCell({ userId }) {
  * carries the account that was viewed; a session start carries neither, and says
  * so rather than showing an empty cell that reads as missing data.
  */
-function EventDetail({ row }) {
+function EventDetail({ row }: { row: UserEventResponse }) {
   if (row.eventType === 'search') {
     const scope = row.metadata?.scope;
     const query = row.metadata?.query;
@@ -298,7 +303,12 @@ function EventDetail({ row }) {
         <span style={{ fontFamily: v.fontMono, color: v.ink }}>
           {query ? `"${query}"` : 'an unrecorded term'}
         </span>
-        {scope ? <span style={{ color: v.ink2 }}> in {scope}</span> : null}
+        {scope ? (
+          <span style={{ color: v.ink2 }}>
+            {' '}
+            in {typeof scope === 'string' ? scope : String(scope)}
+          </span>
+        ) : null}
       </span>
     );
   }
@@ -327,6 +337,6 @@ function EventDetail({ row }) {
   );
 }
 
-const Muted = ({ children }) => (
+const Muted = ({ children }: { children?: ReactNode }) => (
   <span style={{ fontFamily: v.fontBody, fontSize: 13, color: v.ink2 }}>{children}</span>
 );

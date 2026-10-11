@@ -55,7 +55,7 @@ const ActivityLogScreen = lazy(() =>
   import('./screens/ActivityLogScreen').then((m) => ({ default: m.ActivityLogScreen }))
 );
 
-const rel = (fullPath) => fullPath.slice(ROUTES.ADMIN.length + 1);
+const rel = (fullPath: string) => fullPath.slice(ROUTES.ADMIN.length + 1);
 
 export const adminRoute = {
   path: ROUTES.ADMIN,

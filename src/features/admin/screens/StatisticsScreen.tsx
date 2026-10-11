@@ -1,3 +1,5 @@
+import type { TopHashtagResponse } from '@/types/admin';
+import type { TimeRange } from '../lib/statistics';
 import { useEffect, useMemo, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -104,7 +106,7 @@ export function StatisticsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeseries.isError, timeseries.error]);
 
-  const commitRange = (next) => {
+  const commitRange = (next: TimeRange) => {
     setAutoDowngraded(false);
     setRange(next);
   };
@@ -196,7 +198,23 @@ export function StatisticsScreen() {
   );
 }
 
-function SeriesBody({ cooling, remaining, timeseries, state, metric, granularity, range }) {
+function SeriesBody({
+  cooling,
+  remaining,
+  timeseries,
+  state,
+  metric,
+  granularity,
+  range,
+}: {
+  cooling: boolean;
+  remaining: number;
+  timeseries: ReturnType<typeof useStatsTimeseries>;
+  state: string;
+  metric: ReturnType<typeof metricFor>;
+  granularity: ReturnType<typeof granularityFor>;
+  range: TimeRange;
+}) {
   if (cooling) {
     return (
       <EmptyState
@@ -263,8 +281,16 @@ function SeriesBody({ cooling, remaining, timeseries, state, metric, granularity
   );
 }
 
-function MetricSelector({ value, onChange, disabled }) {
-  const group = (label, hint, metrics) => (
+function MetricSelector({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
+  const group = (label: string, hint: string, metrics: typeof METRICS) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <span
         style={{
@@ -317,7 +343,17 @@ function MetricSelector({ value, onChange, disabled }) {
   );
 }
 
-function GranularitySelector({ options, value, onChange, disabled }) {
+function GranularitySelector({
+  options,
+  value,
+  onChange,
+  disabled,
+}: {
+  options: ReturnType<typeof availableGranularities>;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, opacity: disabled ? 0.5 : 1 }}>
       <span
@@ -336,7 +372,7 @@ function GranularitySelector({ options, value, onChange, disabled }) {
           <span
             key={option.key}
             style={option.available ? undefined : { opacity: 0.45, cursor: 'not-allowed' }}
-            title={option.available ? undefined : option.unavailableReason}
+            title={option.available ? undefined : (option.unavailableReason ?? undefined)}
           >
             <LxTag
               size="sm"
@@ -367,7 +403,7 @@ function GranularitySelector({ options, value, onChange, disabled }) {
   );
 }
 
-function SnapshotPanel({ current }) {
+function SnapshotPanel({ current }: { current: ReturnType<typeof useCurrentStats> }) {
   if (current.isLoading) {
     return (
       <PanelCard title="snapshot">
@@ -455,7 +491,7 @@ function SnapshotPanel({ current }) {
   );
 }
 
-function Figure({ label, value }) {
+function Figure({ label, value }: { label: string; value?: number | null }) {
   return (
     <div
       style={{
@@ -492,7 +528,7 @@ function Figure({ label, value }) {
   );
 }
 
-function Breakdown({ label, map }) {
+function Breakdown({ label, map }: { label: string; map?: Record<string, number> }) {
   const entries = Object.entries(map ?? {});
   return (
     <div>
@@ -537,7 +573,7 @@ function Breakdown({ label, map }) {
   );
 }
 
-function TopHashtags({ entries, live }) {
+function TopHashtags({ entries, live }: { entries: TopHashtagResponse[]; live?: boolean }) {
   return (
     <div>
       <div

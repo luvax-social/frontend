@@ -1,3 +1,6 @@
+import { getErrorMessage } from '@/utils/errors';
+import type { Column } from '../components/RecordTable';
+import type { AdminUserListItemResponse } from '@/types/admin';
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -65,10 +68,11 @@ export function AccountListScreen() {
   // The open account is a history entry of its own, so back walks from one
   // account to the account before it and finally to the bare list.
   const { selectedId, hasSelection } = getSplitSelection(searchParams, view.rows);
-  const openRecord = (id) => setSearchParams(withSelection(searchParams, id), { replace: false });
+  const openRecord = (id: string) =>
+    setSearchParams(withSelection(searchParams, id), { replace: false });
   const closeRecord = () => setSearchParams(withSelection(searchParams, null), { replace: false });
 
-  const setFilter = (key, value) => {
+  const setFilter = (key: string, value: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -83,7 +87,7 @@ export function AccountListScreen() {
     );
   };
 
-  const columns = [
+  const columns: Column<AdminUserListItemResponse>[] = [
     {
       key: 'account',
       header: 'account',
@@ -285,7 +289,7 @@ export function AccountListScreen() {
           selectedKey={selectedId}
           isLoading={view.isLoading}
           isError={view.isError}
-          errorMessage={view.error?.message}
+          errorMessage={getErrorMessage(view.error, 'Something went wrong.')}
           onRetry={view.refetch}
           emptyIcon={searching ? 'explore' : 'profile'}
           emptyTitle={searchResult.active ? 'no accounts match' : 'no accounts here'}

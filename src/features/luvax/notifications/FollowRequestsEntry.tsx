@@ -1,3 +1,4 @@
+import type { NotificationStateResponse } from '@/types/domain';
 import { v } from '@/config/tokens';
 import { LxAvatar, LxIcon } from '../components/primitives';
 
@@ -7,7 +8,13 @@ import { LxAvatar, LxIcon } from '../components/primitives';
  * not itself a notification row.
  * @param {{state: {followRequests: {count: number, capped: boolean, recent: Array<object>}}, onOpen: () => void}} props
  */
-export function FollowRequestsEntry({ state, onOpen }) {
+export function FollowRequestsEntry({
+  state,
+  onOpen,
+}: {
+  state: NotificationStateResponse | undefined;
+  onOpen: () => void;
+}) {
   const followRequests = state?.followRequests;
   if (!followRequests || followRequests.count === 0) return null;
 

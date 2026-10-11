@@ -39,7 +39,7 @@ export const useReportReasonNames = () => {
     staleTime: STALE_TIME.LONG,
     select: (envelope) => {
       const reasons = envelope?.data?.reportReasons ?? [];
-      return reasons.reduce((names, reason) => {
+      return reasons.reduce<Record<string, string>>((names, reason) => {
         if (reason?.key) names[reason.key] = reason.displayName ?? reason.key;
         return names;
       }, {});

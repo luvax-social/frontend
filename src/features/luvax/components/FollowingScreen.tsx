@@ -1,3 +1,5 @@
+import { getErrorResponse } from '@/utils/errors';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
@@ -19,7 +21,7 @@ export function FollowingScreen() {
   // from the profile itself. It is normally already cached from the profile
   // screen this was opened from, and a cold load fetches it.
   const { data: ownerResponse } = useUserProfile(userId);
-  const owner = ownerResponse?.data || ownerResponse;
+  const owner = ownerResponse ? unwrapApiResponse(ownerResponse) : undefined;
   const username = owner?.username || currentUser?.username || 'user';
   const isSelf = userId === currentUser?.id;
 
@@ -41,7 +43,7 @@ export function FollowingScreen() {
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Handle privacy/visibility errors
-  if (isError && error?.response?.status === 403) {
+  if (isError && getErrorResponse(error)?.status === 403) {
     return (
       <div
         style={{

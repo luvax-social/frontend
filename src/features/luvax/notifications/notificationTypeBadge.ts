@@ -4,7 +4,10 @@
  * a restatement of the sentence). `system` rows render the Luvax mark as their avatar
  * already, so they carry no badge here; NotificationAvatarStack skips the lookup for them.
  */
-const CATEGORY_BADGE = {
+const CATEGORY_BADGE: Record<
+  string,
+  { icon: string; filled: boolean; background: string; color: string }
+> = {
   like: { icon: 'heart', filled: true, background: 'var(--lx-error)', color: '#fff' },
   comment: { icon: 'chat', filled: true, background: 'var(--lx-accent)', color: 'var(--lx-black)' },
   mention: { icon: 'chat', filled: true, background: 'var(--lx-accent)', color: 'var(--lx-black)' },
@@ -21,6 +24,6 @@ const CATEGORY_BADGE = {
  * @param {string} category a NotificationItem's category
  * @returns {?{icon: string, filled: boolean, background: string, color: string}}
  */
-export function notificationTypeBadge(category) {
-  return CATEGORY_BADGE[category] ?? null;
+export function notificationTypeBadge(category: string | undefined) {
+  return CATEGORY_BADGE[category ?? ''] ?? null;
 }

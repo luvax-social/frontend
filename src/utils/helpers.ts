@@ -252,16 +252,50 @@ const ABSENT_USER_SUMMARY = Object.freeze({
  * @param {{optional?: boolean}} [options] `optional` when an absent summary is expected
  * @returns {{id: ?string, username: ?string, displayName: ?string, avatarUrl: ?string, isVerified: boolean}}
  */
+export function getUserSummary<T extends UserSummaryView>(
+  source: { author: T },
+  key?: 'author',
+  options?: { optional?: boolean }
+): T;
+export function getUserSummary<S extends { user: UserSummaryView }>(
+  source: S,
+  key: 'user',
+  options?: { optional?: boolean }
+): S['user'];
+export function getUserSummary<S extends { follower: UserSummaryView }>(
+  source: S,
+  key: 'follower',
+  options?: { optional?: boolean }
+): S['follower'];
+export function getUserSummary<S extends { actor: UserSummaryView }>(
+  source: S,
+  key: 'actor',
+  options?: { optional?: boolean }
+): S['actor'];
 export function getUserSummary(
   source:
     | {
         author?: UserSummaryView | null;
         actor?: UserSummaryView | null;
         user?: UserSummaryView | null;
+        follower?: UserSummaryView | null;
       }
     | null
     | undefined,
-  key: 'author' | 'actor' | 'user' = 'author',
+  key?: 'author' | 'actor' | 'user' | 'follower',
+  options?: { optional?: boolean }
+): UserSummaryView;
+export function getUserSummary(
+  source:
+    | {
+        author?: UserSummaryView | null;
+        actor?: UserSummaryView | null;
+        user?: UserSummaryView | null;
+        follower?: UserSummaryView | null;
+      }
+    | null
+    | undefined,
+  key: 'author' | 'actor' | 'user' | 'follower' = 'author',
   { optional = false } = {}
 ): UserSummaryView {
   const summary = source?.[key];

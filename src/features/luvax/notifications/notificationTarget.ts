@@ -1,3 +1,4 @@
+import type { NotificationItemResponse } from '@/types/domain';
 import { routeTo } from '@/config/constants';
 import { appealPath } from '@/utils/appealEntry';
 
@@ -9,7 +10,9 @@ import { appealPath } from '@/utils/appealEntry';
  * @param {object} item a NotificationItem (P1 section 4)
  * @returns {{path: ?string, isNavigable: boolean}}
  */
-export function resolveNotificationTarget(item) {
+export function resolveNotificationTarget(
+  item: Pick<NotificationItemResponse, 'target' | 'moderation'>
+) {
   const target = item.target;
   if (!target || target.available === false) {
     return { path: null, isNavigable: false };

@@ -1,3 +1,16 @@
+export interface SettingsCategory {
+  id: string;
+  path: string;
+  label: string;
+  icon: string;
+  description: string;
+  ownsHeading?: boolean;
+}
+interface SettingsGroup {
+  id: string;
+  title: string;
+  categories: SettingsCategory[];
+}
 import { ROUTES } from '@/config/constants';
 
 /**
@@ -22,7 +35,7 @@ import { ROUTES } from '@/config/constants';
  * out. These are facts about the account and its access, not preferences about
  * presence or audience. The reasoning is recorded in `design-decisions.md`.
  */
-export const SETTINGS_GROUPS = [
+export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     id: 'use',
     title: 'how you use luvax',
@@ -123,7 +136,7 @@ export const SETTINGS_CATEGORIES = SETTINGS_GROUPS.flatMap((group) =>
  * was a screen that only said it was not built yet; the account category is
  * where the one real password action now lives.
  */
-const CATEGORY_ALIASES = { password: 'account' };
+const CATEGORY_ALIASES: Record<string, string> = { password: 'account' };
 
 /**
  * Resolves the `:category` segment of the URL to a category, or null for the
@@ -131,11 +144,12 @@ const CATEGORY_ALIASES = { password: 'account' };
  * screen renders as a stale-link message beside a working group list rather
  * than as a broken screen.
  */
-export const resolveCategory = (segment) => {
+export const resolveCategory = (segment: string | undefined) => {
   if (!segment) return null;
   const id = CATEGORY_ALIASES[segment] ?? segment;
   return SETTINGS_CATEGORIES.find((category) => category.id === id) ?? null;
 };
 
 /** True when the segment is present but names no category the app has. */
-export const isUnknownCategory = (segment) => Boolean(segment) && !resolveCategory(segment);
+export const isUnknownCategory = (segment: string | undefined) =>
+  Boolean(segment) && !resolveCategory(segment);

@@ -1,3 +1,14 @@
+import type { ChangeEvent, ReactNode } from 'react';
+import type { UserSummaryResponse, UserSettingsResponse } from '@/types/domain';
+import type { AppError } from '@/api/axiosClient';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
+type ProfileForm = z.infer<typeof profileSchema> & { avatarUrl: string; bannerUrl: string };
+// Retains the existing legacy control; allowMessageRequests is absent from the current API DTO.
+type SettingsView = UserSettingsResponse & { allowMessageRequests?: boolean };
+type BooleanSetting = {
+  [K in keyof SettingsView]: NonNullable<SettingsView[K]> extends boolean ? K : never;
+}[keyof SettingsView] &
+  string;
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -42,7 +53,15 @@ import { SavedPostsScreen } from './SavedPostsScreen';
  * renders as an unexplained blank region and the layout does not jump when a
  * request resolves into one of them.
  */
-function StateBlock({ icon = 'settings', title, hint }) {
+function StateBlock({
+  icon = 'settings',
+  title,
+  hint,
+}: {
+  icon?: string;
+  title: string;
+  hint?: string;
+}) {
   return (
     <div className="lx-settings-state">
       <LxIcon name={icon} size={22} color={v.ink2} />
@@ -57,7 +76,23 @@ function StateBlock({ icon = 'settings', title, hint }) {
  * the list has content. `error` wins over `isLoading` so a retry that fails
  * does not fall back to a spinner.
  */
-function ListState({ isLoading, error, isEmpty, emptyTitle, emptyHint, emptyIcon, children }) {
+function ListState({
+  isLoading,
+  error,
+  isEmpty,
+  emptyTitle,
+  emptyHint,
+  emptyIcon,
+  children,
+}: {
+  isLoading: boolean;
+  error: unknown;
+  isEmpty: boolean;
+  emptyTitle: string;
+  emptyHint?: string;
+  emptyIcon?: string;
+  children: ReactNode;
+}) {
   if (error) {
     return (
       <StateBlock
@@ -72,7 +107,15 @@ function ListState({ isLoading, error, isEmpty, emptyTitle, emptyHint, emptyIcon
   return children;
 }
 
-function SettingsRow({ label, sub, control }) {
+function SettingsRow({
+  label,
+  sub,
+  control,
+}: {
+  label: string;
+  sub?: string;
+  control?: ReactNode;
+}) {
   return (
     <div className="lx-settings-row">
       <div className="lx-settings-row-text">
@@ -89,7 +132,7 @@ function SettingsRow({ label, sub, control }) {
  * text, not as a disabled control: a greyed-out input would imply the value
  * could be edited under some other condition, and none exists.
  */
-function ReadonlyRow({ label, sub, value }) {
+function ReadonlyRow({ label, sub, value }: { label: string; sub?: string; value: ReactNode }) {
   return (
     <SettingsRow
       label={label}
@@ -119,7 +162,13 @@ export function AppearanceCategory() {
   );
 }
 
-function PersonRow({ person, actions }) {
+function PersonRow({
+  person,
+  actions,
+}: {
+  person?: UserSummaryResponse | null;
+  actions: ReactNode;
+}) {
   return (
     <div className="lx-settings-person">
       <LxAvatar size={36} src={person?.avatarUrl} />
@@ -132,7 +181,7 @@ function PersonRow({ person, actions }) {
   );
 }
 
-const formatDate = (value) => {
+const formatDate = (value: string | null | undefined) => {
   if (!value) return '—';
   const date = new Date(value);
   return Number.isNaN(date.getTime())
@@ -148,7 +197,19 @@ const formatDate = (value) => {
  * mutation hook and says so here rather than leaving the switch showing a value
  * the server never accepted.
  */
-function SettingToggle({ settings, field, label, sub, isLoading }) {
+function SettingToggle({
+  settings,
+  field,
+  label,
+  sub,
+  isLoading,
+}: {
+  settings?: SettingsView;
+  field: BooleanSetting;
+  label: string;
+  sub?: string;
+  isLoading: boolean;
+}) {
   const updateSettings = useUpdateMySettings();
   const [failure, setFailure] = useState('');
 
@@ -203,19 +264,19 @@ const profileSchema = z.object({
  */
 export function ProfileCategory() {
   const { data: profileResponse, isLoading, error } = useMyProfile();
-  const profile = profileResponse?.data ?? profileResponse;
+  const profile = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
   const updateProfile = useUpdateMyProfile();
   const setUser = useAuthStore((state) => state.setUser);
   const user = useAuthStore((state) => state.user);
   const { uploadMedia } = useMediaUpload();
 
-  const [form, setForm] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [form, setForm] = useState<ProfileForm | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
   const [formError, setFormError] = useState('');
   const [saved, setSaved] = useState(false);
-  const [uploadingField, setUploadingField] = useState(null);
-  const avatarInput = useRef(null);
-  const bannerInput = useRef(null);
+  const [uploadingField, setUploadingField] = useState<'avatarUrl' | 'bannerUrl' | null>(null);
+  const avatarInput = useRef<HTMLInputElement | null>(null);
+  const bannerInput = useRef<HTMLInputElement | null>(null);
 
   // Seeds the form once the profile arrives. A later refetch must not overwrite
   // what the person is part-way through typing, so this only fills an empty
@@ -246,13 +307,16 @@ export function ProfileCategory() {
   }
   if (isLoading || !form) return <StateBlock icon="clock" title="loading" />;
 
-  const update = (key, value) => {
-    setForm((previous) => ({ ...previous, [key]: value }));
+  const update = (key: keyof ProfileForm, value: string) => {
+    setForm((previous) => ({ ...previous!, [key]: value }));
     setSaved(false);
     if (fieldErrors[key]) setFieldErrors((previous) => ({ ...previous, [key]: undefined }));
   };
 
-  const pickImage = async (event, field) => {
+  const pickImage = async (
+    event: ChangeEvent<HTMLInputElement>,
+    field: 'avatarUrl' | 'bannerUrl'
+  ) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -266,11 +330,18 @@ export function ProfileCategory() {
     setUploadingField(field);
     try {
       const result = await uploadMedia(file);
-      const cdnUrl = result?.data?.cdnUrl ?? result?.cdnUrl;
+      const cdnUrl =
+        (result as typeof result & { data?: typeof result })?.data?.cdnUrl ?? result?.cdnUrl;
       if (cdnUrl) update(field, cdnUrl);
       else setFormError("we couldn't read the uploaded image. try again.");
     } catch (uploadError) {
-      setFormError(uploadError?.uploadMessage || "we couldn't upload that image. try again.");
+      setFormError(
+        (uploadError instanceof Error &&
+        'uploadMessage' in uploadError &&
+        typeof uploadError.uploadMessage === 'string'
+          ? uploadError.uploadMessage
+          : '') || "we couldn't upload that image. try again."
+      );
     } finally {
       setUploadingField(null);
     }
@@ -286,10 +357,10 @@ export function ProfileCategory() {
       websiteUrl: form.websiteUrl,
     });
     if (!result.success) {
-      const next = {};
+      const next: Record<string, string> = {};
       for (const issue of result.error.issues) {
         const field = issue.path[0];
-        if (!next[field]) next[field] = issue.message;
+        if (typeof field === 'string' && !next[field]) next[field] = issue.message;
       }
       setFieldErrors(next);
       return;
@@ -307,7 +378,7 @@ export function ProfileCategory() {
       },
       {
         onSuccess: (data) => {
-          const updated = data?.data ?? data;
+          const updated = unwrapApiResponse(data);
           setUser({ ...user, ...updated });
           setSaved(true);
         },
@@ -318,7 +389,7 @@ export function ProfileCategory() {
         // server sentence is never rendered: they are written in a different
         // voice, and the two that matter here are both field-scoped anyway, so
         // they belong against the field rather than in a banner above the form.
-        onError: (saveError) => {
+        onError: (saveError: AppError) => {
           if (saveError?.fieldErrors) {
             setFieldErrors(saveError.fieldErrors);
             return;
@@ -333,10 +404,11 @@ export function ProfileCategory() {
     );
   };
 
-  const fieldProps = (key) => ({
+  const fieldProps = (key: keyof ProfileForm) => ({
     value: form[key],
-    onChange: (event) => update(key, event.target.value),
-    'aria-invalid': fieldErrors[key] ? 'true' : undefined,
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      update(key, event.target.value),
+    'aria-invalid': fieldErrors[key] ? true : undefined,
   });
 
   return (
@@ -461,7 +533,7 @@ export function ProfileCategory() {
  */
 export function NotificationsCategory() {
   const { data: response, isLoading, error } = useMySettings();
-  const settings = response?.data ?? response;
+  const settings = response ? unwrapApiResponse(response) : undefined;
 
   if (error) {
     return (
@@ -523,14 +595,14 @@ export function NotificationsCategory() {
  */
 export function PrivacyCategory() {
   const { data: profileResponse, isLoading: profileLoading, error: profileError } = useMyProfile();
-  const profile = profileResponse?.data ?? profileResponse;
+  const profile = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
   const updateProfile = useUpdateMyProfile();
   const {
     data: settingsResponse,
     isLoading: settingsLoading,
     error: settingsError,
   } = useMySettings();
-  const settings = settingsResponse?.data ?? settingsResponse;
+  const settings = settingsResponse ? unwrapApiResponse(settingsResponse) : undefined;
   const [privateFailure, setPrivateFailure] = useState('');
 
   const error = profileError || settingsError;
@@ -621,10 +693,13 @@ export function RequestsCategory() {
   const approve = useApproveFollowRequest();
   const reject = useRejectFollowRequest();
   const { data: profileResponse } = useMyProfile();
-  const profile = profileResponse?.data ?? profileResponse;
+  const profile = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
   const [failure, setFailure] = useState('');
 
-  const act = (mutation, requesterId) => {
+  const act = (
+    mutation: { mutate: (id: string, options: { onError: () => void }) => void },
+    requesterId: string
+  ) => {
     setFailure('');
     mutation.mutate(requesterId, {
       onError: () => setFailure("we couldn't do that just now. try again in a moment."),
@@ -698,7 +773,7 @@ export function BlockedCategory() {
   const blocked = extractPageContent(response);
   const unblock = useUnblock();
   const [failure, setFailure] = useState('');
-  const [pendingId, setPendingId] = useState(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
   return (
     <div>
@@ -773,12 +848,12 @@ export function SavedCategory() {
  */
 export function AccountCategory() {
   const { data: profileResponse, isLoading, error } = useMyProfile();
-  const profile = profileResponse?.data ?? profileResponse;
+  const profile = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
   const sessionUser = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const goToSupport = () => navigate(ROUTES.SETTINGS_SUPPORT);
-  const goToAppeal = (adminActionId) => navigate(appealPath(adminActionId));
+  const goToAppeal = (adminActionId: string) => navigate(appealPath(adminActionId));
 
   const {
     data: warningsResponse,

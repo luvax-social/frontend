@@ -1,6 +1,7 @@
+import type { NotificationTargetResponse, NotificationPreviewResponse } from '@/types/domain';
 import { v } from '@/config/tokens';
 
-const KIND_LABEL = {
+const KIND_LABEL: Record<string, string> = {
   post: 'post',
   comment: 'comment',
   story: 'story',
@@ -18,7 +19,13 @@ const KIND_LABEL = {
  * any, is rendered separately in the row's trailing slot (NotificationRow), not here.
  * @param {{target: object, preview: ?object}} props
  */
-export function NotificationPreview({ target, preview }) {
+export function NotificationPreview({
+  target,
+  preview,
+}: {
+  target: NotificationTargetResponse | null;
+  preview: NotificationPreviewResponse | null;
+}) {
   if (target && target.available === false) {
     return (
       <div style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink3, marginTop: 4 }}>

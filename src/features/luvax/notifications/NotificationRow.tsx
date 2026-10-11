@@ -1,3 +1,5 @@
+import type { NotificationItemResponse } from '@/types/domain';
+import type { NavigateFunction } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 import { useRelativeTime } from '../hooks/useRelativeTime';
@@ -16,7 +18,13 @@ import { resolveNotificationTarget } from './notificationTarget';
  * a navigable row read, and "mark all as read" in the screen header covers the rest.
  * @param {{item: object, navigate: (path: string) => void}} props
  */
-export function NotificationRow({ item, navigate }) {
+export function NotificationRow({
+  item,
+  navigate,
+}: {
+  item: NotificationItemResponse;
+  navigate: NavigateFunction;
+}) {
   const markRead = useMarkRead();
   const timeStr = useRelativeTime(item.activityAt);
   const { isSystem, actors, othersCount, phrase } = notificationCopyParts(item);

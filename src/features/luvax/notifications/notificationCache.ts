@@ -1,3 +1,4 @@
+import type { NotificationKeyResponse, NotificationItemResponse } from '@/types/domain';
 /**
  * Pure reducers over an array of NotificationItem (P1 API contract section 4).
  *
@@ -13,7 +14,7 @@
  * @param {{activityAt: string, id: string}} b
  * @returns {number}
  */
-export function compareActivity(a, b) {
+export function compareActivity(a: NotificationKeyResponse, b: NotificationKeyResponse) {
   if (a.activityAt !== b.activityAt) {
     return a.activityAt > b.activityAt ? -1 : 1;
   }
@@ -28,7 +29,7 @@ export function compareActivity(a, b) {
  * @param {object} nextItem
  * @returns {Array<object>}
  */
-export function upsertItem(items, nextItem) {
+export function upsertItem<T extends NotificationKeyResponse>(items: T[], nextItem: T): T[] {
   const withoutOld = items.filter((existing) => existing.id !== nextItem.id);
   const insertAt = withoutOld.findIndex((existing) => compareActivity(nextItem, existing) < 0);
   const index = insertAt === -1 ? withoutOld.length : insertAt;
@@ -41,7 +42,7 @@ export function upsertItem(items, nextItem) {
  * @param {Array<string>} ids
  * @returns {Array<object>}
  */
-export function removeItems(items, ids) {
+export function removeItems<T extends { id: string }>(items: T[], ids?: readonly string[]): T[] {
   const idSet = new Set(ids);
   return items.filter((item) => !idSet.has(item.id));
 }
@@ -52,7 +53,11 @@ export function removeItems(items, ids) {
  * @param {string} readAt
  * @returns {Array<object>}
  */
-export function markRead(items, ids, readAt) {
+export function markRead<T extends { id: string }>(
+  items: T[],
+  ids: readonly string[] | undefined,
+  readAt: string
+): T[] {
   const idSet = new Set(ids);
   return items.map((item) => (idSet.has(item.id) ? { ...item, isRead: true, readAt } : item));
 }
@@ -62,7 +67,7 @@ export function markRead(items, ids, readAt) {
  * @param {Array<string>} ids
  * @returns {Array<object>}
  */
-export function markUnread(items, ids) {
+export function markUnread<T extends { id: string }>(items: T[], ids?: readonly string[]): T[] {
   const idSet = new Set(ids);
   return items.map((item) =>
     idSet.has(item.id) ? { ...item, isRead: false, readAt: null } : item
@@ -79,7 +84,11 @@ export function markUnread(items, ids) {
  * @param {string|undefined} readAt
  * @returns {Array<object>}
  */
-export function markReadUpTo(items, upTo, readAt) {
+export function markReadUpTo<T extends NotificationKeyResponse>(
+  items: T[],
+  upTo: NotificationKeyResponse,
+  readAt?: string | null
+): T[] {
   return items.map((item) => {
     if (compareActivity(item, upTo) < 0) return item;
     return readAt ? { ...item, isRead: true, readAt } : { ...item, isRead: false, readAt: null };
@@ -94,7 +103,10 @@ export function markReadUpTo(items, upTo, readAt) {
  * @param {'all'|'unread'|'comments'|'mentions'|'follows'|'system'|'verified'} filter
  * @returns {boolean}
  */
-export function itemMatchesFilter(item, filter) {
+export function itemMatchesFilter(
+  item: Pick<NotificationItemResponse, 'category' | 'isRead' | 'actors'>,
+  filter: string
+) {
   switch (filter) {
     case 'all':
       return true;

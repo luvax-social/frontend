@@ -1,3 +1,5 @@
+import type { FollowRequestResponse } from '@/types/domain';
+import type { UserSummaryView } from '@/types/user';
 import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { extractPageContent, getDisplayName, getUserSummary } from '@/utils/helpers';
@@ -11,8 +13,10 @@ import {
 import { routeTo } from '@/config/constants';
 import { toast } from '../components/Toast';
 
-const requesterId = (request, follower) =>
-  request?.id || request?.requesterId || request?.followerId || follower?.id || null;
+const requesterId = (
+  request: FollowRequestResponse & { requesterId?: string; followerId?: string },
+  follower: UserSummaryView
+) => request?.id || request?.requesterId || request?.followerId || follower?.id || null;
 
 /**
  * The sub-view the pinned entry opens: every pending follow request, each with its own
@@ -20,7 +24,7 @@ const requesterId = (request, follower) =>
  * by array index).
  * @param {{onBack: () => void}} props
  */
-export function FollowRequestsView({ onBack }) {
+export function FollowRequestsView({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const { data: requestsResponse, isLoading } = usePendingFollowRequests();
   const approve = useApproveFollowRequest();

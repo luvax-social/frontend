@@ -1,3 +1,4 @@
+import type { UserSummaryResponse } from '@/types/domain';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { LxIcon } from '../components/primitives';
 import { notificationTypeBadge } from './notificationTypeBadge';
@@ -10,7 +11,17 @@ import { notificationTypeBadge } from './notificationTypeBadge';
  * avatar already is that signal).
  * @param {{actors: Array<{avatarUrl?: string}>, isSystem: boolean, category?: string, size?: number}} props
  */
-export function NotificationAvatarStack({ actors, isSystem, category, size = 40 }) {
+export function NotificationAvatarStack({
+  actors,
+  isSystem,
+  category,
+  size = 40,
+}: {
+  actors: Pick<UserSummaryResponse, 'id' | 'avatarUrl'>[];
+  isSystem: boolean;
+  category?: string;
+  size?: number;
+}) {
   if (isSystem) {
     return (
       <div

@@ -7,7 +7,7 @@ import { v } from '@/config/tokens';
  * and body type rather than a new colour.
  * @param {{count: number, capped: boolean}} props
  */
-export function NotificationBadge({ count, capped }) {
+export function NotificationBadge({ count, capped }: { count: number; capped: boolean }) {
   if (count === 0) return null;
   const label = capped ? '99+' : String(count);
   return (

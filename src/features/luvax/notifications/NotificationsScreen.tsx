@@ -1,3 +1,5 @@
+import type { NotificationItemResponse, NotificationPageResponse } from '@/types/domain';
+import type { NotificationSection } from './notificationSections';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -16,7 +18,7 @@ import { SECTION_ORDER, sectionFor } from './notificationSections';
 
 const CHIPS = ['all', 'unread', 'comments', 'mentions', 'follows', 'system', 'verified'];
 
-const SECTION_LABEL = {
+const SECTION_LABEL: Record<string, string> = {
   new: 'new',
   today: 'today',
   'this week': 'this week',
@@ -24,7 +26,7 @@ const SECTION_LABEL = {
   earlier: 'earlier',
 };
 
-const EMPTY_COPY = {
+const EMPTY_COPY: Record<string, string> = {
   all: 'No notifications yet.',
   unread: 'No unread notifications.',
   comments: 'No comment notifications.',
@@ -34,7 +36,7 @@ const EMPTY_COPY = {
   verified: 'No notifications from verified accounts.',
 };
 
-function GroupHeading({ label }) {
+function GroupHeading({ label }: { label: string }) {
   return (
     <div
       style={{
@@ -75,7 +77,11 @@ export function NotificationsScreen() {
     [data]
   );
   const firstPage = data?.pages?.[0];
-  const pageHead = firstPage?.head ?? firstPage?.data?.head ?? null;
+  const pageHead =
+    firstPage?.head ??
+    (firstPage as (NotificationPageResponse & { data?: NotificationPageResponse }) | undefined)
+      ?.data?.head ??
+    null;
 
   // Advances seen once, on the first successful page-0 render of the all filter only -
   // never on any other chip, and never again from this effect (the debounced live path
@@ -105,9 +111,11 @@ export function NotificationsScreen() {
 
   const sections = useMemo(() => {
     const now = new Date();
-    const grouped = new Map(SECTION_ORDER.map((key) => [key, []]));
-    items.forEach((item) => grouped.get(sectionFor(item, now)).push(item));
-    return SECTION_ORDER.map((key) => [key, grouped.get(key)]).filter(
+    const grouped = new Map<NotificationSection, NotificationItemResponse[]>(
+      SECTION_ORDER.map((key) => [key, []])
+    );
+    items.forEach((item) => grouped.get(sectionFor(item, now))!.push(item));
+    return SECTION_ORDER.map((key) => [key, grouped.get(key)!] as const).filter(
       ([, rows]) => rows.length > 0
     );
   }, [items]);

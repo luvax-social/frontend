@@ -1,3 +1,13 @@
+import type { QueryClient, InfiniteData } from '@tanstack/react-query';
+import type {
+  NotificationItemResponse,
+  NotificationKeyResponse,
+  NotificationStateResponse,
+  NotificationPageResponse,
+} from '@/types/domain';
+import type { NotificationLiveEnvelope } from '@/types/notification';
+type NotificationListData = InfiniteData<NotificationPageResponse, string | null | undefined>;
+type ItemReducer = (items: NotificationItemResponse[]) => NotificationItemResponse[];
 import { useCallback, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as notifService from '@/services/notification.service';
@@ -15,7 +25,7 @@ import { getNextCursor } from '@/utils/helpers';
 
 export const notifKeys = {
   all: ['notifications'],
-  list: (filter) => [...notifKeys.all, 'list', filter],
+  list: (filter: string) => [...notifKeys.all, 'list', filter],
   state: () => [...notifKeys.all, 'state'],
 };
 
@@ -26,11 +36,12 @@ const FILTERS = ['all', 'unread', 'comments', 'mentions', 'follows', 'system', '
  * chips keeps the others' scroll position and data (P0 section 9.5).
  * @param {string} filter
  */
-export const useNotificationList = (filter) => {
+export const useNotificationList = (filter: string) => {
   return useInfiniteQuery({
     queryKey: notifKeys.list(filter),
     queryFn: ({ pageParam = null, signal }) =>
       notifService.getNotifications({ filter, cursor: pageParam, limit: 20, signal }),
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam: getNextCursor,
   });
 };
@@ -54,7 +65,7 @@ export const useAdvanceSeen = () => {
     // Wrapped rather than passed by reference: TanStack forwards its own internal mutation
     // context as a second argument to a bare function reference, which a caller asserting
     // the exact call args (or a real backend strict about extra body fields) would see.
-    mutationFn: (tuple) => notifService.advanceSeen(tuple),
+    mutationFn: (tuple: NotificationKeyResponse) => notifService.advanceSeen(tuple),
     onSuccess: (state) => {
       queryClient.setQueryData(notifKeys.state(), state);
     },
@@ -68,11 +79,11 @@ export const useAdvanceSeen = () => {
  */
 export const useDebouncedAdvanceSeen = () => {
   const advanceSeen = useAdvanceSeen();
-  const timerRef = useRef(null);
-  const pendingRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<NotificationKeyResponse | null>(null);
 
   const advance = useCallback(
-    (tuple, { immediate = false } = {}) => {
+    (tuple: NotificationKeyResponse, { immediate = false }: { immediate?: boolean } = {}) => {
       pendingRef.current = tuple;
       if (immediate) {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -106,16 +117,19 @@ export const useDebouncedAdvanceSeen = () => {
  * Snapshots every cached notification query (every filter's list, plus state) for an
  * optimistic mutation's rollback, restored in full on error.
  */
-const snapshotCaches = (queryClient) => {
-  const listSnapshots = FILTERS.map((filter) => [
-    filter,
-    queryClient.getQueryData(notifKeys.list(filter)),
-  ]);
-  const stateSnapshot = queryClient.getQueryData(notifKeys.state());
+const snapshotCaches = (queryClient: QueryClient) => {
+  const listSnapshots = FILTERS.map(
+    (filter) =>
+      [filter, queryClient.getQueryData<NotificationListData>(notifKeys.list(filter))] as const
+  );
+  const stateSnapshot = queryClient.getQueryData<NotificationStateResponse>(notifKeys.state());
   return { listSnapshots, stateSnapshot };
 };
 
-const restoreCaches = (queryClient, { listSnapshots, stateSnapshot }) => {
+const restoreCaches = (
+  queryClient: QueryClient,
+  { listSnapshots, stateSnapshot }: ReturnType<typeof snapshotCaches>
+) => {
   listSnapshots.forEach(([filter, data]) => {
     if (data !== undefined) queryClient.setQueryData(notifKeys.list(filter), data);
   });
@@ -123,9 +137,9 @@ const restoreCaches = (queryClient, { listSnapshots, stateSnapshot }) => {
 };
 
 /** Applies a filter-agnostic `reducer` to the item list of every cached filter's data. */
-const patchAllLists = (queryClient, reducer) => {
+const patchAllLists = (queryClient: QueryClient, reducer: ItemReducer) => {
   FILTERS.forEach((filter) => {
-    queryClient.setQueryData(notifKeys.list(filter), (data) => {
+    queryClient.setQueryData<NotificationListData>(notifKeys.list(filter), (data) => {
       if (!data) return data;
       return {
         ...data,
@@ -136,9 +150,12 @@ const patchAllLists = (queryClient, reducer) => {
 };
 
 /** Applies a per-filter reducer (filter) => (items) => items to every cached list. */
-const patchAllListsByFilter = (queryClient, reducerFor) => {
+const patchAllListsByFilter = (
+  queryClient: QueryClient,
+  reducerFor: (filter: string) => ItemReducer
+) => {
   FILTERS.forEach((filter) => {
-    queryClient.setQueryData(notifKeys.list(filter), (data) => {
+    queryClient.setQueryData<NotificationListData>(notifKeys.list(filter), (data) => {
       if (!data) return data;
       const reducer = reducerFor(filter);
       return {
@@ -152,7 +169,7 @@ const patchAllListsByFilter = (queryClient, reducerFor) => {
 export const useMarkRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id) => notifService.markRead(id),
+    mutationFn: (id: string) => notifService.markRead(id),
     onMutate: async (id) => {
       const snapshot = snapshotCaches(queryClient);
       patchAllLists(queryClient, (items) => markRead(items, [id], new Date().toISOString()));
@@ -172,7 +189,7 @@ export const useMarkRead = () => {
 export const useMarkAllRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (upTo) => notifService.markAllRead(upTo),
+    mutationFn: (upTo: NotificationKeyResponse) => notifService.markAllRead(upTo),
     onMutate: async (upTo) => {
       const snapshot = snapshotCaches(queryClient);
       patchAllLists(queryClient, (items) => markReadUpTo(items, upTo, new Date().toISOString()));
@@ -196,7 +213,7 @@ export const useLiveNotifications = () => {
   useEffect(() => {
     if (!userId) return undefined;
 
-    return subscribeTopic(
+    return subscribeTopic<NotificationLiveEnvelope>(
       `/topic/notifications.${userId}`,
       (envelope) => {
         if (envelope.state) {

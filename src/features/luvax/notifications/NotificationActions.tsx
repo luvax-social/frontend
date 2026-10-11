@@ -1,3 +1,5 @@
+import type { NotificationItemResponse } from '@/types/domain';
+import type { NavigateFunction } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { LxBtn } from '../components/primitives';
 import { useFollow } from '../hooks/useSocial';
@@ -11,7 +13,13 @@ import { toast } from '../components/Toast';
  * this component adds no optimistic logic of its own - it only surfaces the error toast.
  * @param {{item: object, navigate: (path: string) => void}} props
  */
-export function NotificationActions({ item, navigate }) {
+export function NotificationActions({
+  item,
+  navigate,
+}: {
+  item: NotificationItemResponse;
+  navigate: NavigateFunction;
+}) {
   const follow = useFollow();
 
   if (item.type === 'follow' && item.relationship?.isFollowing === false) {
@@ -39,6 +47,7 @@ export function NotificationActions({ item, navigate }) {
     item.moderation?.appealable &&
     item.moderation?.appealActionId
   ) {
+    const appealActionId = item.moderation.appealActionId;
     return (
       <button
         type="button"
@@ -58,7 +67,7 @@ export function NotificationActions({ item, navigate }) {
         }}
         onClick={(event) => {
           event.stopPropagation();
-          navigate(appealPath(item.moderation.appealActionId));
+          navigate(appealPath(appealActionId));
         }}
       >
         appeal this decision

@@ -1,3 +1,4 @@
+import type { NotificationItemResponse } from '@/types/domain';
 /**
  * Whether {@link NotificationActions} (NotificationActions.jsx) renders anything for this
  * item. A pure function in its own module, not exported alongside NotificationActions itself,
@@ -6,7 +7,9 @@
  * @param {object} item
  * @returns {boolean}
  */
-export function hasNotificationAction(item) {
+export function hasNotificationAction(
+  item: Pick<NotificationItemResponse, 'type' | 'category' | 'relationship' | 'moderation'>
+) {
   if (item.type === 'follow' && item.relationship?.isFollowing === false) return true;
   return Boolean(
     item.category === 'system' && item.moderation?.appealable && item.moderation?.appealActionId

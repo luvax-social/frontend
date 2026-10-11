@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -23,7 +24,7 @@ import {
 } from './settingsCategories';
 import { SETTINGS_CSS } from './settingsStyles';
 
-const CATEGORY_VIEWS = {
+const CATEGORY_VIEWS: Record<string, ComponentType> = {
   profile: ProfileCategory,
   notifications: NotificationsCategory,
   appearance: AppearanceCategory,
@@ -61,8 +62,8 @@ export function SettingsScreen() {
   const { category: segment } = useParams();
   const category = resolveCategory(segment);
   const unknown = isUnknownCategory(segment);
-  const regionRef = useRef(null);
-  const headingRef = useRef(null);
+  const regionRef = useRef<HTMLDivElement | null>(null);
+  const headingRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState('');
 
   // Filters the list to categories whose name contains what was typed, and

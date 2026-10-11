@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- TypeScript contracts for profile editing, settings, follow lists and notification events, cache updates and rollback.
 - TypeScript contracts for feed, composer, post details, stories, sharing and app navigation, including their existing query and media flows.
 - Strict TypeScript checking for converted frontend modules, with build and CI gates and support for TypeScript test discovery.
 - An opt-in public homepage indexing policy with canonical metadata, a factual brand graph, robots discovery and a sitemap, plus deployment and HTTP verification guidance.

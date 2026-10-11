@@ -1,3 +1,15 @@
+import type {
+  LikedPostResponse,
+  PostResponse,
+  PublicUserProfileResponse,
+  ViewerRelationshipResponse,
+} from '@/types/domain';
+import type { ReportTarget } from '@/types/report';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
+type ProfileView = Partial<Omit<PublicUserProfileResponse, 'viewerState'>> & {
+  firstName?: string | null;
+  viewerState?: Partial<ViewerRelationshipResponse>;
+};
 import { useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
@@ -42,7 +54,7 @@ import { LxVerifiedBadge } from '@/components/ui/lx-verified-badge';
  */
 const PHOTO_TYPES = ['image', 'carousel'];
 
-function TextPostTile({ caption }) {
+function TextPostTile({ caption }: { caption: string | null }) {
   const text = caption?.trim();
 
   return (
@@ -141,11 +153,11 @@ export function ProfileScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingBlock, setConfirmingBlock] = useState(false);
   // Which relationship list is open in a modal: 'followers', 'following', or null.
-  const [followList, setFollowList] = useState(null);
+  const [followList, setFollowList] = useState<'followers' | 'following' | null>(null);
   const [confirmingUnfollow, setConfirmingUnfollow] = useState(false);
-  const [reportTarget, setReportTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [avatarPreviewOpen, setAvatarPreviewOpen] = useState(false);
-  const menuAnchor = useRef(null);
+  const menuAnchor = useRef<HTMLButtonElement | null>(null);
   const currentUser = useAuthStore((state) => state.user);
 
   // Absent on the viewer's own profile address, which is what makes that
@@ -161,9 +173,9 @@ export function ProfileScreen() {
     isError: isProfileError,
     isLoading: isProfileLoading,
   } = useUserProfile(queryUserId);
-  const fetchedUser = profileResponse?.data || profileResponse;
+  const fetchedUser = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
 
-  const user = fetchedUser || (isSelf ? currentUser : null);
+  const user: ProfileView | null = fetchedUser || (isSelf ? currentUser : null);
 
   // The relationship comes from the server on every profile read. An earlier
   // version derived it by scanning the viewer's own following list into local
@@ -179,7 +191,9 @@ export function ProfileScreen() {
   // across a reload and when the block was made from somewhere else.
   const { data: blockedResponse } = useBlockedUsers();
   const blockedRows = extractPageContent(blockedResponse);
-  const blockedRow = blockedRows.find((row) => (row?.user?.id ?? row?.id) === queryUserId);
+  const blockedRow = blockedRows.find(
+    (row) => (row?.user?.id ?? (row as typeof row & { id?: string }).id) === queryUserId
+  );
   const isBlocking = Boolean(blockedRow) || Boolean(user?.viewerState?.isBlocking);
 
   const viewerState = user?.viewerState || {};
@@ -235,8 +249,12 @@ export function ProfileScreen() {
 
   // Liked rows nest the post under `post` and carry `likedAt`; profile rows are
   // bare posts. Unwrapping covers both without the caller having to know which.
-  const posts = (active.data?.pages?.flatMap((page) => extractPageContent(page)) || [])
-    .map((row) => row?.post ?? row)
+  const posts = (
+    active.data?.pages?.flatMap((page) =>
+      extractPageContent<LikedPostResponse | PostResponse>(page)
+    ) || []
+  )
+    .map((row) => ('post' in row ? row.post : row))
     .filter(Boolean);
 
   // A like record outlives the post behind it, so the liked list can answer
@@ -319,7 +337,7 @@ export function ProfileScreen() {
           variant="secondary"
           size="sm"
           disabled={unblock.isPending}
-          onClick={() => unblock.mutate(queryUserId)}
+          onClick={() => unblock.mutate(queryUserId!)}
         >
           {unblock.isPending ? 'unblocking...' : 'unblock'}
         </LxBtn>
@@ -376,7 +394,7 @@ export function ProfileScreen() {
         // Unblocking is reversible and restores nothing on its own, so it does
         // not need a confirmation. Blocking destroys follow edges that unblock
         // will not put back, so it does.
-        if (isBlocking) unblock.mutate(user.id);
+        if (isBlocking) unblock.mutate(user!.id!);
         else setConfirmingBlock(true);
       },
     },
@@ -391,7 +409,7 @@ export function ProfileScreen() {
             setMenuOpen(false);
             setReportTarget({
               entityType: REPORT_TYPES.USER,
-              entityId: user?.id,
+              entityId: user!.id!,
               author: title,
               avatarUrl: user?.avatarUrl,
             });
@@ -402,9 +420,10 @@ export function ProfileScreen() {
   // A count of null is what a private account returns to a non-follower. It is
   // withheld rather than zero, so it renders as an em-free placeholder instead
   // of a number the viewer would read as fact.
-  const renderCount = (value) => (value === null || value === undefined ? '-' : formatCount(value));
+  const renderCount = (value: number | null | undefined) =>
+    value === null || value === undefined ? '-' : formatCount(value);
 
-  const notice = (icon, heading, detail) => (
+  const notice = (icon: string, heading: string, detail?: string) => (
     <div
       style={{
         padding: '48px 32px',
@@ -607,7 +626,7 @@ export function ProfileScreen() {
                     fontSize: 13,
                     borderRadius: 999,
                   }}
-                  onClick={() => navigate(ROUTES.MESSAGES, { state: { openWithUserId: user.id } })}
+                  onClick={() => navigate(ROUTES.MESSAGES, { state: { openWithUserId: user!.id } })}
                 >
                   message
                 </LxBtn>
@@ -731,11 +750,13 @@ export function ProfileScreen() {
             borderBottom: `1px solid ${v.border}`,
           }}
         >
-          {[
-            ['posts', user?.postCount],
-            ['following', user?.followingCount],
-            ['followers', user?.followerCount],
-          ].map(([label, val]) => {
+          {(
+            [
+              ['posts', user?.postCount],
+              ['following', user?.followingCount],
+              ['followers', user?.followerCount],
+            ] as const
+          ).map(([label, val]) => {
             const navigable = label !== 'posts' && isReadable && val !== null && val !== undefined;
             return (
               <div
@@ -816,7 +837,7 @@ export function ProfileScreen() {
         pending={block.isPending}
         onCancel={() => setConfirmingBlock(false)}
         onConfirm={() => {
-          block.mutate(user.id, { onSuccess: () => setConfirmingBlock(false) });
+          block.mutate(user!.id!, { onSuccess: () => setConfirmingBlock(false) });
         }}
       />
 
@@ -837,7 +858,7 @@ export function ProfileScreen() {
           }}
         >
           <img
-            src={user.avatarUrl}
+            src={user!.avatarUrl ?? undefined}
             alt=""
             onClick={(event) => event.stopPropagation()}
             style={{

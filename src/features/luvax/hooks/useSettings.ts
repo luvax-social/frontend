@@ -1,3 +1,8 @@
+import type { ApiResponse } from '@/types/api';
+import type { UpdateSettingsRequest, UserSettingsResponse } from '@/types/domain';
+type SettingsPatch = {
+  [K in keyof UpdateSettingsRequest]?: Exclude<UpdateSettingsRequest[K], null>;
+};
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as userService from '../../../services/user.service';
 
@@ -17,11 +22,11 @@ export const useMySettings = () => {
 export const useUpdateMySettings = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch) => userService.updateMySettings(patch),
+    mutationFn: (patch: SettingsPatch) => userService.updateMySettings(patch),
     onMutate: async (patch) => {
       await queryClient.cancelQueries({ queryKey: settingsKey });
-      const previous = queryClient.getQueryData(settingsKey);
-      queryClient.setQueryData(settingsKey, (envelope) =>
+      const previous = queryClient.getQueryData<ApiResponse<UserSettingsResponse>>(settingsKey);
+      queryClient.setQueryData<ApiResponse<UserSettingsResponse>>(settingsKey, (envelope) =>
         envelope?.data ? { ...envelope, data: { ...envelope.data, ...patch } } : envelope
       );
       return { previous };

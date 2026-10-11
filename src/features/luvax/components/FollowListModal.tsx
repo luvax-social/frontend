@@ -1,3 +1,4 @@
+import type { UserCardUser } from './UserCard';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
@@ -14,7 +15,17 @@ import { useFollowers, useFollowing } from '../hooks/useSocial';
  * Followers or following, shown in a modal rather than by navigating away, so the
  * profile behind it stays put. Only the query matching `mode` runs.
  */
-export function FollowListModal({ open, onClose, userId, mode }) {
+export function FollowListModal({
+  open,
+  onClose,
+  userId,
+  mode,
+}: {
+  open: boolean;
+  onClose: () => void;
+  userId?: string;
+  mode: 'followers' | 'following' | null;
+}) {
   const navigate = useNavigate();
   useEscapeKey(open, onClose);
 
@@ -36,7 +47,7 @@ export function FollowListModal({ open, onClose, userId, mode }) {
   const rows = data?.pages?.flatMap((page) => extractPageContent(page)) || [];
   const title = mode === 'followers' ? 'followers' : 'following';
 
-  const goToProfile = (u) => {
+  const goToProfile = (u: UserCardUser) => {
     onClose();
     navigate(routeTo.userProfile(u.id));
   };

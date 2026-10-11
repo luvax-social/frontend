@@ -1,8 +1,9 @@
+import type { UserSummaryResponse } from '@/types/domain';
 /**
  * The verb fragment after the actor list, keyed by NotificationType (not category - two
  * types can share a category but need different wording, e.g. like_post vs like_comment).
  */
-const TYPE_PHRASE = {
+const TYPE_PHRASE: Record<string, string> = {
   like_post: 'liked your post',
   like_comment: 'liked your comment',
   comment_post: 'commented on your post',
@@ -18,7 +19,7 @@ const TYPE_PHRASE = {
  * backend stops sending the responder as an actor for these types), so the phrase reads
  * against the implied "Luvax" subject the row renders instead of a name.
  */
-const SYSTEM_PHRASE = {
+const SYSTEM_PHRASE: Record<string, string> = {
   warning: 'issued a warning on your account',
   post_removed: 'removed your post',
   comment_removed: 'removed your comment',
@@ -37,7 +38,12 @@ const SYSTEM_PHRASE = {
  * @param {{type: string, category: string, actors?: Array<object>, actorCount?: number}} item
  * @returns {{isSystem: boolean, actors: Array<object>, othersCount: number, phrase: string}}
  */
-export function notificationCopyParts(item) {
+export function notificationCopyParts(item: {
+  type: string;
+  category: string;
+  actors?: UserSummaryResponse[];
+  actorCount?: number;
+}) {
   const isSystem = item.category === 'system';
   const actors = isSystem ? [] : (item.actors ?? []);
   const othersCount = isSystem

@@ -1,6 +1,7 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const SECTION_ORDER = ['new', 'today', 'this week', 'this month', 'earlier'];
+export const SECTION_ORDER = ['new', 'today', 'this week', 'this month', 'earlier'] as const;
+export type NotificationSection = (typeof SECTION_ORDER)[number];
 
 /**
  * The rolling-window bucket for a row's own age, ignoring server-provided isNew.
@@ -11,7 +12,10 @@ export const SECTION_ORDER = ['new', 'today', 'this week', 'this month', 'earlie
  * @param {Date} [now]
  * @returns {'today'|'this week'|'this month'|'earlier'}
  */
-export function bucketFor(activityAt, now = new Date()) {
+export function bucketFor(
+  activityAt: string,
+  now = new Date()
+): Exclude<NotificationSection, 'new'> {
   const ageMs = now.getTime() - new Date(activityAt).getTime();
   if (ageMs < DAY_MS) return 'today';
   if (ageMs < 7 * DAY_MS) return 'this week';
@@ -26,6 +30,9 @@ export function bucketFor(activityAt, now = new Date()) {
  * @param {Date} [now]
  * @returns {'new'|'today'|'this week'|'this month'|'earlier'}
  */
-export function sectionFor(item, now = new Date()) {
+export function sectionFor(
+  item: { isNew?: boolean; activityAt: string },
+  now = new Date()
+): NotificationSection {
   return item.isNew ? 'new' : bucketFor(item.activityAt, now);
 }

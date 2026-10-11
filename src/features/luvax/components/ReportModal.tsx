@@ -1,3 +1,5 @@
+import type { ReportTarget } from '@/types/report';
+import type { ReportReason } from '@/types/domain';
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { v } from '@/config/tokens';
@@ -26,7 +28,7 @@ const STEP_DONE = 3;
  * The design derives this the same way and uses "account" rather than "user" for a
  * profile report, so that word is kept.
  */
-const ENTITY_LABELS = {
+const ENTITY_LABELS: Record<string, string> = {
   post: 'post',
   comment: 'comment',
   user: 'account',
@@ -50,18 +52,27 @@ const ENTITY_LABELS = {
  * @param {Function} onClose - called to dismiss. Dismissal is by overlay click or an
  *   explicit control, matching the modals already in this application.
  */
-export function ReportModal({ target, onClose }) {
+export function ReportModal({
+  target,
+  onClose,
+}: {
+  target: ReportTarget | null;
+  onClose: () => void;
+}) {
   const [step, setStep] = useState(STEP_REASON);
-  const [reason, setReason] = useState(null);
+  const [reason, setReason] = useState<ReportReason | null>(null);
   const [description, setDescription] = useState('');
-  const [outcome, setOutcome] = useState(null);
+  const [outcome, setOutcome] = useState<'duplicate' | 'success' | null>(null);
   const [turnstileToken, setTurnstileToken] = useState('');
 
   const submitReport = useSubmitReport();
 
   // Plain state rather than a form value: this dialog is not a react-hook-form
   // form, so there is nothing for a Zod schema to read it out of.
-  const setChallengeToken = useCallback((token) => setTurnstileToken(token ?? ''), []);
+  const setChallengeToken = useCallback(
+    (token: string | null) => setTurnstileToken(token ?? ''),
+    []
+  );
   const challenge = useTurnstile(setChallengeToken);
 
   useEscapeKey(Boolean(target), onClose);

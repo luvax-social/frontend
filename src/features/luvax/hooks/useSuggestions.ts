@@ -20,8 +20,8 @@ export const suggestionKeys = {
  * the response here is deliberate: the component's shape is the one the rail renders, and bending
  * a working component to a wire format is the wrong way round.
  */
-export const toRow = (item: SuggestedUserResponse | null | undefined) => {
-  const user: Partial<UserSummaryResponse> = item?.user ?? {};
+export const toRow = (item: SuggestedUserResponse) => {
+  const user = item?.user ?? {};
   const state: Relationship = item?.viewerState ?? {};
   return {
     id: user.id,
@@ -51,31 +51,35 @@ export const useSuggestions = (limit = 5, enabled = true) => {
 
 const patchRow = (queryClient: QueryClient, userId: string, patch: Relationship) => {
   const snapshots: [QueryKey, ApiResponse<SuggestedUserResponse[]>][] = [];
-  queryClient.getQueriesData<ApiResponse<SuggestedUserResponse[]>>({ queryKey: suggestionKeys.all }).forEach(([key, previous]) => {
-    if (!previous?.data) return;
-    snapshots.push([key, previous]);
-    queryClient.setQueryData(key, {
-      ...previous,
-      data: previous.data.map((item) =>
-        item?.user?.id === userId
-          ? { ...item, viewerState: { ...(item.viewerState ?? {}), ...patch } }
-          : item
-      ),
+  queryClient
+    .getQueriesData<ApiResponse<SuggestedUserResponse[]>>({ queryKey: suggestionKeys.all })
+    .forEach(([key, previous]) => {
+      if (!previous?.data) return;
+      snapshots.push([key, previous]);
+      queryClient.setQueryData(key, {
+        ...previous,
+        data: previous.data.map((item) =>
+          item?.user?.id === userId
+            ? { ...item, viewerState: { ...(item.viewerState ?? {}), ...patch } }
+            : item
+        ),
+      });
     });
-  });
   return () => snapshots.forEach(([key, previous]) => queryClient.setQueryData(key, previous));
 };
 
 const removeRow = (queryClient: QueryClient, userId: string) => {
   const snapshots: [QueryKey, ApiResponse<SuggestedUserResponse[]>][] = [];
-  queryClient.getQueriesData<ApiResponse<SuggestedUserResponse[]>>({ queryKey: suggestionKeys.all }).forEach(([key, previous]) => {
-    if (!previous?.data) return;
-    snapshots.push([key, previous]);
-    queryClient.setQueryData(key, {
-      ...previous,
-      data: previous.data.filter((item) => item?.user?.id !== userId),
+  queryClient
+    .getQueriesData<ApiResponse<SuggestedUserResponse[]>>({ queryKey: suggestionKeys.all })
+    .forEach(([key, previous]) => {
+      if (!previous?.data) return;
+      snapshots.push([key, previous]);
+      queryClient.setQueryData(key, {
+        ...previous,
+        data: previous.data.filter((item) => item?.user?.id !== userId),
+      });
     });
-  });
   return () => snapshots.forEach(([key, previous]) => queryClient.setQueryData(key, previous));
 };
 

@@ -71,7 +71,11 @@ export const useRecordStoryView = () => {
  * `storyFeed` query the rail does - so a single tree walk is enough to reach
  * every rendering of a story at once.
  */
-const patchCachedStory = (queryClient: QueryClient, storyId: string, patch: Partial<StoryResponse>) => {
+const patchCachedStory = (
+  queryClient: QueryClient,
+  storyId: string,
+  patch: Partial<StoryResponse>
+) => {
   const previous = queryClient.getQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey);
   // The cache holds the raw ApiResponse envelope, not the array useStoryFeed
   // unwraps it to, so the tray lives at envelope.data.
@@ -87,14 +91,15 @@ const patchCachedStory = (queryClient: QueryClient, storyId: string, patch: Part
       })),
     };
   });
-  return () => queryClient.setQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey, previous);
+  return () =>
+    queryClient.setQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey, previous);
 };
 
 export const useLikeStory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ storyId, liked }: {storyId: string; liked: boolean}) =>
+    mutationFn: ({ storyId, liked }: { storyId: string; liked: boolean }) =>
       liked ? storyService.unlikeStory(storyId) : storyService.likeStory(storyId),
     onMutate: async ({ storyId, liked }) => {
       await queryClient.cancelQueries({ queryKey: storyFeedKey });

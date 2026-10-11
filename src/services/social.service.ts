@@ -1,3 +1,4 @@
+import type { UserListItem } from '@/types/social';
 import type { ApiResponse, CursorPage } from '@/types/api';
 import type { FollowResponse, UserListItemResponse, FollowRequestResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
@@ -47,7 +48,7 @@ export const getFollowers = async (
   if (cursor) params.append('cursor', cursor);
   if (limit) params.append('limit', limit.toString());
 
-  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItemResponse>>>(
+  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItem>>>(
     `${SOCIAL_API_PATH}/users/${userId}/followers?${params.toString()}`,
     { signal }
   );
@@ -65,7 +66,7 @@ export const getFollowing = async (
   if (cursor) params.append('cursor', cursor);
   if (limit) params.append('limit', limit.toString());
 
-  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItemResponse>>>(
+  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItem>>>(
     `${SOCIAL_API_PATH}/users/${userId}/following?${params.toString()}`,
     { signal }
   );
@@ -102,7 +103,7 @@ export const getBlockedUsers = async (cursor?: string | null, limit = 20, signal
   if (cursor) params.append('cursor', cursor);
   if (limit) params.append('limit', limit.toString());
 
-  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItemResponse>>>(
+  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItem>>>(
     `${SOCIAL_API_PATH}/blocked?${params.toString()}`,
     {
       signal,

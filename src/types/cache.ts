@@ -4,7 +4,7 @@ import type { PageInfo } from './api';
 
 // Post, saved/liked-post and suggested-user rows share a cache traversal. These
 // fields describe that traversal without treating arbitrary cache values as DTOs.
-export interface SocialCacheRow extends Partial<Omit<Post, 'author'>>, SocialUser {
+export interface SocialCacheRow extends Partial<Omit<Post, 'author' | 'id'>>, SocialUser {
   author?: SocialUser;
   post?: SocialCacheRow;
   user?: SocialUser;

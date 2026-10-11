@@ -1,3 +1,7 @@
+import type { FormEvent } from 'react';
+import type { HashtagResponse } from '@/types/domain';
+import type { UserCardUser } from './UserCard';
+import type { Post } from '@/types/social';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
@@ -25,7 +29,15 @@ import { LxTrendingRail } from './LxTrendingRail';
 import { LxSuggestedRail, TABLET_RAIL_MIN_WIDTH } from './shell';
 import { useViewportWidth } from '../hooks/useViewport';
 
-function SuggestedHashtags({ tags, query, onSelect }) {
+function SuggestedHashtags({
+  tags,
+  query,
+  onSelect,
+}: {
+  tags: HashtagResponse[];
+  query: string;
+  onSelect: (tag: string) => void;
+}) {
   if (!query) return null;
 
   return (
@@ -90,7 +102,7 @@ export function ExploreScreen() {
   const viewportWidth = useViewportWidth();
   const railHomeless = viewportWidth < TABLET_RAIL_MIN_WIDTH;
   const [query, setQuery] = useState(activeQuery);
-  const searchInputRef = useRef(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const { ref, inView } = useInView();
   const {
@@ -127,7 +139,7 @@ export function ExploreScreen() {
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const posts = (data?.pages?.flatMap((page) => extractPageContent(page)) || []).filter(
+  const posts = (data?.pages?.flatMap((page) => extractPageContent<Post>(page)) || []).filter(
     canViewerSeePost
   );
   const trimmedQuery = query.trim();
@@ -138,7 +150,7 @@ export function ExploreScreen() {
   const userRows = userResults.flatMap(
     (result) => result.data?.pages?.flatMap((page) => extractPageContent(page)) || []
   );
-  const searchedPeople = userRows.reduce((acc, item) => {
+  const searchedPeople = userRows.reduce<UserCardUser[]>((acc, item) => {
     const user = getUserSummary(item, 'user');
     if (!user.id || acc.some((person) => person.id === user.id)) return acc;
     acc.push({
@@ -162,7 +174,7 @@ export function ExploreScreen() {
   // Include both direct account matches and distinct authors from matched posts.
   // Without the direct account search, the Explore field could only find a user
   // when one of their posts happened to match the same query.
-  const people = posts.reduce((acc, post) => {
+  const people = posts.reduce<UserCardUser[]>((acc, post) => {
     const author = getUserSummary(post);
     if (!author.id || acc.some((user) => user.id === author.id)) return acc;
     acc.push({
@@ -195,7 +207,7 @@ export function ExploreScreen() {
 
   // Enter commits the query to the address so a search can be shared and
   // survives a reload, which a bare input could not do.
-  const handleSearchSubmit = (event) => {
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const next = query.trim();
     setSearchParams(next ? { q: next } : {});

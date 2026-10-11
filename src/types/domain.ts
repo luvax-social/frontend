@@ -105,9 +105,9 @@ export interface LikeActionResponse {
 // modules/post/dto/request/CreatePostRequest.java
 export interface CreatePostRequest {
   caption?: string | null;
-  postType: PostType;
+  postType: PostType | Uppercase<PostType>;
   mediaIds?: string[] | null;
-  status?: PostStatus | null;
+  status?: PostStatus | Uppercase<PostStatus> | null;
   locationName?: string | null;
   latitude?: number | null;
   longitude?: number | null;

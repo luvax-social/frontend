@@ -1,3 +1,4 @@
+import type { UserListItem } from '@/types/social';
 import type { ApiResponse, CursorPage } from '@/types/api';
 import type { PostResponse, UserListItemResponse, HashtagResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
@@ -69,13 +70,10 @@ export const searchUsers = async (
   limit?: number,
   signal?: AbortSignal
 ) => {
-  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItemResponse>>>(
-    '/users/search',
-    {
-      params: buildParams(q, cursor, limit),
-      signal,
-    }
-  );
+  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItem>>>('/users/search', {
+    params: buildParams(q, cursor, limit),
+    signal,
+  });
   return response.data;
 };
 

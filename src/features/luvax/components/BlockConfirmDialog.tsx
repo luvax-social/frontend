@@ -20,7 +20,19 @@ import { LxBtn } from './primitives';
  * shadow but no confirmation dialog composition, so the layout reuses the
  * modal tokens with the danger button variant from the button table.
  */
-export function BlockConfirmDialog({ open, handle, pending, onCancel, onConfirm }) {
+export function BlockConfirmDialog({
+  open,
+  handle,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  handle: string;
+  pending?: boolean;
+  onCancel?: () => void;
+  onConfirm?: () => void;
+}) {
   if (!open) return null;
 
   if (typeof document === 'undefined') return null;

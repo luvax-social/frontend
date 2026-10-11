@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import type { DropdownItem } from '@/components/ui/lx-dropdown-menu';
+import type { Viewport } from '../../LuvaxTweaksContext';
 import { useRef, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -32,9 +35,18 @@ export function FeedInjectedCard({
   menuLabel,
   viewport = 'desktop',
   children,
+}: {
+  eyebrow: string;
+  icon: string;
+  accentEyebrow?: string | null;
+  trailing?: ReactNode;
+  menuItems?: DropdownItem[];
+  menuLabel: string;
+  viewport?: Viewport;
+  children?: ReactNode;
 }) {
   const isMobile = viewport === 'mobile';
-  const menuButtonRef = useRef(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (

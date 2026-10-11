@@ -1,3 +1,5 @@
+import type { TrendingPreviewResponse } from '@/types/domain';
+import type { Viewport } from '../../LuvaxTweaksContext';
 import { Link } from 'react-router-dom';
 
 import { v } from '@/config/tokens';
@@ -22,7 +24,15 @@ import { FeedInjectedCard } from './FeedInjectedCard';
  * @param {Function} onDismiss - Removes the whole card for this session.
  * @param {string} [viewport] - `mobile` tightens the horizontal padding.
  */
-export function FeedHashtagCard({ rows = [], onDismiss, viewport = 'desktop' }) {
+export function FeedHashtagCard({
+  rows = [],
+  onDismiss,
+  viewport = 'desktop',
+}: {
+  rows?: TrendingPreviewResponse[];
+  onDismiss?: () => void;
+  viewport?: Viewport;
+}) {
   const isMobile = viewport === 'mobile';
 
   if (rows.length === 0) return null;

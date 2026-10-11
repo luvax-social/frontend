@@ -1,3 +1,9 @@
+import type { MouseEvent } from 'react';
+import type { Post, SocialUser } from '@/types/social';
+import type { PublicUserProfileResponse } from '@/types/domain';
+import type { ReportTarget } from '@/types/report';
+import type { Viewport } from '../LuvaxTweaksContext';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -37,6 +43,13 @@ export function PostCard({
   viewport = 'desktop',
   surface,
   assumeFollowing = false,
+}: {
+  post: Post;
+  density?: string;
+  showTags?: boolean;
+  viewport?: Viewport;
+  surface?: 'feed' | 'explore' | 'search';
+  assumeFollowing?: boolean;
 }) {
   const navigate = useNavigate();
   const openOverlay = useOverlayNavigate();
@@ -55,9 +68,9 @@ export function PostCard({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [unfollowConfirmOpen, setUnfollowConfirmOpen] = useState(false);
-  const [reportTarget, setReportTarget] = useState(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
-  const menuButtonRef = useRef(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const lastTapRef = useRef(0);
 
   const currentUser = useAuthStore((state) => state.user);
@@ -91,9 +104,9 @@ export function PostCard({
   // started inside an interactive child (marked data-lxtap). On mobile a single
   // tap does nothing: the detail opens from the comment control, and a double-tap
   // on the media likes the post.
-  const handleCardClick = (event) => {
+  const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
     if (isMobile) return;
-    if (event.target.closest('[data-lxtap]')) return;
+    if (event.target instanceof Element && event.target.closest('[data-lxtap]')) return;
     openOverlay(routeTo.postDetail(post.id));
   };
 
@@ -115,7 +128,8 @@ export function PostCard({
   };
 
   // A hashtag opens the tag search and searches for it immediately.
-  const openHashtag = (tag) => navigate(`${ROUTES.SEARCH}?q=${encodeURIComponent(tag)}&type=tags`);
+  const openHashtag = (tag: string) =>
+    navigate(`${ROUTES.SEARCH}?q=${encodeURIComponent(tag)}&type=tags`);
 
   const handleEditOpen = useCallback(() => {
     setEditCaption(post.caption ?? '');
@@ -163,7 +177,9 @@ export function PostCard({
     targetUserId,
     Boolean(targetUserId && !isOwner)
   );
-  const authorProfile = authorProfileResponse?.data || authorProfileResponse;
+  const authorProfile = authorProfileResponse
+    ? unwrapApiResponse<PublicUserProfileResponse & SocialUser>(authorProfileResponse)
+    : undefined;
   const tags =
     post.tags || (post.caption ? (post.caption.match(/#(\w+)/g) || []).map((t) => t.slice(1)) : []);
   const isMobile = viewport === 'mobile';

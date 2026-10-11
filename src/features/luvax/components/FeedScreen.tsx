@@ -1,3 +1,8 @@
+import type { ReactNode } from 'react';
+import type { Post } from '@/types/social';
+import type { Tweaks, Viewport } from '../LuvaxTweaksContext';
+import type { FeedCardType } from '../utils/feedInterleave';
+import { getErrorResponse, getErrorHeader } from '@/utils/errors';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
@@ -16,7 +21,7 @@ import { ROUTES, routeTo } from '@/config/constants';
 // The rail sits at the top of the feed, as it does on Instagram. Backed by the
 // real story tray: the viewer's own entry is pinned first by the API when they
 // have an active story, otherwise a plain "add story" ring opens the composer.
-export function StoriesCarousel({ viewport }) {
+export function StoriesCarousel({ viewport }: { viewport: Viewport }) {
   const openOverlay = useOverlayNavigate();
   const currentUser = useAuthStore((state) => state.user);
   const { tray } = useStoryFeed();
@@ -213,6 +218,15 @@ export function FeedInjectedList({
   viewport,
   betweenPosts,
   assumeFollowing,
+}: {
+  posts: Post[];
+  cards: Partial<Record<FeedCardType, (occurrence: number) => ReactNode>>;
+  availability: Partial<Record<FeedCardType, number | boolean>>;
+  dismissed?: string[];
+  tweaks: Tweaks;
+  viewport: Viewport;
+  betweenPosts: number;
+  assumeFollowing?: boolean;
 }) {
   const items = interleaveFeed(posts, availability, dismissed);
 
@@ -279,6 +293,17 @@ function FeedTabPanel({
   emptyTitle,
   emptySubtitle,
   query,
+}: {
+  active: boolean;
+  isMobile: boolean;
+  betweenPosts: number;
+  tweaks: Tweaks;
+  viewport: Viewport;
+  isRecommended?: boolean;
+  assumeFollowing?: boolean;
+  emptyTitle: string;
+  emptySubtitle: string;
+  query: ReturnType<typeof useFeed> | ReturnType<typeof useForYouFeed>;
 }) {
   const { ref, inView } = useInView();
   const { cooling, remaining, start } = useRateLimitCooldown();
@@ -292,8 +317,8 @@ function FeedTabPanel({
   }, [active, inView, hasNextPage, isFetchingNextPage, isRecommended, cooling, fetchNextPage]);
 
   useEffect(() => {
-    if (isRecommended && isError && error?.response?.status === 429) {
-      const retryAfter = Number(error.response.headers?.['retry-after']);
+    if (isRecommended && isError && getErrorResponse(error)?.status === 429) {
+      const retryAfter = Number(getErrorHeader(error, 'retry-after'));
       start(retryAfter);
     }
   }, [isRecommended, isError, error, start]);
@@ -305,8 +330,8 @@ function FeedTabPanel({
   // Session-scoped, keyed by card type, and deliberately not persisted. Dismissing a card is a
   // "not this kind of thing", unlike
   // dismissing an account, which is permanent and goes to the server.
-  const [dismissedCards, setDismissedCards] = useState([]);
-  const dismissCard = (key) =>
+  const [dismissedCards, setDismissedCards] = useState<string[]>([]);
+  const dismissCard = (key: FeedCardType) =>
     setDismissedCards((prev) => (prev.includes(key) ? prev : [...prev, key]));
 
   const { data: trendingRows } = useTrendingPreviews(3);
@@ -323,7 +348,7 @@ function FeedTabPanel({
   const peopleCards = Math.min(Math.ceil(peopleRows.length / perPeopleCard), MAX_PEOPLE_CARDS);
 
   const cards = {
-    people: (occurrence) => {
+    people: (occurrence: number) => {
       const page = peopleRows.slice(
         occurrence * perPeopleCard,
         occurrence * perPeopleCard + perPeopleCard
@@ -473,9 +498,9 @@ export function FeedScreen() {
   // request on mount is a wasted share of it. Once a tab is added here it
   // stays here for the life of this mount: the query then stays enabled
   // permanently, so returning to a previously-visited tab never refetches.
-  const [activatedTabs, setActivatedTabs] = useState(() => new Set([tab]));
+  const [activatedTabs, setActivatedTabs] = useState(() => new Set<string>([tab]));
 
-  const selectTab = (id) => {
+  const selectTab = (id: string) => {
     const params = new URLSearchParams(searchParams);
     if (id === 'following') params.set('tab', 'following');
     else params.delete('tab');

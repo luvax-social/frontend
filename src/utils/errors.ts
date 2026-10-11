@@ -11,3 +11,8 @@ export const getErrorData = (error: unknown) => {
 
 export const getErrorMessage = (error: unknown, fallback: string) =>
   isRecord(error) && typeof error.message === 'string' ? error.message : fallback;
+
+export const getErrorHeader = (error: unknown, name: string) => {
+  const headers = getErrorResponse(error)?.headers;
+  return isRecord(headers) ? headers[name] : undefined;
+};

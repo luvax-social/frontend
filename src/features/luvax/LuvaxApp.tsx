@@ -1,3 +1,6 @@
+import type { Tweaks } from './LuvaxTweaksContext';
+import type { AppScreen } from '@/routes/appScreens';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 import { useState, useEffect } from 'react';
 import { Outlet, matchPath, useLocation, useMatches, useNavigate } from 'react-router-dom';
 import { TWEAK_DEFAULTS, FONT_MAP } from './constants/data';
@@ -19,7 +22,7 @@ import { useUserProfile } from './hooks/useUsers';
  * address cold carries no such state, and the feed stands in, which is what the
  * screen-state implementation did whenever its history stack was empty.
  */
-function resolveBaseScreen(backgroundPath) {
+function resolveBaseScreen(backgroundPath: string | undefined) {
   if (!backgroundPath) {
     return DEFAULT_BASE_SCREEN;
   }
@@ -48,7 +51,7 @@ const APP_SCALE_MAX = 1.6;
 const DARK_MANUAL_KEY = 'lxDarkManual';
 const DARK_VALUE_KEY = 'lxDark';
 
-function computeAppScale(width) {
+function computeAppScale(width: number) {
   if (!width) return APP_SCALE_BASE;
   const scaled = APP_SCALE_BASE * (width / APP_SCALE_REFERENCE_WIDTH);
   return Math.min(APP_SCALE_MAX, Math.max(APP_SCALE_BASE, scaled));
@@ -93,7 +96,7 @@ export function LuvaxApp() {
   const { data: myProfileResponse } = useUserProfile(currentUser?.id, Boolean(currentUser?.id));
   useEffect(() => {
     if (!currentUser?.id) return;
-    const profile = myProfileResponse?.data || myProfileResponse;
+    const profile = myProfileResponse ? unwrapApiResponse(myProfileResponse) : undefined;
     if (!profile?.id) return;
     if (
       currentUser.avatarUrl !== profile.avatarUrl ||
@@ -103,16 +106,18 @@ export function LuvaxApp() {
     }
   }, [myProfileResponse, currentUser, setUser]);
 
-  const handle = matches[matches.length - 1]?.handle ?? {};
+  const handle = (matches[matches.length - 1]?.handle ?? {}) as Partial<AppScreen>;
   const screen = handle.screen ?? DEFAULT_BASE_SCREEN.screen;
   const chrome = handle.chrome ?? 'shell';
   const isOverlay = chrome === 'overlay';
 
-  const setTweak = (keyOrEdits, val) => {
+  function setTweak<K extends keyof Tweaks>(keyOrEdits: K, val: Tweaks[K]): void;
+  function setTweak(edits: Partial<Tweaks>): void;
+  function setTweak(keyOrEdits: keyof Tweaks | Partial<Tweaks>, val?: Tweaks[keyof Tweaks]) {
     const edits =
       typeof keyOrEdits === 'object' && keyOrEdits !== null ? keyOrEdits : { [keyOrEdits]: val };
     setTweakState((prev) => ({ ...prev, ...edits }));
-  };
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
@@ -126,7 +131,7 @@ export function LuvaxApp() {
       setTweak('dark', media.matches);
     }
 
-    const handleChange = (event) => {
+    const handleChange = (event: MediaQueryListEvent) => {
       if (localStorage.getItem(DARK_MANUAL_KEY) === null) {
         setTweak('dark', event.matches);
       }
@@ -190,8 +195,8 @@ export function LuvaxApp() {
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
-    const handleMessagesThreadOpen = (event) => {
-      setMessagesThreadOpen(Boolean(event.detail?.open));
+    const handleMessagesThreadOpen = (event: Event) => {
+      setMessagesThreadOpen(Boolean((event as CustomEvent<{ open?: boolean }>).detail?.open));
     };
 
     window.addEventListener('lx_messages_thread_open', handleMessagesThreadOpen);

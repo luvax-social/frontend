@@ -1,3 +1,7 @@
+import type { ChangeEvent, ReactNode } from 'react';
+import type { Viewport } from '../LuvaxTweaksContext';
+import { getErrorMessage } from '@/utils/errors';
+type StorySequenceItem = ReturnType<typeof useFlatStorySequence>[number];
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -34,9 +38,9 @@ const CONTROL_BG = 'rgba(255,255,255,0.9)';
 const CONTROL_FG = '#1c1a17';
 const CONTROL_SHADOW = '0 1px 5px rgba(0,0,0,0.3)';
 
-const wrapCanvasText = (context, text, maxWidth) => {
+const wrapCanvasText = (context: CanvasRenderingContext2D, text: string, maxWidth: number) => {
   const words = text.split(/\s+/).filter(Boolean);
-  const lines = [];
+  const lines: string[] = [];
   let line = '';
 
   words.forEach((word) => {
@@ -54,8 +58,8 @@ const wrapCanvasText = (context, text, maxWidth) => {
   return lines;
 };
 
-const createTextStoryFile = (text) =>
-  new Promise((resolve, reject) => {
+const createTextStoryFile = (text: string) =>
+  new Promise<File>((resolve, reject) => {
     const canvas = document.createElement('canvas');
     canvas.width = TEXT_STORY_WIDTH;
     canvas.height = TEXT_STORY_HEIGHT;
@@ -98,7 +102,17 @@ const createTextStoryFile = (text) =>
 // missing neighbour still reserves its column's width (as a CSS calc, since
 // height arrives as one too), so the main card never shifts sideways as the
 // viewer approaches either end of the sequence.
-function StoryPeek({ side, item, onClick, height }) {
+function StoryPeek({
+  side,
+  item,
+  onClick,
+  height,
+}: {
+  side: 'left' | 'right';
+  item: StorySequenceItem | null | undefined;
+  onClick: () => void;
+  height: string;
+}) {
   const width = `calc(${height} * ${STORY_RATIO})`;
   if (!item) return <div style={{ width, flexShrink: 0 }} aria-hidden="true" />;
   const { story, entry } = item;
@@ -161,7 +175,7 @@ function StoryPeek({ side, item, onClick, height }) {
   );
 }
 
-function NavButton({ side, onClick }) {
+function NavButton({ side, onClick }: { side: 'left' | 'right'; onClick: (() => void) | null }) {
   if (!onClick) return null;
   return (
     <button
@@ -199,7 +213,26 @@ function NavButton({ side, onClick }) {
 // with a chevron in the gap between each and the main card, matching the
 // desktop reference: a contained card with its neighbours visible at a
 // glance, rather than a near-fullscreen card with nothing around it.
-function StoryStage({ children, onClose, footer, viewport, peeks, height }) {
+function StoryStage({
+  children,
+  onClose,
+  footer,
+  viewport,
+  peeks,
+  height,
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  footer?: ReactNode;
+  viewport: Viewport;
+  peeks?: {
+    prev: StorySequenceItem | null;
+    next: StorySequenceItem | null;
+    onPrev: () => void;
+    onNext: () => void;
+  } | null;
+  height?: string;
+}) {
   const isMobile = viewport === 'mobile';
 
   if (isMobile) {
@@ -374,7 +407,7 @@ function useFlatStorySequence() {
 }
 
 // ─── Story View Screen ──────────────────────────────────────────────────────
-export function StoryViewScreen({ viewport: vpProp }) {
+export function StoryViewScreen({ viewport: vpProp }: { viewport?: Viewport }) {
   const navigate = useNavigate();
   const { storyId } = useParams();
   // Called unconditionally. Short-circuiting on the prop skipped the hook whenever a viewport was
@@ -391,8 +424,8 @@ export function StoryViewScreen({ viewport: vpProp }) {
   const [heartBurst, setHeartBurst] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const videoRef = useRef(null);
-  const recordedRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const recordedRef = useRef<string | null>(null);
   const lastTapRef = useRef(0);
 
   const currentIndex = sequence.findIndex((item) => item.story.id === storyId);
@@ -406,7 +439,7 @@ export function StoryViewScreen({ viewport: vpProp }) {
 
   const close = () => navigate(-1);
 
-  const goTo = (index) => {
+  const goTo = (index: number) => {
     if (index < 0) {
       setProgress(0);
       return;
@@ -814,7 +847,7 @@ export function StoryViewScreen({ viewport: vpProp }) {
     } catch (error) {
       // The reply bar is a side affordance on a viewer. A failed send must not close it or take
       // the story down with it, so the draft is reported rather than thrown.
-      toast(error?.message || 'could not send your reply');
+      toast(getErrorMessage(error, 'could not send your reply'));
     }
   };
 
@@ -943,14 +976,16 @@ export function StoryViewScreen({ viewport: vpProp }) {
 }
 
 // ─── Story Composer Screen ──────────────────────────────────────────────────
-export function StoryComposerScreen({ viewport: vpProp }) {
+export function StoryComposerScreen({ viewport: vpProp }: { viewport?: Viewport }) {
   const navigate = useNavigate();
   // See StoryViewScreen: the hook must run on every render regardless of the prop.
   const measuredViewport = useViewport();
   const vp = vpProp || measuredViewport;
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [composeMode, setComposeMode] = useState('media');
-  const [item, setItem] = useState(null);
+  const [item, setItem] = useState<{ file: File; previewUrl: string; isVideo: boolean } | null>(
+    null
+  );
   const [textStory, setTextStory] = useState('');
   const [caption, setCaption] = useState('');
   const [formError, setFormError] = useState('');
@@ -960,7 +995,7 @@ export function StoryComposerScreen({ viewport: vpProp }) {
   const createStory = useCreateStory();
   const chooserWidth = 'min(380px, calc(100% - 48px))';
 
-  const handleFileSelected = async (event) => {
+  const handleFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (fileInputRef.current) fileInputRef.current.value = '';
     if (!file) return;
@@ -968,13 +1003,17 @@ export function StoryComposerScreen({ viewport: vpProp }) {
 
     const check = validateFile(file, constraints);
     if (!check.ok) {
-      setFormError(check.message);
+      setFormError(check.message ?? '');
       return;
     }
     const metadata = await getMediaMetadata(file).catch(() => null);
-    const durationCheck = validateDuration(file, metadata?.duration, constraints);
+    const durationCheck = validateDuration(
+      file,
+      typeof metadata?.duration === 'number' ? metadata.duration : undefined,
+      constraints
+    );
     if (!durationCheck.ok) {
-      setFormError(durationCheck.message);
+      setFormError(durationCheck.message ?? '');
       return;
     }
 
@@ -996,7 +1035,7 @@ export function StoryComposerScreen({ viewport: vpProp }) {
     setFormError('');
     try {
       const file =
-        composeMode === 'media' ? item.file : await createTextStoryFile(textStory.trim());
+        composeMode === 'media' ? item!.file : await createTextStoryFile(textStory.trim());
       const asset = await uploadMedia(file);
       createStory.mutate(
         {
@@ -1015,7 +1054,13 @@ export function StoryComposerScreen({ viewport: vpProp }) {
         }
       );
     } catch (error) {
-      setFormError(error?.uploadMessage || "we couldn't upload that file. try again.");
+      setFormError(
+        (error instanceof Error &&
+        'uploadMessage' in error &&
+        typeof error.uploadMessage === 'string'
+          ? error.uploadMessage
+          : '') || "we couldn't upload that file. try again."
+      );
     }
   };
 
@@ -1177,7 +1222,6 @@ export function StoryComposerScreen({ viewport: vpProp }) {
                 minHeight: 170,
                 height: 170,
                 resize: 'none',
-                border: `1px solid ${v.white20}`,
                 borderRadius: 16,
                 background: v.black35,
                 color: v.white,

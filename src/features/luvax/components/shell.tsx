@@ -1,3 +1,8 @@
+import type { CSSProperties, ReactNode } from 'react';
+import type { NavigateFunction } from 'react-router-dom';
+import type { toRow } from '../hooks/useSuggestions';
+type NavProps = { active: string; navigate: NavigateFunction };
+type SuggestedRow = ReturnType<typeof toRow> & { bio?: string; onFollow?: () => void };
 import { useState } from 'react';
 import { v } from '@/config/tokens';
 import { LxTrendingRail } from './LxTrendingRail';
@@ -17,7 +22,13 @@ import { toThreadSummary } from '@/features/messages/utils/messageViewModel';
 
 // `id` still identifies the active tab for the shell's own styling; `path` is
 // where the tab actually goes.
-const PRIMARY_TABS = [
+const PRIMARY_TABS: {
+  id: string;
+  path: string;
+  icon: string;
+  label: string;
+  disabled?: boolean;
+}[] = [
   { id: 'feed', path: ROUTES.FEED, icon: 'home', label: 'home' },
   // The messages interface is restored. It runs on its own presentation without
   // live data wiring yet, so the tab is enabled and reachable again.
@@ -40,11 +51,11 @@ const MESSAGE_PREVIEW_LIMIT = 3;
 // the same nav only cost vertical space without adding a route. Mobile keeps this bar
 // because it has no side rail - it is the only place carrying the back button for a
 // subpage, the current page's title, and the notification bell.
-export function LxAppBar({ screen, navigate }) {
+export function LxAppBar({ screen, navigate }: { screen: string; navigate: NavigateFunction }) {
   // Every settings category is the same screen with a category in the path, so
   // one entry covers what used to be four separate screen ids. The category's
   // own name is carried by the region's heading rather than by this bar.
-  const subpages = {
+  const subpages: Record<string, string> = {
     post: 'post',
     settings: 'settings',
   };
@@ -171,7 +182,7 @@ export function LxAppBar({ screen, navigate }) {
 }
 
 // ─── Bottom Nav (mobile only) ──────────────────────────────────────────────
-export function LxBottomNav({ active, navigate }) {
+export function LxBottomNav({ active, navigate }: NavProps) {
   const tabs = BOTTOM_TABS;
 
   const { data: requestsResponse } = usePendingFollowRequests();
@@ -258,7 +269,17 @@ export function LxBottomNav({ active, navigate }) {
 // interface, which this project has already removed once. It renders nothing when handed nothing,
 // so the day a suggested-accounts endpoint exists this needs a data hook and a single line in the
 // rail.
-export function LxSuggestedList({ users = [], loading = false, onFollow, onDismiss }) {
+export function LxSuggestedList({
+  users = [],
+  loading = false,
+  onFollow,
+  onDismiss,
+}: {
+  users?: SuggestedRow[];
+  loading?: boolean;
+  onFollow?: (userId: string) => void;
+  onDismiss?: (userId: string) => void;
+}) {
   if (loading) {
     return (
       <div>
@@ -374,7 +395,7 @@ export function LxSuggestedList({ users = [], loading = false, onFollow, onDismi
   );
 }
 
-const suggestedHeadingStyle = {
+const suggestedHeadingStyle: CSSProperties = {
   fontFamily: v.fontMono,
   fontSize: 10,
   color: v.ink3,
@@ -406,7 +427,7 @@ export function LxSuggestedRail() {
 }
 
 // ─── Right Rail (desktop) ──────────────────────────────────────────────────
-export function LxRightRail({ compact = false }) {
+export function LxRightRail({ compact = false }: { compact?: boolean }) {
   return (
     <aside
       style={{
@@ -439,7 +460,15 @@ export function LxRightRail({ compact = false }) {
   );
 }
 
-function LxFloatingMessagePreview({ navigate, currentUserId, hidden = false }) {
+function LxFloatingMessagePreview({
+  navigate,
+  currentUserId,
+  hidden = false,
+}: {
+  navigate: NavigateFunction;
+  currentUserId?: string;
+  hidden?: boolean;
+}) {
   const { conversations } = useConversations();
   const recentMessageThreads = conversations
     .slice(0, MESSAGE_PREVIEW_LIMIT)
@@ -503,7 +532,7 @@ function LxFloatingMessagePreview({ navigate, currentUserId, hidden = false }) {
 // The favicon PNG is the only icon-only Luvax mark in the project - the app
 // otherwise only ever renders the "luvax" wordmark - so the rail reuses that
 // same asset rather than a typographic stand-in.
-function LxMark({ onClick }) {
+function LxMark({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -550,7 +579,7 @@ const RAIL_ICON_SIZE = 20;
 // open overlays the interface instead of shifting the app's layout. Hovering
 // expands the rail and reveals a text label per icon, the same disclosure
 // Instagram's own collapsed sidebar uses.
-export function LxSideRail({ active, navigate, visible = true }) {
+export function LxSideRail({ active, navigate, visible = true }: NavProps & { visible?: boolean }) {
   const currentUser = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
   const [expanded, setExpanded] = useState(false);
@@ -566,7 +595,7 @@ export function LxSideRail({ active, navigate, visible = true }) {
   const unseenCapped = state?.unseen?.capped ?? false;
   const hasFollowRequests = requests.length > 0;
 
-  const rowStyle = (disabled) => ({
+  const rowStyle = (disabled?: boolean): CSSProperties => ({
     width: '100%',
     height: 34,
     borderRadius: 9,
@@ -585,7 +614,7 @@ export function LxSideRail({ active, navigate, visible = true }) {
   // intrinsic text width otherwise still competes for space in the flex row
   // even while invisible, and the row is narrower than most labels, so the
   // icon next to it gets squeezed down to zero width by the flex algorithm.
-  const labelStyle = (isActive) => ({
+  const labelStyle = (isActive: boolean): CSSProperties => ({
     fontFamily: v.fontBody,
     fontSize: 13,
     fontWeight: 600,
@@ -765,7 +794,17 @@ export const TABLET_RAIL_MIN_WIDTH = 910;
 const MESSAGE_LAUNCHER_CLEARANCE = 72;
 
 // ─── App Shell ─────────────────────────────────────────────────────────────
-export function LxShell({ screen, navigate, children, showRightRail = true }) {
+export function LxShell({
+  screen,
+  navigate,
+  children,
+  showRightRail = true,
+}: {
+  screen: string;
+  navigate: NavigateFunction;
+  children: ReactNode;
+  showRightRail?: boolean;
+}) {
   const vp = useViewport();
   const viewportWidth = useViewportWidth();
   const currentUserId = useAuthStore((state) => state.user?.id);
@@ -783,7 +822,7 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
         <LxFloatingMessagePreview
           navigate={navigate}
           currentUserId={currentUserId}
-          hidden={screen === 'messages'}
+          hidden={false}
         />
         <main
           key={screen}
@@ -869,7 +908,7 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
           >
             {children}
           </main>
-          {showRightRail && <LxRightRail navigate={navigate} />}
+          {showRightRail && <LxRightRail />}
           {!showRightRail && <div style={{ width: 280, flexShrink: 0 }} aria-hidden="true" />}
         </div>
       </div>
@@ -935,7 +974,7 @@ export function LxShell({ screen, navigate, children, showRightRail = true }) {
             {children}
           </main>
           {showTabletRail ? (
-            <LxRightRail navigate={navigate} compact />
+            <LxRightRail compact />
           ) : (
             <div style={{ width: tabletRightSpacer, flexShrink: 0 }} aria-hidden="true" />
           )}

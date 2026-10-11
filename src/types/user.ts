@@ -1,3 +1,5 @@
+import type { ViewerState } from './social';
+
 export interface UserSummary {
   id: string;
   username: string | null;
@@ -7,4 +9,11 @@ export interface UserSummary {
   verifiedCategory: string | null;
 }
 
-export type UserSummaryView = Omit<UserSummary, 'id'> & { id: string | null };
+export type UserSummaryView = Omit<UserSummary, 'id'> & {
+  id: string | null;
+  bio?: string | null;
+  isPrivate?: boolean;
+  followerCount?: number | null;
+  followersCount?: number | null;
+  viewerState?: ViewerState;
+};

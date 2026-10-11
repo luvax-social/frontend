@@ -1,5 +1,5 @@
 import type { ApiResponse } from '@/types/api';
-import type { CreateReportRequest, ReportResponse } from '@/types/domain';
+import type { CreateReportRequest, ReportResponse, ReportReason } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const REPORT_API_PATH = '/reports';
@@ -19,7 +19,7 @@ export const REPORT_TYPES = {
   COMMENT: 'comment',
   USER: 'user',
   STORY: 'story',
-};
+} as const;
 
 /**
  * REPORT_REASONS
@@ -34,7 +34,12 @@ export const REPORT_TYPES = {
  * Where the design's wording and the backend identifier differ, the design supplies the
  * words shown to the reader and the backend supplies the value put on the wire.
  */
-export const REPORT_REASONS = [
+export const REPORT_REASONS: {
+  id: ReportReason;
+  label: string;
+  chipLabel: string;
+  desc: string;
+}[] = [
   {
     id: 'spam',
     label: 'Spam',

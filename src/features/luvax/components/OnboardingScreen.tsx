@@ -1,10 +1,11 @@
+import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
 import { v } from '@/config/tokens';
 import { LxIcon, LxTag, LxBtn } from './primitives';
 
-function inputStyle() {
+function inputStyle(): CSSProperties {
   return {
     width: '100%',
     fontFamily: v.fontBody,
@@ -29,13 +30,14 @@ export function OnboardingScreen() {
     username: '',
     displayName: '',
     bio: '',
-    interests: [],
+    interests: [] as string[],
   });
 
   const next = () => setStep((s) => s + 1);
   const back = () => setStep((s) => Math.max(0, s - 1));
-  const update = (k, val) => setData((d) => ({ ...d, [k]: val }));
-  const toggleInterest = (i) =>
+  const update = (k: keyof typeof data, val: string | string[]) =>
+    setData((d) => ({ ...d, [k]: val }));
+  const toggleInterest = (i: string) =>
     setData((d) => ({
       ...d,
       interests: d.interests.includes(i) ? d.interests.filter((x) => x !== i) : [...d.interests, i],

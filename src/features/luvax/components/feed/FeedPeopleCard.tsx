@@ -1,3 +1,19 @@
+import type { CSSProperties } from 'react';
+import type { ReportTarget } from '@/types/report';
+import type { Viewport } from '../../LuvaxTweaksContext';
+import type { toRow } from '../../hooks/useSuggestions';
+type SuggestionRow = ReturnType<typeof toRow>;
+interface AccountActions {
+  onFollow?: (id: string) => void;
+  onDismissUser?: (id: string) => void;
+}
+interface AccountGeometry {
+  tileWidth: CSSProperties['width'];
+  bannerH: number;
+  avatarSize: number;
+  avatarTop: number;
+  textTop: number;
+}
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -38,10 +54,10 @@ export function FeedPeopleCard({
   onDismissUser,
   onDismiss,
   viewport = 'desktop',
-}) {
+}: AccountActions & { rows?: SuggestionRow[]; onDismiss?: () => void; viewport?: Viewport }) {
   const isMobile = viewport === 'mobile';
-  const [blockTarget, setBlockTarget] = useState(null);
-  const [reportTarget, setReportTarget] = useState(null);
+  const [blockTarget, setBlockTarget] = useState<SuggestionRow | null>(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const block = useBlock();
 
   // One tile per view on mobile, two on larger viewports. Two rather than three so each account
@@ -145,9 +161,23 @@ export function FeedPeopleCard({
  * announced; the other two are decoration that happens to be clickable, and three tab stops to
  * one destination is noise for anyone not using a pointer.
  */
-function AccountTile({ row, isMobile, geometry, onFollow, onDismissUser, onBlock, onReport }) {
+function AccountTile({
+  row,
+  isMobile,
+  geometry,
+  onFollow,
+  onDismissUser,
+  onBlock,
+  onReport,
+}: AccountActions & {
+  row: SuggestionRow;
+  isMobile: boolean;
+  geometry: AccountGeometry;
+  onBlock?: (row: SuggestionRow) => void;
+  onReport?: (target: ReportTarget) => void;
+}) {
   const { tileWidth, bannerH, avatarSize, avatarTop, textTop } = geometry;
-  const menuButtonRef = useRef(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const pending = !row.isFollowing && row.isFollowRequested;

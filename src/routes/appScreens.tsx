@@ -1,3 +1,12 @@
+import type { ReactNode } from 'react';
+export interface AppScreen {
+  screen: string;
+  path: string;
+  element: ReactNode;
+  chrome?: 'shell' | 'messages' | 'bare' | 'overlay';
+  rightRail?: boolean;
+  index?: boolean;
+}
 import { lazy } from 'react';
 import { Navigate } from 'react-router-dom';
 
@@ -112,7 +121,7 @@ const MessagesScreen = lazy(() =>
  * `rightRail` marks the screens that show the trending rail: explore and the
  * hashtag page. The feed dropped it when its suggestions moved inline.
  */
-export const APP_SCREENS = [
+export const APP_SCREENS: AppScreen[] = [
   // No right rail: the feed carries trending hashtags and suggested accounts inline between its
   // posts now, so the rail beside it would say the same things twice. Explore and the hashtag page
   // still show it, because neither has an inline equivalent.
@@ -201,7 +210,7 @@ export const APP_SCREENS = [
  * composition, so whether a post detail stays an overlay or becomes a full page
  * is a change in one place and does not touch this table.
  */
-export const APP_OVERLAY_SCREENS = [
+export const APP_OVERLAY_SCREENS: AppScreen[] = [
   { screen: 'post', path: ROUTES.POST_DETAIL, element: <PostDetailScreen overlay /> },
   { screen: 'story-compose', path: ROUTES.STORY_COMPOSE, element: <StoryComposerScreen /> },
   { screen: 'story-view', path: ROUTES.STORY_VIEW, element: <StoryViewScreen /> },
@@ -212,7 +221,7 @@ export const APP_OVERLAY_SCREENS = [
  * or stale link keeps the user inside the application instead of dropping them
  * on the global 404 with no way back.
  */
-export const APP_NOT_FOUND_SCREEN = {
+export const APP_NOT_FOUND_SCREEN: Omit<AppScreen, 'path'> = {
   screen: 'not-found',
   element: <ScreenNotFound />,
   chrome: 'shell',

@@ -22,7 +22,7 @@ const TABS = [
   { id: 'platform', label: 'trending' },
 ];
 
-function RailSkeleton({ compact }) {
+function RailSkeleton({ compact }: { compact: boolean }) {
   return (
     <div aria-hidden="true" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {Array.from({ length: compact ? 4 : 6 }).map((_, index) => (
@@ -38,7 +38,7 @@ function RailSkeleton({ compact }) {
   );
 }
 
-export function LxTrendingRail({ compact = false }) {
+export function LxTrendingRail({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState('for-you');
   const size = compact ? 6 : 8;
@@ -67,7 +67,7 @@ export function LxTrendingRail({ compact = false }) {
                 appearance: 'none',
                 background: 'none',
                 border: 'none',
-                borderBottom: `2px solid ${active ? v.ink1 : 'transparent'}`,
+                borderBottom: active ? undefined : '2px solid transparent',
                 padding: compact ? '0 0 7px' : '0 2px 8px',
                 marginRight: compact ? 10 : 14,
                 cursor: 'pointer',
@@ -75,7 +75,7 @@ export function LxTrendingRail({ compact = false }) {
                 fontSize: compact ? 10 : 11,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: active ? v.ink1 : v.ink3,
+                color: active ? undefined : v.ink3,
               }}
             >
               {item.label}
@@ -122,7 +122,7 @@ export function LxTrendingRail({ compact = false }) {
                     style={{
                       fontFamily: v.fontBody,
                       fontSize: compact ? 12 : 13,
-                      color: v.ink1,
+
                       // A long tag truncates rather than wrapping onto a second line, which would
                       // make the rows unequal heights and break the rhythm of the list.
                       overflow: 'hidden',

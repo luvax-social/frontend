@@ -1,3 +1,6 @@
+import type { SavedPostResponse, PostResponse } from '@/types/domain';
+const unwrapSavedPost = (row: SavedPostResponse | PostResponse): PostResponse =>
+  'post' in row ? row.post : row;
 import { useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 
@@ -37,7 +40,7 @@ export function SavedPostsScreen() {
   // `savedAt`. This differs from the feed and from search, which both return the
   // post at the top level of the item.
   const posts = (data?.pages?.flatMap((page) => extractPageContent(page)) || [])
-    .map((row) => row?.post ?? row)
+    .map(unwrapSavedPost)
     .filter(Boolean);
 
   // A save record outlives the post behind it, so a page can arrive empty
@@ -69,7 +72,7 @@ export function SavedPostsScreen() {
     </div>
   );
 
-  const notice = (icon, title, detail, tone) => (
+  const notice = (icon: string, title: string, detail?: string, tone?: string) => (
     <div
       style={{
         padding: '48px 32px',

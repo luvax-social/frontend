@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- TypeScript contracts for feed, composer, post details, stories, sharing and app navigation, including their existing query and media flows.
 - Strict TypeScript checking for converted frontend modules, with build and CI gates and support for TypeScript test discovery.
 - An opt-in public homepage indexing policy with canonical metadata, a factual brand graph, robots discovery and a sitemap, plus deployment and HTTP verification guidance.
 - Suggestion cards in the feed: trending hashtags with post previews, and suggested accounts showing avatar, banner and follower count. A card appears after every fifth post, alternating between the two kinds, and each kind can be dismissed for the session.

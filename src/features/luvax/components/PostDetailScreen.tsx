@@ -1,3 +1,14 @@
+import type { CommentResponse, PublicUserProfileResponse } from '@/types/domain';
+import type { Post, SocialUser } from '@/types/social';
+import type { ReportTarget } from '@/types/report';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
+interface ReplyTarget {
+  id: string;
+  author: string;
+  text: string;
+  parentId: string | null;
+  mentionUsername: string | null;
+}
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -148,7 +159,21 @@ const COMMENT_EMOJI_GROUPS = [
 // every reply, including a reply to a reply, sits at depth 1 under the same
 // thread root and carries an @mention of the person it answers. rootId is the
 // top-level comment a reply belongs to.
-function CommentRow({ comment, onReply, depth = 0, rootId = null, postId, isFirstPinned = false }) {
+function CommentRow({
+  comment,
+  onReply,
+  depth = 0,
+  rootId = null,
+  postId,
+  isFirstPinned = false,
+}: {
+  comment: CommentResponse;
+  onReply: (reply: ReplyTarget) => void;
+  depth?: number;
+  rootId?: string | null;
+  postId: string | undefined;
+  isFirstPinned?: boolean;
+}) {
   const [heartBurst, setHeartBurst] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [commentMenuOpen, setCommentMenuOpen] = useState(false);
@@ -158,14 +183,18 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId, isFirs
   const [actionError, setActionError] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [estimateLate, setEstimateLate] = useState(false);
-  const [reportTarget, setReportTarget] = useState(null);
-  const commentMenuButtonRef = useRef(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const commentMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const navigate = useNavigate();
 
   // CommentResponse embeds the author as a UserSummaryResponse, so no
   // per-row profile fetch is needed. There is no `comment.userId`.
   const author = getUserSummary(comment);
-  const authorName = getDisplayName(author, location.state?.fallbackAuthorUsername || 'unknown');
+  const authorName = getDisplayName(
+    author,
+    (location as Location & { state?: { fallbackAuthorUsername?: string } }).state
+      ?.fallbackAuthorUsername || 'unknown'
+  );
   const currentUser = useAuthStore((state) => state.user);
   // Ownership comes from the response rather than from anything the client
   // remembers about who wrote what.
@@ -302,7 +331,7 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId, isFirs
       icon: 'share',
       label: 'Share',
       onClick: () =>
-        sharePost(postId)
+        sharePost(postId!)
           .then(() => toast('link copied'))
           .catch(() => {}),
     },
@@ -311,7 +340,7 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId, isFirs
       icon: 'link',
       label: 'Copy link',
       onClick: () =>
-        copyPostLink(postId)
+        copyPostLink(postId!)
           .then(() => toast('link copied'))
           .catch(() => {}),
     },
@@ -672,7 +701,7 @@ function CommentRow({ comment, onReply, depth = 0, rootId = null, postId, isFirs
   );
 }
 
-export function PostDetailScreen({ overlay = false }) {
+export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
@@ -686,12 +715,12 @@ export function PostDetailScreen({ overlay = false }) {
   const [commentDraft, setCommentDraft] = useState('');
   const [commentEmojiOpen, setCommentEmojiOpen] = useState(false);
   const [commentEmojiSearch, setCommentEmojiSearch] = useState('');
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [postReportTarget, setPostReportTarget] = useState(null);
-  const menuButtonRef = useRef(null);
-  const commentsPaneRef = useRef(null);
-  const commentInputRef = useRef(null);
-  const commentEmojiGroupRefs = useRef({});
+  const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
+  const [postReportTarget, setPostReportTarget] = useState<ReportTarget | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const commentsPaneRef = useRef<HTMLDivElement | null>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const commentEmojiGroupRefs = useRef<Record<string, HTMLElement | null>>({});
   const viewport = useViewport();
   const location = useLocation();
   // A notification about a comment opens the post with ?comment={id} in the URL rather
@@ -702,11 +731,11 @@ export function PostDetailScreen({ overlay = false }) {
   const highlightCommentId = searchParams.get('comment');
   const { data: commentContext, isError: commentContextError } = useQuery({
     queryKey: ['comments', 'context', highlightCommentId],
-    queryFn: ({ signal }) => getCommentContext(highlightCommentId, signal),
+    queryFn: ({ signal }) => getCommentContext(highlightCommentId!, signal),
     enabled: Boolean(highlightCommentId),
     retry: false,
   });
-  const flashedCommentRef = useRef(null);
+  const flashedCommentRef = useRef<string | null>(null);
 
   // Keep the comment field's height matched to its content, up to three lines.
   // This runs on every draft change, so it grows as the reader types and shrinks
@@ -718,7 +747,7 @@ export function PostDetailScreen({ overlay = false }) {
     el.style.height = `${Math.min(el.scrollHeight, 70)}px`;
   }, [commentDraft]);
 
-  const appendCommentEmoji = (emoji) => {
+  const appendCommentEmoji = (emoji: string) => {
     setCommentDraft((current) => `${current}${emoji}`);
     window.requestAnimationFrame(() => commentInputRef.current?.focus());
   };
@@ -760,7 +789,10 @@ export function PostDetailScreen({ overlay = false }) {
   // behaves exactly as it did before.
   useLivePostUpdates(postId);
 
-  const post = postResponse?.data || postResponse || {};
+  const post = useMemo<Partial<Post>>(
+    () => (postResponse ? unwrapApiResponse<Post>(postResponse) : {}),
+    [postResponse]
+  );
   const author = getUserSummary(post);
   const targetUserId = author.id || location.state?.fallbackAuthorId || null;
   const authorName = getDisplayName(author);
@@ -771,7 +803,9 @@ export function PostDetailScreen({ overlay = false }) {
     targetUserId,
     Boolean(targetUserId && !isSelf)
   );
-  const authorProfile = authorProfileResponse?.data || authorProfileResponse;
+  const authorProfile = authorProfileResponse
+    ? unwrapApiResponse<PublicUserProfileResponse & SocialUser>(authorProfileResponse)
+    : undefined;
   const following = (() => {
     if (!targetUserId || isSelf) return false;
     if (viewerFollowsAuthor(post, author) || viewerFollowsAuthor(authorProfile, authorProfile)) {
@@ -895,7 +929,7 @@ export function PostDetailScreen({ overlay = false }) {
   const handleLikeToggle = useCallback(() => {
     setHeartBurst(false);
     window.requestAnimationFrame(() => setHeartBurst(true));
-    likeMutation.mutate({ postId, liked });
+    likeMutation.mutate({ postId: postId!, liked });
   }, [likeMutation, liked, postId]);
 
   const handleFollowToggle = useCallback(() => {
@@ -922,7 +956,7 @@ export function PostDetailScreen({ overlay = false }) {
     if (updatePost.isPending) return;
     setEditError('');
     updatePost.mutate(
-      { postId, data: { caption: editCaption } },
+      { postId: postId!, data: { caption: editCaption } },
       {
         onSuccess: () => {
           setEditSheetOpen(false);
@@ -940,7 +974,7 @@ export function PostDetailScreen({ overlay = false }) {
   }, []);
 
   const handleDeleteConfirm = () => {
-    deletePost.mutate(postId, {
+    deletePost.mutate(postId!, {
       onSuccess: () => {
         toast('post deleted');
         navigate(-1);
@@ -987,7 +1021,7 @@ export function PostDetailScreen({ overlay = false }) {
     );
   };
 
-  const handleReplySelect = (reply) => {
+  const handleReplySelect = (reply: ReplyTarget) => {
     setReplyingTo(reply);
     // Replying to a reply prefills an editable @mention of its author, so the
     // person answered is tagged and notified. Replying to a top-level comment
@@ -1013,7 +1047,7 @@ export function PostDetailScreen({ overlay = false }) {
         icon: 'link',
         label: 'Copy link',
         onClick: () =>
-          copyPostLink(postId)
+          copyPostLink(postId!)
             .then(() => toast('link copied'))
             .catch(() => {}),
       },
@@ -1076,7 +1110,7 @@ export function PostDetailScreen({ overlay = false }) {
                   onClick: () =>
                     setPostReportTarget({
                       entityType: REPORT_TYPES.POST,
-                      entityId: postId,
+                      entityId: postId!,
                       author: authorName,
                       text: post.caption,
                       avatarUrl: authorAvatarUrl,
@@ -1512,7 +1546,6 @@ export function PostDetailScreen({ overlay = false }) {
                 borderRadius: 12,
                 border: `1px solid ${v.borderSubtle}`,
                 background: v.surface,
-                boxShadow: v.shadowSoft,
                 zIndex: 4,
                 overflow: 'visible',
               }}

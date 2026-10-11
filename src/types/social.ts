@@ -1,4 +1,4 @@
-import type { UserSummaryResponse, PostResponse } from './domain';
+import type { UserSummaryResponse, PostResponse, UserListItemResponse } from './domain';
 
 export interface Relationship {
   isFollowing?: boolean;
@@ -12,6 +12,7 @@ export interface Relationship {
 }
 
 export interface ViewerState extends Relationship {
+  isLiked?: boolean;
   isSaved?: boolean;
   isFollowingAuthor?: boolean;
   isAuthorFollowed?: boolean;
@@ -23,9 +24,12 @@ export interface ViewerState extends Relationship {
 
 // Compatibility fields already read by the UI and cache adapters. They are not
 // guaranteed by the current backend DTO and therefore remain optional.
-export interface SocialUser extends Partial<UserSummaryResponse>, Relationship {
+export interface SocialUser extends Partial<Omit<UserSummaryResponse, 'id'>>, Relationship {
+  id?: string | null;
   name?: string | null;
   bio?: string | null;
+  followerCount?: number | null;
+  followersCount?: number | null;
   bannerUrl?: string | null;
   isPrivate?: boolean;
   viewerState?: ViewerState;
@@ -33,8 +37,16 @@ export interface SocialUser extends Partial<UserSummaryResponse>, Relationship {
 }
 
 export interface Post extends PostResponse {
+  text?: string;
+  type?: string;
   author: UserSummaryResponse & SocialUser;
   viewerState?: ViewerState;
   tags?: string[];
   editedAt?: string | null;
 }
+
+export type UserListItem = Omit<UserListItemResponse, 'user'> & {
+  user: UserSummaryResponse & SocialUser;
+  followerCount?: number;
+  followersCount?: number;
+};

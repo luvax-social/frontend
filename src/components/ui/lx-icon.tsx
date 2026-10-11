@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { v } from '@/config/tokens';
 
 const ICONS = {
@@ -418,6 +419,7 @@ export function LxIcon({
   color?: string;
   filled?: boolean;
   stroke?: number;
+  style?: CSSProperties;
 }) {
   const node =
     filled && name in ICONS_FILLED

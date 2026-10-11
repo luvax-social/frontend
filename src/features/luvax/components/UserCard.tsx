@@ -1,3 +1,19 @@
+import type { ReactNode } from 'react';
+import type { SocialUser } from '@/types/social';
+import type { ApiResponse } from '@/types/api';
+import type { PublicUserProfileResponse } from '@/types/domain';
+interface FollowerFields {
+  followerCount?: unknown;
+  followersCount?: unknown;
+}
+export interface UserCardUser
+  extends Omit<SocialUser, 'followerCount' | 'followersCount'>, FollowerFields {
+  id: string;
+  followers?: unknown;
+  stats?: FollowerFields;
+  profile?: FollowerFields;
+  user?: FollowerFields;
+}
 import { useEffect, useState } from 'react';
 import { v } from '@/config/tokens';
 import { formatCount } from '@/utils/helpers';
@@ -16,6 +32,15 @@ export function UserCard({
   rightElement,
   compact = false,
   showFollowButton = true,
+}: {
+  user: UserCardUser;
+  onAvatarClick?: (user: UserCardUser) => void;
+  onFollowToggle?: (following: boolean) => void;
+  initiallyFollowing?: boolean;
+  initiallyRequested?: boolean;
+  rightElement?: ReactNode;
+  compact?: boolean;
+  showFollowButton?: boolean;
 }) {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [isFollowing, setIsFollowing] = useState(initiallyFollowing);
@@ -71,11 +96,14 @@ export function UserCard({
     user?.id,
     showFollowButton === false && !hasFollowerCount
   );
+  const compatibleProfileCountSource = profileCountSource as
+    | (ApiResponse<PublicUserProfileResponse & FollowerFields> & FollowerFields)
+    | undefined;
   const profileFollowerCount =
-    profileCountSource?.data?.followerCount ??
-    profileCountSource?.data?.followersCount ??
-    profileCountSource?.followerCount ??
-    profileCountSource?.followersCount;
+    compatibleProfileCountSource?.data?.followerCount ??
+    compatibleProfileCountSource?.data?.followersCount ??
+    compatibleProfileCountSource?.followerCount ??
+    compatibleProfileCountSource?.followersCount;
   const resolvedFollowerCount = hasFollowerCount ? rawFollowerCount : profileFollowerCount;
   const followerCount =
     typeof resolvedFollowerCount === 'number'

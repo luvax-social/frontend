@@ -1,3 +1,4 @@
+import { getErrorData } from '@/utils/errors';
 import { useParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect } from 'react';
@@ -15,7 +16,7 @@ import { useOverlayNavigate } from '../hooks/useOverlayNavigate';
  * Caption tile for a post that carries no media, matching the profile grid so a hashtag page and a
  * profile page render the same post the same way.
  */
-function TextPostTile({ caption }) {
+function TextPostTile({ caption }: { caption: string | null }) {
   return (
     <div
       style={{
@@ -70,7 +71,7 @@ function GridSkeleton() {
  * about the world, and a reader who cannot tell them apart cannot tell whether to try a different
  * spelling or simply be the first to post.
  */
-function StateBlock({ icon, title, detail }) {
+function StateBlock({ icon, title, detail }: { icon: string; title: string; detail: string }) {
   return (
     <div
       style={{
@@ -83,7 +84,7 @@ function StateBlock({ icon, title, detail }) {
       }}
     >
       <LxIcon name={icon} size={28} color={v.ink3} />
-      <div style={{ fontFamily: v.fontDisplay, fontSize: 16, color: v.ink1 }}>{title}</div>
+      <div style={{ fontFamily: v.fontDisplay, fontSize: 16 }}>{title}</div>
       {detail ? (
         <div style={{ fontFamily: v.fontBody, fontSize: 13, color: v.ink3, maxWidth: 320 }}>
           {detail}
@@ -108,7 +109,7 @@ export function HashtagScreen() {
   }, [inView, postsQuery]);
 
   const posts = (postsQuery.data?.pages || []).flatMap((page) => extractPageContent(page));
-  const errorCode = detail.error?.response?.data?.code;
+  const errorCode = getErrorData(detail.error)?.code;
 
   let body;
   if (detail.isLoading) {
@@ -224,7 +225,7 @@ export function HashtagScreen() {
               margin: 0,
               fontFamily: v.fontDisplay,
               fontSize: 20,
-              color: v.ink1,
+              color: undefined,
               display: 'flex',
               alignItems: 'center',
               gap: 8,

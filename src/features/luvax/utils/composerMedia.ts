@@ -51,7 +51,9 @@ export const isVideoFile = (file: Pick<File, 'type'> | null | undefined) =>
  * picks first. Two or more items of any mix is a carousel, which the server
  * confirmed it accepts including when images and video are combined.
  */
-export const derivePostType = (items: { file: Pick<File, 'type'> }[] | null | undefined) => {
+export const derivePostType = (
+  items: { file: Pick<File, 'type'> }[] | null | undefined
+): 'TEXT' | 'CAROUSEL' | 'VIDEO' | 'IMAGE' => {
   if (!items || items.length === 0) return 'TEXT';
   if (items.length > 1) return 'CAROUSEL';
   return isVideoFile(items[0].file) ? 'VIDEO' : 'IMAGE';
@@ -131,11 +133,11 @@ export const validateFile = (
  */
 export const validateDuration = (
   file: Pick<File, 'name' | 'type'>,
-  durationSeconds: number,
+  durationSeconds: number | undefined,
   constraints: MediaConstraintsResponse | null | undefined
 ) => {
   if (!constraints || !isVideoFile(file)) return { ok: true };
-  if (!Number.isFinite(durationSeconds)) return { ok: true };
+  if (typeof durationSeconds !== 'number' || !Number.isFinite(durationSeconds)) return { ok: true };
   if (durationSeconds > constraints.maxVideoDurationSeconds) {
     return {
       ok: false,

@@ -1,3 +1,7 @@
+import type { ChangeEvent } from 'react';
+import type { ComposerAttachment } from '@/types/composer';
+import type { HashtagResponse } from '@/types/domain';
+import { getErrorMessage } from '@/utils/errors';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES, CHAR_LIMITS } from '@/config/constants';
@@ -24,9 +28,9 @@ import {
 
 const MAX_CHARS = 280;
 
-const clampCaption = (value) => value.slice(0, MAX_CHARS);
+const clampCaption = (value: string) => value.slice(0, MAX_CHARS);
 
-const SUBMIT_LABEL = {
+const SUBMIT_LABEL: Record<string, string> = {
   TEXT: 'post text',
   IMAGE: 'post photo',
   VIDEO: 'post video',
@@ -36,10 +40,10 @@ export function ComposerScreen() {
   const navigate = useNavigate();
   const { viewport } = useLuvaxTweaks();
   const [caption, setCaption] = useState('');
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [items, setItems] = useState([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [items, setItems] = useState<ComposerAttachment[]>([]);
   const [formError, setFormError] = useState('');
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { uploadMedia, getMediaMetadata } = useMediaUpload();
   const { constraints } = useMediaConstraints();
@@ -68,7 +72,9 @@ export function ComposerScreen() {
   const isIdle = hashtagQuery.length === 0;
   const idleResult = useTrendingHashtags('for-you', 8, isIdle);
   const hashtagSuggestions = useMemo(() => {
-    const searched = (hashtagResult.data?.pages?.flatMap((page) => extractPageContent(page)) || [])
+    const searched = (
+      hashtagResult.data?.pages?.flatMap((page) => extractPageContent<HashtagResponse>(page)) || []
+    )
       .filter((tag) => tag?.name && !allTags.includes(String(tag.name).toLowerCase()))
       .slice(0, 5);
     if (!isIdle || searched.length > 0) return searched;
@@ -78,11 +84,11 @@ export function ComposerScreen() {
       .slice(0, 5);
   }, [allTags, hashtagResult.data, idleResult.data, isIdle]);
 
-  const handleCaptionChange = (value) => {
+  const handleCaptionChange = (value: string) => {
     setCaption(clampCaption(value));
   };
 
-  const makeItem = (file) => ({
+  const makeItem = (file: File): ComposerAttachment => ({
     id: crypto.randomUUID(),
     file,
     previewUrl: URL.createObjectURL(file),
@@ -97,7 +103,7 @@ export function ComposerScreen() {
    * Files are added to what is already attached rather than replacing it, so a
    * second trip to the picker never costs the person the first selection.
    */
-  const handleFilesSelected = async (event) => {
+  const handleFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files || []);
     // Cleared immediately so choosing the same file again still fires a change.
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -115,11 +121,11 @@ export function ComposerScreen() {
       rejection = `a post holds ${MAX_CAROUSEL_ITEMS} items at most, so ${room} of the ${selected.length} you chose were added.`;
     }
 
-    const accepted = [];
+    const accepted: ComposerAttachment[] = [];
     for (const file of selected.slice(0, room)) {
       const check = validateFile(file, constraints);
       if (!check.ok) {
-        rejection = check.message;
+        rejection = check.message ?? '';
         continue;
       }
       // The server bounds only the duration the client declares, so a file the
@@ -127,7 +133,7 @@ export function ComposerScreen() {
       const metadata = await getMediaMetadata(file).catch(() => null);
       const durationCheck = validateDuration(file, metadata?.duration, constraints);
       if (!durationCheck.ok) {
-        rejection = durationCheck.message;
+        rejection = durationCheck.message ?? '';
         continue;
       }
       accepted.push(makeItem(file));
@@ -137,11 +143,11 @@ export function ComposerScreen() {
     if (accepted.length > 0) setItems((current) => [...current, ...accepted]);
   };
 
-  const patchItem = (id, patch) => {
+  const patchItem = (id: string, patch: Partial<ComposerAttachment>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
 
-  const removeItem = (id) => {
+  const removeItem = (id: string) => {
     setItems((current) => {
       const target = current.find((item) => item.id === id);
       if (target) URL.revokeObjectURL(target.previewUrl);
@@ -150,14 +156,14 @@ export function ComposerScreen() {
     setFormError('');
   };
 
-  const moveAttachment = (id, direction) => {
+  const moveAttachment = (id: string, direction: number) => {
     setItems((current) => {
       const index = current.findIndex((item) => item.id === id);
       return index < 0 ? current : moveItem(current, index, index + direction);
     });
   };
 
-  const uploadOne = async (item) => {
+  const uploadOne = async (item: ComposerAttachment) => {
     patchItem(item.id, { status: 'uploading', progress: 0, error: null });
     try {
       const asset = await uploadMedia(item.file, {
@@ -172,13 +178,19 @@ export function ComposerScreen() {
       patchItem(item.id, {
         status: 'failed',
         progress: 0,
-        error: err?.uploadMessage || 'upload failed',
+        error:
+          err &&
+          typeof err === 'object' &&
+          'uploadMessage' in err &&
+          typeof err.uploadMessage === 'string'
+            ? err.uploadMessage || 'upload failed'
+            : 'upload failed',
       });
       return null;
     }
   };
 
-  const retryItem = async (id) => {
+  const retryItem = async (id: string) => {
     const target = items.find((item) => item.id === id);
     if (target) {
       setFormError('');
@@ -211,7 +223,7 @@ export function ComposerScreen() {
     const pending = ordered.filter((item) => item.status !== 'done');
     if (pending.length > 0) {
       const results = await Promise.all(
-        pending.map(async (item) => [item.id, await uploadOne(item)])
+        pending.map(async (item) => [item.id, await uploadOne(item)] as const)
       );
       results.forEach(([id, assetId]) => assetIds.set(id, assetId));
 
@@ -225,7 +237,9 @@ export function ComposerScreen() {
       }
     }
 
-    const mediaIds = ordered.map((item) => assetIds.get(item.id)).filter(Boolean);
+    const mediaIds = ordered
+      .map((item) => assetIds.get(item.id))
+      .filter((id): id is string => Boolean(id));
     const payload = {
       caption: postType === 'TEXT' ? trimmedCaption : caption,
       postType,
@@ -247,7 +261,7 @@ export function ComposerScreen() {
     });
   };
 
-  const insertTag = (tag) => {
+  const insertTag = (tag: string) => {
     const regex = new RegExp(`#${tag}(?![A-Za-z0-9_])`, 'gi');
     if (regex.test(caption)) {
       handleCaptionChange(

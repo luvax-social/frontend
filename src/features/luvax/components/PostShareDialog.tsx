@@ -1,3 +1,5 @@
+import type { UserSummaryView } from '@/types/user';
+import { getErrorMessage } from '@/utils/errors';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -19,7 +21,15 @@ import { toast } from './Toast';
 
 const MAX_SHARE_RECIPIENTS = 10;
 
-export function PostShareDialog({ open, postId, onClose }) {
+export function PostShareDialog({
+  open,
+  postId,
+  onClose,
+}: {
+  open: boolean;
+  postId: string;
+  onClose: () => void;
+}) {
   const currentUser = useAuthStore((state) => state.user);
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useFollowing(
     currentUser?.id,
@@ -27,7 +37,7 @@ export function PostShareDialog({ open, postId, onClose }) {
   );
   const [sendingTo, setSendingTo] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedUserIds, setSelectedUserIds] = useState(() => new Set());
+  const [selectedUserIds, setSelectedUserIds] = useState(() => new Set<string | null>());
   const searchTerms = getUserSearchTerms(search);
   const primarySearch = useUserSearch(open ? searchTerms[0] || '' : '');
   const secondarySearch = useUserSearch(open ? searchTerms[1] || '' : '');
@@ -48,7 +58,7 @@ export function PostShareDialog({ open, postId, onClose }) {
   }, [currentUser?.id, data]);
 
   const searchedUsers = useMemo(() => {
-    const seen = new Set();
+    const seen = new Set<string | null>();
     return searchResults
       .flatMap((result) => result.data?.pages?.flatMap((page) => extractPageContent(page)) || [])
       .map((item) => getUserSummary(item, 'user'))
@@ -61,7 +71,7 @@ export function PostShareDialog({ open, postId, onClose }) {
 
   const shownUsers = isSearching ? searchedUsers : friends;
   const selectedUsers = useMemo(() => {
-    const seen = new Set();
+    const seen = new Set<string | null>();
     return [...friends, ...searchedUsers].filter((user) => {
       if (!selectedUserIds.has(user.id) || seen.has(user.id)) return false;
       seen.add(user.id);
@@ -105,11 +115,12 @@ export function PostShareDialog({ open, postId, onClose }) {
     sharePost(postId)
       .then(() => toast('share ready'))
       .catch((error) => {
-        if (error?.name !== 'AbortError') toast(error?.message || 'could not share this post');
+        if (error?.name !== 'AbortError')
+          toast(getErrorMessage(error, '') || 'could not share this post');
       });
   };
 
-  const toggleUser = (userId) => {
+  const toggleUser = (userId: string | null) => {
     setSelectedUserIds((current) => {
       const next = new Set(current);
       if (next.has(userId)) next.delete(userId);
@@ -119,8 +130,8 @@ export function PostShareDialog({ open, postId, onClose }) {
     });
   };
 
-  const sendToUser = async (user) => {
-    const conversation = await messageService.createDirect(user.id);
+  const sendToUser = async (user: UserSummaryView) => {
+    const conversation = await messageService.createDirect(user.id!);
     await messageService.sendMessage(conversation.data.id, {
       messageType: 'post_share',
       sharedPostId: postId,
@@ -135,7 +146,7 @@ export function PostShareDialog({ open, postId, onClose }) {
       toast(`sent to ${selectedUsers.length} ${selectedUsers.length === 1 ? 'person' : 'people'}`);
       onClose?.();
     } catch (error) {
-      toast(error?.message || 'could not share this post');
+      toast(getErrorMessage(error, '') || 'could not share this post');
     } finally {
       setSendingTo('');
     }

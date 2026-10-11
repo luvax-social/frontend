@@ -1,3 +1,5 @@
+import type { Post } from '@/types/social';
+import { getErrorResponse, getErrorHeader } from '@/utils/errors';
 import { useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { v } from '@/config/tokens';
@@ -26,7 +28,15 @@ import { routeTo } from '@/config/constants';
  * results, which reuse this component but are out of the impression-tracked
  * surface list; useImpressionTracking is a no-op without it.
  */
-export function SearchResultPost({ post, surface, fluid = false }) {
+export function SearchResultPost({
+  post,
+  surface,
+  fluid = false,
+}: {
+  post: Post;
+  surface?: 'feed' | 'explore' | 'search';
+  fluid?: boolean;
+}) {
   const openOverlay = useOverlayNavigate();
   const { ref: impressionRef } = useImpressionTracking(post.id, surface);
   const authorName = getDisplayName(getUserSummary(post), 'Unknown');
@@ -94,7 +104,7 @@ export function SearchResultPost({ post, surface, fluid = false }) {
  * are told apart in the impressions the backend receives even though they
  * share this one component and this one feed query.
  */
-export function RecommendedPostsGrid({ surface }) {
+export function RecommendedPostsGrid({ surface }: { surface: 'explore' | 'search' }) {
   const { ref, inView } = useInView();
   const { cooling, remaining, start } = useRateLimitCooldown();
   const { data, isLoading, isError, error, fetchNextPage, hasNextPage, isFetchingNextPage } =
@@ -107,8 +117,8 @@ export function RecommendedPostsGrid({ surface }) {
   }, [inView, hasNextPage, isFetchingNextPage, cooling, fetchNextPage]);
 
   useEffect(() => {
-    if (isError && error?.response?.status === 429) {
-      const retryAfter = Number(error.response.headers?.['retry-after']);
+    if (isError && getErrorResponse(error)?.status === 429) {
+      const retryAfter = Number(getErrorHeader(error, 'retry-after'));
       start(retryAfter);
     }
   }, [isError, error, start]);

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import type { Viewport } from '../LuvaxTweaksContext';
 
 // ── Viewport hook ──────────────────────────────────────────────────────────
 export function useViewport() {
-  const get = () => {
+  const get = (): Viewport => {
     const w = window.innerWidth;
     if (w >= 1200) return 'desktop';
     if (w >= 768) return 'tablet';

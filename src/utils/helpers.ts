@@ -15,6 +15,7 @@ interface ViewerState {
 }
 
 interface PrivacyUser {
+  id?: string | null;
   isPrivate?: boolean;
   viewerState?: ViewerState;
 }
@@ -252,8 +253,15 @@ const ABSENT_USER_SUMMARY = Object.freeze({
  * @returns {{id: ?string, username: ?string, displayName: ?string, avatarUrl: ?string, isVerified: boolean}}
  */
 export function getUserSummary(
-  source: { author?: UserSummaryView | null; actor?: UserSummaryView | null } | null | undefined,
-  key: 'author' | 'actor' = 'author',
+  source:
+    | {
+        author?: UserSummaryView | null;
+        actor?: UserSummaryView | null;
+        user?: UserSummaryView | null;
+      }
+    | null
+    | undefined,
+  key: 'author' | 'actor' | 'user' = 'author',
   { optional = false } = {}
 ): UserSummaryView {
   const summary = source?.[key];

@@ -60,8 +60,20 @@ DTOs. Nullable/deleted data keeps its existing presentation and fallback behavio
 
 ## Verification
 
-The migration retained 43 unit files / 397 passing tests and 2 E2E files / 35 passing Chromium
-tests. Strict typecheck and production build pass, including lazy chunks and SEO outputs.
+The migration retained all original 43 unit files / 397 tests. Final review restored
+deliberately missing-field fixtures and added four conversation subtitle regressions,
+bringing the unit suite to 44 files / 401 tests. The 2 E2E files / 35 Chromium tests pass.
+Strict typecheck and production build pass, including lazy chunks and SEO outputs.
 Native syntax checks pass for both `.mts` scripts; E2E also exercises the native development
 runner. All 5 live suites / 62 tests are discovered, but live execution stops at preflight
 because `localhost:8080` is unavailable. Backend/Mailpit integration remains unverified.
+The SEO HTTP matrix also remains unverified: Docker's engine is unavailable and automatic
+approval review rejected the isolated Nginx launch command with “blocked by policy,” without
+further detail. Native script syntax checks and SEO build/unit checks passed.
+
+One independent whole-branch review identified the subtitle separator regression and
+fixture defaults masking missing-field coverage. Seven focused failures reproduced the
+findings before the fixes; the final suite passes all 401 tests. The original separator-row
+property observation is also preserved. Real STOMP delivery/reconnect, cookie rotation and
+media uploads require the unavailable backend; exhaustive pixel comparison across themes
+was not performed. E2E covers notification behavior and overflow at five viewport widths.

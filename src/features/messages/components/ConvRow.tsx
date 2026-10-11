@@ -334,7 +334,7 @@ export function ConvRow({
             textOverflow: 'ellipsis',
           }}
         >
-          {[thread.preview, thread.time].filter((item) => item !== null).join(' · ')}
+          {[thread.preview, thread.time].filter(Boolean).join(' · ')}
         </div>
       </div>
       <div

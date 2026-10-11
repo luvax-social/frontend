@@ -32,7 +32,11 @@ describe('toRow', () => {
   });
 
   it('carries an absent banner as null, not undefined', () => {
-    expect(toRow(item()).bannerUrl).toBeNull();
+    const legacy = item();
+    // Deliberately emulate a legacy payload without weakening the current wire DTO.
+    Reflect.deleteProperty(legacy, 'bannerUrl');
+    expect(legacy).not.toHaveProperty('bannerUrl');
+    expect(toRow(legacy).bannerUrl).toBeNull();
   });
 
   it('carries the follower count through', () => {
@@ -40,7 +44,10 @@ describe('toRow', () => {
   });
 
   it('falls back to zero when the payload predates the follower count', () => {
-    expect(toRow(item()).followerCount).toBe(0);
+    const legacy = item();
+    Reflect.deleteProperty(legacy, 'followerCount');
+    expect(legacy).not.toHaveProperty('followerCount');
+    expect(toRow(legacy).followerCount).toBe(0);
   });
 
   it('keeps a pending request distinct from a follow', () => {

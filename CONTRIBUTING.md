@@ -10,7 +10,7 @@
 
 **Prerequisites**
 
-- Current Node.js LTS
+- Node.js 24 LTS
 - npm
 
 **Install dependencies**
@@ -121,16 +121,17 @@ If your change affects API integration, verify the relevant flow against the con
 
 ## Testing
 
-Vitest is configured and CI runs it. `.github/workflows/ci-fe.yml` runs `npm run lint`, `npm test` and `npm run build` on every PR, and all three must pass.
+Vitest is configured and CI runs it. `.github/workflows/ci-fe.yml` runs lint, strict typecheck, unit tests and the production build on every PR; all gates must pass.
 
 | Command | What it runs |
 |---------|--------------|
-| `npm run test` | The unit suite under `tests/unit/`, via `vitest.config.js`. This is what CI runs. |
+| `npm run typecheck` | Strict checking of app, tests and Node tooling. |
+| `npm run test` | The unit suite under `tests/unit/`, via `vitest.config.ts`. This is what CI runs. |
 | `npm run test:watch` | The same suite in watch mode. |
-| `npm run test:live` | The suite under `tests/live/`, via `vitest.live.config.js`. It needs a running backend and is not part of CI. |
+| `npm run test:live` | The suite under `tests/live/`, via `vitest.live.config.ts`. It needs a running backend and Mailpit and is not part of CI. |
 | `npm run test:all` | `test` then `test:live`. |
 
-There are 26 test files in total: 21 under `tests/unit/` and 5 under `tests/live/`.
+`npm run test:e2e` runs the specs under `tests/e2e/` with Chromium. Unit/live/E2E discovery uses TypeScript source files; see [TypeScript verification](docs/typescript.md).
 
 ## Security issues
 

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Regression coverage for empty conversation subtitles and preserved legacy payload fallback assertions after TypeScript fixture conversion.
 - Strict TypeScript coverage for every unit/live/E2E test and typed domain fixtures, preserving test discovery and existing assertions.
 - TypeScript entry points, route factories, Vite/Vitest/Playwright configurations and native Node scripts.
 - TypeScript contracts across all admin tables, confirmations, account moderation, report/support queues, audit/activity logs and statistics screens.

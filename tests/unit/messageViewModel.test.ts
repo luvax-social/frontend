@@ -240,10 +240,11 @@ describe('toThread', () => {
   });
 
   it('carries manuallyUnread, defaulting to false', () => {
-    const summary = toThreadSummary(
-      conversationFixture({ id: 'c1', participants, unreadCount: 0 }),
-      ME
-    );
+    const legacy = conversationFixture({ id: 'c1', participants, unreadCount: 0 });
+    // Legacy responses omit these flags; the complete fixture must not mask the fallback.
+    Reflect.deleteProperty(legacy, 'manuallyUnread');
+    expect(legacy).not.toHaveProperty('manuallyUnread');
+    const summary = toThreadSummary(legacy, ME);
     expect(summary.manuallyUnread).toBe(false);
 
     const flagged = toThreadSummary(
@@ -254,10 +255,12 @@ describe('toThread', () => {
   });
 
   it('carries pinned and muted, defaulting both to false', () => {
-    const summary = toThreadSummary(
-      conversationFixture({ id: 'c1', participants, unreadCount: 0 }),
-      ME
-    );
+    const legacy = conversationFixture({ id: 'c1', participants, unreadCount: 0 });
+    Reflect.deleteProperty(legacy, 'pinned');
+    Reflect.deleteProperty(legacy, 'muted');
+    expect(legacy).not.toHaveProperty('pinned');
+    expect(legacy).not.toHaveProperty('muted');
+    const summary = toThreadSummary(legacy, ME);
     expect(summary.pinned).toBe(false);
     expect(summary.muted).toBe(false);
 
@@ -344,11 +347,7 @@ describe('toThread', () => {
       const thread = toThread(conversation, messages, ME);
 
       expect(
-        thread.rows.map((row) => [
-          row.rowType,
-          row.id,
-          row.rowType === 'separator' ? undefined : row.showAvatar,
-        ])
+        thread.rows.map((row) => [row.rowType, row.id, Reflect.get(row, 'showAvatar')])
       ).toEqual([
         ['separator', 'sep-m1', undefined],
         ['message', 'm1', false],

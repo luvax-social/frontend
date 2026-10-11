@@ -1,3 +1,5 @@
+import type { FormEvent } from 'react';
+import type { TurnstileHandle } from '@/types/turnstile';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
@@ -30,15 +32,15 @@ export function PublicSupportFormScreen() {
     subject: '',
     body: '',
   });
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [challengeUnavailable, setChallengeUnavailable] = useState('');
   // Whether the challenge has actually drawn. The hint below tells the reader to
   // complete something "above", so it must not appear while the widget is still
   // loading and there is nothing above to complete.
   const [challengeReady, setChallengeReady] = useState(false);
   const [sent, setSent] = useState(false);
-  const turnstileRef = useRef(null);
+  const turnstileRef = useRef<TurnstileHandle | null>(null);
 
   const categories = categoriesQuery.data ?? [];
 
@@ -56,20 +58,20 @@ export function PublicSupportFormScreen() {
     );
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const parsed = publicTicketSchema.safeParse(values);
     if (!parsed.success) {
-      const next = {};
+      const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        next[issue.path[0]] = issue.message;
+        if (typeof issue.path[0] === 'string') next[issue.path[0]] = issue.message;
       }
       setFieldErrors(next);
       return;
     }
     setFieldErrors({});
     submit.mutate(
-      { ...parsed.data, turnstileToken },
+      { ...parsed.data, turnstileToken: turnstileToken! },
       {
         onSuccess: () => setSent(true),
         // A token is single-use whatever refused the submission, so every

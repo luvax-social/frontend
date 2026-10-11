@@ -46,6 +46,7 @@ export interface Post extends PostResponse {
 }
 
 export type UserListItem = Omit<UserListItemResponse, 'user'> & {
+  viewerState: UserListItemResponse['viewerState'] & Relationship;
   user: UserSummaryResponse & SocialUser;
   followerCount?: number;
   followersCount?: number;

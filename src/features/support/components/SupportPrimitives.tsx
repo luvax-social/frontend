@@ -1,3 +1,4 @@
+import type { AriaRole, ButtonHTMLAttributes, ReactNode } from 'react';
 import { Children, cloneElement, isValidElement } from 'react';
 
 import { ROUTES } from '@/config/constants';
@@ -23,7 +24,17 @@ import { SUPPORT_CSS } from './supportStyles';
  * appeal link is banned and signed out, so the shell's navigation, rail and
  * session-dependent chrome would either fail or offer routes it cannot reach.
  */
-export function SupportPage({ title, intro, children, width = 560 }) {
+export function SupportPage({
+  title,
+  intro,
+  children,
+  width = 560,
+}: {
+  title: string;
+  intro?: ReactNode;
+  children: ReactNode;
+  width?: number;
+}) {
   return (
     <div
       style={{
@@ -84,7 +95,7 @@ export function SupportPage({ title, intro, children, width = 560 }) {
 }
 
 /** A metadata eyebrow. Uppercase here is the one sanctioned exception, for labels. */
-export function Eyebrow({ children }) {
+export function Eyebrow({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
@@ -115,7 +126,19 @@ export function Eyebrow({ children }) {
  * site has to remember either. A `<select>` is left alone: it always shows a
  * value, so its label starts risen and there is nothing to place behind.
  */
-export function Field({ label, hint, error, htmlFor, children }) {
+export function Field({
+  label,
+  hint,
+  error,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string;
+  htmlFor: string;
+  children: ReactNode;
+}) {
   const hintId = hint ? `${htmlFor}-hint` : undefined;
   const errorId = error ? `${htmlFor}-error` : undefined;
 
@@ -125,12 +148,12 @@ export function Field({ label, hint, error, htmlFor, children }) {
   // extra sibling cannot quietly stop it being styled, which is what a
   // single-child clone did: the category select kept its native height and its
   // native chevron while every other field on the same form changed.
-  let control = null;
-  const extras = [];
+  let control: ReactNode = null;
+  const extras: ReactNode[] = [];
   Children.toArray(children).forEach((child) => {
     const isControl =
       control === null &&
-      isValidElement(child) &&
+      isValidElement<{ className?: string; placeholder?: string }>(child) &&
       (child.type === 'input' || child.type === 'select' || child.type === 'textarea');
     if (!isControl) {
       extras.push(child);
@@ -185,7 +208,11 @@ function BackArrow() {
 }
 
 /** The primary action. Pill radius, accent fill, lowercase label. */
-export function PrimaryButton({ children, disabled, ...rest }) {
+export function PrimaryButton({
+  children,
+  disabled,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="submit"
@@ -217,7 +244,15 @@ export function PrimaryButton({ children, disabled, ...rest }) {
 }
 
 /** A calm, non-alarming notice. Used for the states that are not failures. */
-export function Notice({ tone = 'neutral', children, role }) {
+export function Notice({
+  tone = 'neutral',
+  children,
+  role,
+}: {
+  tone?: 'neutral' | 'good' | 'bad' | 'warn';
+  children: ReactNode;
+  role?: AriaRole;
+}) {
   const palette = {
     neutral: { bg: v.surface, border: v.border, text: v.ink2 },
     good: { bg: v.successDim, border: v.success, text: v.successText },
@@ -246,7 +281,7 @@ export function Notice({ tone = 'neutral', children, role }) {
 }
 
 /** A ticket's status, rendered as a chip rather than raw enum text. */
-export function StatusChip({ label }) {
+export function StatusChip({ label }: { label: string }) {
   return (
     <span
       style={{

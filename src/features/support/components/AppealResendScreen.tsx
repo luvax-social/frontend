@@ -1,3 +1,5 @@
+import type { FormEvent } from 'react';
+import type { TurnstileHandle } from '@/types/turnstile';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
@@ -32,15 +34,15 @@ import { Field, Notice, PrimaryButton, SupportPage } from './SupportPrimitives';
 export function AppealResendScreen() {
   const resend = useResendAppealLink();
   const [contactEmail, setContactEmail] = useState('');
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [turnstileToken, setTurnstileToken] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [challengeUnavailable, setChallengeUnavailable] = useState('');
   // Whether the challenge has actually drawn. The hint below tells the reader to
   // complete something "above", so it must not appear while the widget is still
   // loading and there is nothing above to complete.
   const [challengeReady, setChallengeReady] = useState(false);
   const [sent, setSent] = useState(false);
-  const turnstileRef = useRef(null);
+  const turnstileRef = useRef<TurnstileHandle | null>(null);
 
   if (sent) {
     return (
@@ -60,20 +62,20 @@ export function AppealResendScreen() {
     );
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const parsed = appealResendSchema.safeParse({ contactEmail });
     if (!parsed.success) {
-      const next = {};
+      const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        next[issue.path[0]] = issue.message;
+        if (typeof issue.path[0] === 'string') next[issue.path[0]] = issue.message;
       }
       setFieldErrors(next);
       return;
     }
     setFieldErrors({});
     resend.mutate(
-      { contactEmail: parsed.data.contactEmail, turnstileToken },
+      { contactEmail: parsed.data.contactEmail, turnstileToken: turnstileToken! },
       {
         // One state for both outcomes, because the server gives us one answer
         // for both. There is nothing to branch on.

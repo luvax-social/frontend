@@ -24,10 +24,12 @@ export const PENDING_CONFIRMATION = 'PENDING_CONFIRMATION';
 export const VERIFICATION_CATEGORY = 'VERIFICATION_REQUEST';
 
 /** Whether a ticket is still being worked. */
-export const isActive = (ticket) => ACTIVE_STATUSES.has(ticket?.status);
+export const isActive = (ticket: { status?: string } | null | undefined) =>
+  ACTIVE_STATUSES.has(ticket?.status ?? '');
 
 /** Whether a ticket has been decided. */
-export const isTerminal = (ticket) => TERMINAL_STATUSES.has(ticket?.status);
+export const isTerminal = (ticket: { status?: string } | null | undefined) =>
+  TERMINAL_STATUSES.has(ticket?.status ?? '');
 
 /**
  * The open ticket that blocks a new request, if the account holds one.
@@ -41,7 +43,9 @@ export const isTerminal = (ticket) => TERMINAL_STATUSES.has(ticket?.status);
  * @param {Array} tickets the caller's own tickets
  * @returns {Object|null} the blocking ticket, or null when none blocks
  */
-export const findBlockingTicket = (tickets = []) =>
+export const findBlockingTicket = <T extends { status?: string; category?: string }>(
+  tickets: T[] = []
+) =>
   tickets.find((ticket) => isActive(ticket) && ticket.category !== VERIFICATION_CATEGORY) ?? null;
 
 /**
@@ -53,7 +57,9 @@ export const findBlockingTicket = (tickets = []) =>
  * @param {Array} tickets the caller's own tickets
  * @returns {Object|null} the pending verification ticket, or null
  */
-export const findPendingVerification = (tickets = []) =>
+export const findPendingVerification = <T extends { status?: string; category?: string }>(
+  tickets: T[] = []
+) =>
   tickets.find((ticket) => isActive(ticket) && ticket.category === VERIFICATION_CATEGORY) ?? null;
 
 /**
@@ -67,15 +73,17 @@ export const findPendingVerification = (tickets = []) =>
  * was never affected, because it renders the raw status - so a moderator saw
  * REJECTED correctly while the person it was about did not.
  */
-export const statusLabel = (status) =>
-  ({
-    PENDING_CONFIRMATION: 'Waiting for you to confirm your email',
-    OPEN: 'Waiting for a reviewer',
-    IN_PROGRESS: 'With a reviewer',
-    ESCALATED: 'With an administrator',
-    ANSWERED: 'answered',
-    REJECTED: 'declined',
-  })[status] ??
+export const statusLabel = (status: string | null | undefined) =>
+  (
+    ({
+      PENDING_CONFIRMATION: 'Waiting for you to confirm your email',
+      OPEN: 'Waiting for a reviewer',
+      IN_PROGRESS: 'With a reviewer',
+      ESCALATED: 'With an administrator',
+      ANSWERED: 'answered',
+      REJECTED: 'declined',
+    }) as Record<string, string>
+  )[status ?? ''] ??
   String(status ?? '')
     .toLowerCase()
     .replace(/_/g, ' ');
@@ -90,5 +98,5 @@ export const statusLabel = (status) =>
  * @param {string} status the ticket's status
  * @returns {string} the heading for the staff response block
  */
-export const staffResponseHeading = (status) =>
+export const staffResponseHeading = (status: string | null | undefined) =>
   status === 'REJECTED' ? 'Why this was declined' : 'Our reply';

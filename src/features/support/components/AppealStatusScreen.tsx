@@ -12,7 +12,7 @@ import { staffResponseHeading, statusLabel } from '../utils/ticketStatus';
  * Never assumes UTC for display. The value arrives as an ISO instant and is
  * rendered where the reader is.
  */
-const formatWhen = (value) => {
+const formatWhen = (value: string | null | undefined) => {
   if (!value) return '';
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleString();

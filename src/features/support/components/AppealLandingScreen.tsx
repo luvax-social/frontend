@@ -1,3 +1,4 @@
+import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
@@ -21,7 +22,7 @@ const BODY_KEY = 'lx-appeal-body';
  * @param {string} key the storage key
  * @returns {string} the stored value, or an empty string
  */
-const readStored = (key) => {
+const readStored = (key: string) => {
   try {
     return window.sessionStorage.getItem(key) ?? '';
   } catch {
@@ -35,7 +36,7 @@ const readStored = (key) => {
  * @param {string} key the storage key
  * @param {string} value the value to keep
  */
-const writeStored = (key, value) => {
+const writeStored = (key: string, value: string) => {
   try {
     window.sessionStorage.setItem(key, value);
   } catch {
@@ -90,7 +91,7 @@ export function AppealLandingScreen() {
     subject: readStored(SUBJECT_KEY),
     body: readStored(BODY_KEY),
   }));
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState('');
   const [submitted, setSubmitted] = useState(false);
   // Handed back by the redemption that spends the appeal token. It is the
@@ -255,7 +256,6 @@ export function AppealLandingScreen() {
                   fontFamily: v.fontBody,
                   fontSize: 13,
                   color: v.ink,
-                  background: v.bg,
                   border: `1px solid ${v.border}`,
                   borderRadius: 999,
                   padding: '9px 16px',
@@ -272,14 +272,14 @@ export function AppealLandingScreen() {
     );
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFailure('');
     const parsed = appealSchema.safeParse(values);
     if (!parsed.success) {
-      const next = {};
+      const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        next[issue.path[0]] = issue.message;
+        if (typeof issue.path[0] === 'string') next[issue.path[0]] = issue.message;
       }
       setFieldErrors(next);
       return;

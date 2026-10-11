@@ -50,7 +50,15 @@ export const EVIDENCE_FIELDS = [
   // rendered as a textarea. The server allows the same 2000 characters here as
   // everywhere else.
   { name: 'evidenceNote', label: 'A note to the moderator', multiline: true },
-];
+] satisfies { name: EvidenceKey; label: string; multiline?: boolean }[];
+type EvidenceKey =
+  | 'evidenceWebsite'
+  | 'evidenceOtherProfile'
+  | 'evidenceEmailDomain'
+  | 'evidencePublishedWork'
+  | 'evidencePress'
+  | 'evidenceOfficialListing'
+  | 'evidenceNote';
 
 const subjectField = z
   .string()
@@ -186,5 +194,5 @@ export const verificationSchema = z
  * @param {Object} values the verification form's current values
  * @returns {number} the count of filled evidence fields
  */
-export const countEvidence = (values = {}) =>
+export const countEvidence = (values: Partial<Record<EvidenceKey, string>> = {}) =>
   EVIDENCE_FIELDS.filter((field) => (values[field.name] ?? '').trim().length > 0).length;

@@ -1,3 +1,19 @@
+import type { AxiosResponse } from 'axios';
+import type { ApiResponse } from '@/types/api';
+import type { VocabularyResponse } from '@/types/domain';
+import type {
+  CreateSupportTicketRequest,
+  SupportTicketResponse,
+  SignedAppealRequest,
+  AppealSubmittedResponse,
+  InProductAppealRequest,
+  ResendAppealLinkRequest,
+  AppealLinkResponse,
+  PublicSupportTicketRequest,
+  VerificationCategoryResponse,
+  VerificationStateResponse,
+  CreateVerificationRequest,
+} from '@/types/support';
 import { axiosClient, publicClient } from '@/api/axiosClient';
 import { buildBody, pickParams } from '@/utils/requestContract';
 
@@ -27,17 +43,23 @@ import { buildBody, pickParams } from '@/utils/requestContract';
  * @param {string} categoryKey a key from the vocabulary endpoint
  * @returns {string} the enum constant name the API binds
  */
-export const toCategoryEnum = (categoryKey) => String(categoryKey ?? '').toUpperCase();
+export const toCategoryEnum = (categoryKey: string | null | undefined) =>
+  String(categoryKey ?? '').toUpperCase();
 
 /** The inverse, for matching a response's enum back to a vocabulary row. */
-export const toCategoryKey = (categoryEnum) => String(categoryEnum ?? '').toLowerCase();
+export const toCategoryKey = (categoryEnum: string | null | undefined) =>
+  String(categoryEnum ?? '').toLowerCase();
 
-const unwrap = (response) => response?.data?.data;
+const unwrap = <T>(response: AxiosResponse<ApiResponse<T>>) => response?.data?.data;
 
 /** Creates a ticket as the signed-in account. */
-export const createTicket = async ({ category, subject, body }) =>
+export const createTicket = async ({
+  category,
+  subject,
+  body,
+}: Omit<CreateSupportTicketRequest, 'category'> & { category: string }) =>
   unwrap(
-    await axiosClient.post(
+    await axiosClient.post<ApiResponse<SupportTicketResponse>>(
       '/support/tickets',
       buildBody({
         category: toCategoryEnum(category),
@@ -48,12 +70,16 @@ export const createTicket = async ({ category, subject, body }) =>
   );
 
 /** The caller's own tickets, newest first. */
-export const listOwnTickets = async ({ limit = 20 } = {}) =>
-  unwrap(await axiosClient.get('/support/tickets', { params: pickParams({ limit }, ['limit']) }));
+export const listOwnTickets = async ({ limit = 20 }: { limit?: number } = {}) =>
+  unwrap(
+    await axiosClient.get<ApiResponse<SupportTicketResponse[]>>('/support/tickets', {
+      params: pickParams({ limit }, ['limit']),
+    })
+  );
 
 /** One of the caller's own tickets. Never carries an internal note. */
-export const getOwnTicket = async (ticketId) =>
-  unwrap(await axiosClient.get(`/support/tickets/${ticketId}`));
+export const getOwnTicket = async (ticketId: string) =>
+  unwrap(await axiosClient.get<ApiResponse<SupportTicketResponse>>(`/support/tickets/${ticketId}`));
 
 /**
  * Redeems the single-use token from a moderation notice.
@@ -66,8 +92,13 @@ export const getOwnTicket = async (ticketId) =>
  * The category is taken from the token server-side, never from here, so a
  * submitter cannot appeal something the token did not authorise.
  */
-export const createAppeal = async ({ token, subject, body }) =>
-  unwrap(await publicClient.post('/support/appeal', buildBody({ token, subject, body })));
+export const createAppeal = async ({ token, subject, body }: SignedAppealRequest) =>
+  unwrap(
+    await publicClient.post<ApiResponse<AppealSubmittedResponse>>(
+      '/support/appeal',
+      buildBody({ token, subject, body })
+    )
+  );
 
 /**
  * Opens an appeal from a session, against a decision the caller owns.
@@ -82,8 +113,17 @@ export const createAppeal = async ({ token, subject, body }) =>
  * someone else exactly as it answers one that does not exist. The category is
  * derived server-side from the decision, never sent from here.
  */
-export const createInProductAppeal = async ({ adminActionId, subject, body }) =>
-  unwrap(await axiosClient.post('/support/appeals', buildBody({ adminActionId, subject, body })));
+export const createInProductAppeal = async ({
+  adminActionId,
+  subject,
+  body,
+}: InProductAppealRequest) =>
+  unwrap(
+    await axiosClient.post<ApiResponse<SupportTicketResponse>>(
+      '/support/appeals',
+      buildBody({ adminActionId, subject, body })
+    )
+  );
 
 /**
  * Reads one appeal with the status token handed back when it was filed.
@@ -95,8 +135,12 @@ export const createInProductAppeal = async ({ adminActionId, subject, body }) =>
  * staff-only note, the assignee or the escalation reason, so there is nothing
  * here to filter out on the client.
  */
-export const readAppealStatus = async (token) =>
-  unwrap(await publicClient.get('/support/appeal/status', { params: { token } }));
+export const readAppealStatus = async (token: string) =>
+  unwrap(
+    await publicClient.get<ApiResponse<SupportTicketResponse>>('/support/appeal/status', {
+      params: { token },
+    })
+  );
 
 /**
  * Asks for a replacement appeal link to be mailed.
@@ -109,9 +153,12 @@ export const readAppealStatus = async (token) =>
  * nothing in the response can be used to decide what to show. The caller must
  * render the same confirmation either way.
  */
-export const resendAppealLink = async ({ contactEmail, turnstileToken }) =>
+export const resendAppealLink = async ({ contactEmail, turnstileToken }: ResendAppealLinkRequest) =>
   unwrap(
-    await publicClient.post('/support/appeal/resend', buildBody({ contactEmail, turnstileToken }))
+    await publicClient.post<ApiResponse<null>>(
+      '/support/appeal/resend',
+      buildBody({ contactEmail, turnstileToken })
+    )
   );
 
 /**
@@ -124,8 +171,12 @@ export const resendAppealLink = async ({ contactEmail, turnstileToken }) =>
  *
  * Answers the appeal category and nothing else.
  */
-export const validateAppealLink = async (token) =>
-  unwrap(await publicClient.get('/support/appeal/validate', { params: { token } }));
+export const validateAppealLink = async (token: string) =>
+  unwrap(
+    await publicClient.get<ApiResponse<AppealLinkResponse>>('/support/appeal/validate', {
+      params: { token },
+    })
+  );
 
 /** Submits the anonymous public form. Turnstile is verified before anything is written. */
 export const createPublicTicket = async ({
@@ -134,9 +185,9 @@ export const createPublicTicket = async ({
   subject,
   body,
   turnstileToken,
-}) =>
+}: Omit<PublicSupportTicketRequest, 'category'> & { category: string }) =>
   unwrap(
-    await publicClient.post(
+    await publicClient.post<ApiResponse<null>>(
       '/support/public/tickets',
       buildBody({
         contactEmail,
@@ -156,20 +207,24 @@ export const createPublicTicket = async ({
  * `@RequestParam("token")` while the appeal endpoint next to it takes a body.
  * Sending a body here answers `MISSING_REQUIRED_PARAMETER`.
  */
-export const confirmPublicTicket = async (token) =>
+export const confirmPublicTicket = async (token: string) =>
   unwrap(
-    await publicClient.post('/support/public/confirm', null, {
+    await publicClient.post<ApiResponse<null>>('/support/public/confirm', null, {
       params: pickParams({ token }, ['token']),
     })
   );
 
 /** The eight verification categories, with the icon key a client maps to a glyph. */
 export const listVerificationCategories = async () =>
-  unwrap(await axiosClient.get('/support/verification/categories'));
+  unwrap(
+    await axiosClient.get<ApiResponse<VerificationCategoryResponse[]>>(
+      '/support/verification/categories'
+    )
+  );
 
 /** The caller's own verification state: an active grant, an open request, or neither. */
 export const getVerificationState = async () =>
-  unwrap(await axiosClient.get('/support/verification/me'));
+  unwrap(await axiosClient.get<ApiResponse<VerificationStateResponse>>('/support/verification/me'));
 
 /**
  * Submits a verification request.
@@ -182,9 +237,9 @@ export const getVerificationState = async () =>
  * that pins the exact key set makes it correct, which is what
  * `supportRequestContract.test.js` now asserts.
  */
-export const createVerificationRequest = async (values) =>
+export const createVerificationRequest = async (values: CreateVerificationRequest) =>
   unwrap(
-    await axiosClient.post(
+    await axiosClient.post<ApiResponse<VerificationStateResponse>>(
       '/support/verification/requests',
       buildBody({
         categoryKey: values.categoryKey,
@@ -209,6 +264,8 @@ export const createVerificationRequest = async (values) =>
  * three entry paths may offer.
  */
 export const listSupportCategories = async () => {
-  const vocabularies = unwrap(await axiosClient.get('/config/vocabularies'));
+  const vocabularies = unwrap(
+    await axiosClient.get<ApiResponse<VocabularyResponse>>('/config/vocabularies')
+  );
   return vocabularies?.supportCategories ?? [];
 };

@@ -1,10 +1,18 @@
+import type { NavigateFunction } from 'react-router-dom';
+import type { Viewport } from '@/features/luvax/LuvaxTweaksContext';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { ROUTES, CHAR_LIMITS } from '@/config/constants';
 import { LxIcon } from '@/components/ui/lx-icon';
 
-export function LxHeaderSearch({ navigate, viewport }) {
+export function LxHeaderSearch({
+  navigate,
+  viewport,
+}: {
+  navigate: NavigateFunction;
+  viewport: Viewport;
+}) {
   // The field mirrors the query in the address bar, so a shared or reloaded
   // search URL shows the terms it searched for.
   const [searchParams] = useSearchParams();

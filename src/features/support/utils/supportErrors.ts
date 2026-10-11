@@ -1,3 +1,4 @@
+import { getErrorResponse } from '@/utils/errors';
 /**
  * Support error codes, and the sentences the interface shows for them.
  *
@@ -19,7 +20,7 @@ import {
 /** Reads the backend error code from the envelope the interceptor preserves. */
 export const getSupportErrorCode = getErrorCode;
 
-const MESSAGES = {
+const MESSAGES: Record<string, string> = {
   // The viewer took the decision this ticket is appealing. Distinct from a
   // plain permission refusal, and the reason is the point.
   SUPPORT_CONFLICT_OF_INTEREST:
@@ -57,41 +58,45 @@ const MESSAGES = {
  * @param {string} fallback what to say when the code is not one of ours
  * @returns {string} lowercase, human copy for the interface
  */
-export const describeSupportError = (error, fallback = 'That did not work. Try again.') => {
+export const describeSupportError = (
+  error: unknown,
+  fallback = 'That did not work. Try again.'
+) => {
   const code = getSupportErrorCode(error);
-  return MESSAGES[code] ?? fallback;
+  return MESSAGES[typeof code === 'string' ? code : ''] ?? fallback;
 };
 
 /** True when the refusal is the conflict-of-interest rule rather than a role rule. */
-export const isConflictOfInterest = (error) =>
+export const isConflictOfInterest = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_CONFLICT_OF_INTEREST';
 
 /** True when a moderator was refused an appeal decision and should escalate instead. */
-export const isAppealRequiresAdmin = (error) =>
+export const isAppealRequiresAdmin = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_APPEAL_REQUIRES_ADMIN';
 
 /** True when another reviewer won the claim race; the caller refetches. */
-export const isClaimCollision = (error) =>
+export const isClaimCollision = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_TICKET_ALREADY_CLAIMED';
 
 /** True when the one-open-ticket rule refused a second request. */
-export const isAlreadyOpen = (error) =>
+export const isAlreadyOpen = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_TICKET_ALREADY_OPEN';
 
 /** True when this decision has already been appealed once. */
-export const isAppealAlreadyFiled = (error) =>
+export const isAppealAlreadyFiled = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_APPEAL_ALREADY_FILED';
 
 /** True when the decision behind an appeal entry point is gone or was never the caller's. */
-export const isAppealActionNotFound = (error) =>
+export const isAppealActionNotFound = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_APPEAL_ACTION_NOT_FOUND';
 
 /** True when the decision exists but carries no appeal route. */
-export const isAppealNotAppealable = (error) =>
+export const isAppealNotAppealable = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_APPEAL_NOT_APPEALABLE';
 
 /** True when a single-use link was already redeemed, or never valid. */
-export const isTokenInvalid = (error) => getSupportErrorCode(error) === 'SUPPORT_TOKEN_INVALID';
+export const isTokenInvalid = (error: unknown) =>
+  getSupportErrorCode(error) === 'SUPPORT_TOKEN_INVALID';
 
 /**
  * True when Turnstile refused. A distinct state from a validation failure.
@@ -103,7 +108,7 @@ export const isTokenInvalid = (error) => getSupportErrorCode(error) === 'SUPPORT
 export const isCaptchaFailure = isSharedCaptchaFailure;
 
 /** True when the public path's rate limit refused. */
-export const isRateLimited = (error) =>
+export const isRateLimited = (error: unknown) =>
   getSupportErrorCode(error) === 'SUPPORT_DAILY_LIMIT_REACHED' ||
   getSupportErrorCode(error) === 'TOO_MANY_REQUESTS' ||
-  error?.response?.status === 429;
+  getErrorResponse(error)?.status === 429;

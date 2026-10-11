@@ -12,7 +12,7 @@ import { Eyebrow, Notice, StatusChip } from './SupportPrimitives';
  * vocabulary table holds a real display name, but this screen does not fetch it,
  * so the enum is softened here rather than shown raw.
  */
-const categoryLabel = (category) => {
+const categoryLabel = (category: string) => {
   const words = String(category ?? '')
     .toLowerCase()
     .replace(/_/g, ' ');

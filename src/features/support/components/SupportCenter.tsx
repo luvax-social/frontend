@@ -1,3 +1,34 @@
+import type { ChangeEvent, Dispatch, FormEvent, SetStateAction } from 'react';
+import type { z } from 'zod';
+import type { SupportTicketResponse, VerificationCategoryResponse } from '@/types/support';
+import type { SupportCategoryVocabularyResponse } from '@/types/domain';
+type VerificationValues = z.input<typeof verificationSchema>;
+interface VerificationFieldsProps {
+  verification: VerificationValues;
+  setVerification: Dispatch<SetStateAction<VerificationValues>>;
+  verificationCategories: VerificationCategoryResponse[];
+  lastDecision?: string | null;
+  fieldErrors: Record<string, string>;
+  filledEvidence: number;
+  evidenceRemaining: number;
+}
+interface TicketFormProps extends VerificationFieldsProps {
+  isAppeal: boolean;
+  appealClosed: boolean;
+  category: string;
+  setCategory: (value: string) => void;
+  values: { subject: string; body: string };
+  setValues: Dispatch<SetStateAction<{ subject: string; body: string }>>;
+  categories: SupportCategoryVocabularyResponse[];
+  categoriesLoading: boolean;
+  categoriesError: boolean;
+  isVerification: boolean;
+  pendingVerification: SupportTicketResponse | null;
+  alreadyVerified: boolean;
+  submitting: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  failureMessage: string;
+}
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
@@ -41,7 +72,7 @@ const VERIFICATION_KEY = 'verification_request';
 
 // Built from EVIDENCE_FIELDS rather than repeated, so a field cannot exist on
 // the form under a name the initial state has never heard of.
-const EMPTY_VERIFICATION = {
+const EMPTY_VERIFICATION: VerificationValues = {
   categoryKey: '',
   claimedName: '',
   ...Object.fromEntries(EVIDENCE_FIELDS.map((field) => [field.name, ''])),
@@ -98,7 +129,7 @@ export function SupportCenter() {
   const [category, setCategory] = useState('');
   const [values, setValues] = useState({ subject: '', body: '' });
   const [verification, setVerification] = useState(EMPTY_VERIFICATION);
-  const [fieldErrors, setFieldErrors] = useState({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Memoised so the two derivations below depend on a stable reference. Without
   // it the ?? [] produces a fresh array on every render and both memos recompute
@@ -138,7 +169,7 @@ export function SupportCenter() {
     setFieldErrors({});
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (isAppeal) {
@@ -149,9 +180,9 @@ export function SupportCenter() {
       // to appeal.
       const parsed = inProductAppealSchema.safeParse({ ...values, adminActionId: appealActionId });
       if (!parsed.success) {
-        const next = {};
+        const next: Record<string, string> = {};
         for (const issue of parsed.error.issues) {
-          next[issue.path[0]] = issue.message;
+          if (typeof issue.path[0] === 'string') next[issue.path[0]] = issue.message;
         }
         setFieldErrors(next);
         return;
@@ -172,9 +203,9 @@ export function SupportCenter() {
     if (isVerification) {
       const parsed = verificationSchema.safeParse(verification);
       if (!parsed.success) {
-        const next = {};
+        const next: Record<string, string> = {};
         for (const issue of parsed.error.issues) {
-          next[issue.path[0]] = issue.message;
+          if (typeof issue.path[0] === 'string') next[issue.path[0]] = issue.message;
         }
         setFieldErrors(next);
         return;
@@ -191,9 +222,9 @@ export function SupportCenter() {
 
     const parsed = ticketSchema.safeParse({ ...values, category });
     if (!parsed.success) {
-      const next = {};
+      const next: Record<string, string> = {};
       for (const issue of parsed.error.issues) {
-        next[issue.path[0]] = issue.message;
+        if (typeof issue.path[0] === 'string') next[issue.path[0]] = issue.message;
       }
       setFieldErrors(next);
       return;
@@ -307,7 +338,15 @@ export function SupportCenter() {
   );
 }
 
-function TicketSummary({ ticket, heading, to }) {
+function TicketSummary({
+  ticket,
+  heading,
+  to,
+}: {
+  ticket: SupportTicketResponse;
+  heading: string;
+  to: string;
+}) {
   return (
     <div
       style={{
@@ -356,7 +395,15 @@ function TicketSummary({ ticket, heading, to }) {
   );
 }
 
-function PastTickets({ tickets, blockingId, pendingVerificationId }) {
+function PastTickets({
+  tickets,
+  blockingId,
+  pendingVerificationId,
+}: {
+  tickets: SupportTicketResponse[];
+  blockingId?: string;
+  pendingVerificationId?: string;
+}) {
   const past = tickets.filter(
     (ticket) => ticket.id !== blockingId && ticket.id !== pendingVerificationId
   );
@@ -441,7 +488,7 @@ function TicketForm({
   submitting,
   onSubmit,
   failureMessage,
-}) {
+}: TicketFormProps) {
   // Verification has its own slot, so it is offered only when that slot is free.
   const verificationBlocked = Boolean(pendingVerification) || alreadyVerified;
   // Appeal mode has no category selector, because the category is derived from
@@ -577,9 +624,11 @@ function VerificationFields({
   fieldErrors,
   filledEvidence,
   evidenceRemaining,
-}) {
-  const set = (name) => (event) =>
-    setVerification((prev) => ({ ...prev, [name]: event.target.value }));
+}: VerificationFieldsProps) {
+  const set =
+    (name: keyof VerificationValues) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+      setVerification((prev) => ({ ...prev, [name]: event.target.value }));
 
   return (
     <>

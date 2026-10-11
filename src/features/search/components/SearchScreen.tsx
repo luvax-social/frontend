@@ -1,3 +1,15 @@
+import type { ReactNode } from 'react';
+import type { NavigateFunction } from 'react-router-dom';
+import type { ApiResponse, CursorPage } from '@/types/api';
+import type { HashtagResponse } from '@/types/domain';
+interface SearchResult<T> {
+  data?: { pages: ApiResponse<CursorPage<T>>[] };
+  isLoading: boolean;
+  isError: boolean;
+  fetchNextPage: () => unknown;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+}
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
@@ -52,7 +64,17 @@ const DEBOUNCE_MS = 300;
  * Renders one half of the results, choosing between the four states every
  * surface in this phase is required to have.
  */
-function ResultsSection({ query, label, result, renderRows }) {
+function ResultsSection<T>({
+  query,
+  label,
+  result,
+  renderRows,
+}: {
+  query: string;
+  label: string;
+  result: SearchResult<T>;
+  renderRows: (rows: T[]) => ReactNode;
+}) {
   const { ref, inView } = useInView();
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = result;
 
@@ -98,7 +120,13 @@ function ResultsSection({ query, label, result, renderRows }) {
   );
 }
 
-function SuggestedHashtags({ hashtags, navigate }) {
+function SuggestedHashtags({
+  hashtags,
+  navigate,
+}: {
+  hashtags: HashtagResponse[];
+  navigate: NavigateFunction;
+}) {
   return (
     <section style={{ margin: '18px 16px 24px' }}>
       <div
@@ -183,7 +211,7 @@ export function SearchScreen() {
     setInput((current) => (current.trim() === query ? current : query));
   }
 
-  const selectTab = (id) => {
+  const selectTab = (id: string) => {
     const params = new URLSearchParams(searchParams);
     params.set('type', id);
     setSearchParams(params, { replace: true });

@@ -1,3 +1,5 @@
+import type { ApiResponse } from '@/types/api';
+import type { SupportCategoryVocabularyResponse } from '@/types/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { publicClient } from '@/api/axiosClient';
 import { STALE_TIME } from '@/config/constants';
@@ -15,14 +17,14 @@ import { isRateLimited } from '../utils/supportErrors';
 
 const supportKeys = {
   ownTickets: ['support', 'tickets', 'own'],
-  ticket: (ticketId) => ['support', 'tickets', ticketId],
+  ticket: (ticketId: string | undefined) => ['support', 'tickets', ticketId],
   categories: ['support', 'categories'],
   publicCategories: ['support', 'categories', 'public'],
   verificationCategories: ['support', 'verification', 'categories'],
   verificationState: ['support', 'verification', 'me'],
 };
 
-const noRetryOnRateLimit = (failureCount, error) => {
+const noRetryOnRateLimit = (failureCount: number, error: unknown) => {
   if (isRateLimited(error)) {
     return false;
   }
@@ -39,10 +41,10 @@ export const useOwnTickets = () =>
   });
 
 /** One of the caller's own tickets. */
-export const useOwnTicket = (ticketId) =>
+export const useOwnTicket = (ticketId: string | undefined) =>
   useQuery({
     queryKey: supportKeys.ticket(ticketId),
-    queryFn: () => supportApi.getOwnTicket(ticketId),
+    queryFn: () => supportApi.getOwnTicket(ticketId!),
     enabled: Boolean(ticketId),
     retry: noRetryOnRateLimit,
   });
@@ -74,7 +76,9 @@ export const usePublicSupportCategories = () =>
   useQuery({
     queryKey: supportKeys.publicCategories,
     queryFn: async () => {
-      const response = await publicClient.get('/support/public/categories');
+      const response = await publicClient.get<ApiResponse<SupportCategoryVocabularyResponse[]>>(
+        '/support/public/categories'
+      );
       return response?.data?.data ?? [];
     },
     staleTime: STALE_TIME.LONG,
@@ -145,7 +149,7 @@ export const useCreateAppeal = () =>
  * @param {string} token the token from the link, or empty to skip the call
  * @returns {Object} the TanStack query for the link's validity
  */
-export const useValidateAppealLink = (token) =>
+export const useValidateAppealLink = (token: string) =>
   useQuery({
     queryKey: ['support', 'appeal', 'validate', token],
     queryFn: () => supportApi.validateAppealLink(token),
@@ -165,7 +169,7 @@ export const useValidateAppealLink = (token) =>
  * @param {string} token the token from the status link, or empty to skip the call
  * @returns {Object} the TanStack query for the appeal
  */
-export const useAppealStatus = (token) =>
+export const useAppealStatus = (token: string) =>
   useQuery({
     queryKey: ['support', 'appeal', 'status', token],
     queryFn: () => supportApi.readAppealStatus(token),

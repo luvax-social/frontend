@@ -9,7 +9,17 @@ import { LxIcon } from '@/features/luvax/components/primitives';
  * spacing, the muted `ink3` foreground, and the icon sizing the followers and
  * profile screens already use for their own empty states.
  */
-function Notice({ icon, title, detail, tone = 'muted' }) {
+function Notice({
+  icon,
+  title,
+  detail,
+  tone = 'muted',
+}: {
+  icon: string;
+  title: string;
+  detail?: string;
+  tone?: string;
+}) {
   return (
     <div
       style={{
@@ -56,7 +66,7 @@ export function SearchPrompt() {
 }
 
 /** Shown while the first page of a half is in flight. */
-export function SearchLoading({ label }) {
+export function SearchLoading({ label }: { label: string }) {
   return <Notice icon="explore" title={`searching ${label}...`} />;
 }
 
@@ -66,7 +76,7 @@ export function SearchLoading({ label }) {
  * This is deliberately worded so it cannot be mistaken for an empty result,
  * because the two mean different things and the viewer can act on one of them.
  */
-export function SearchFailed({ label }) {
+export function SearchFailed({ label }: { label: string }) {
   return (
     <Notice
       icon="alert"
@@ -85,7 +95,7 @@ export function SearchFailed({ label }) {
  * the wire. The response now carries a flag for exactly that, so the two cases
  * are told apart and each is worded as what it is. The hedge is gone.
  */
-export function SearchEmpty({ label, query }) {
+export function SearchEmpty({ label, query }: { label: string; query: string }) {
   return <Notice icon="explore" title={`no ${label} match "${query}"`} />;
 }
 
@@ -98,7 +108,7 @@ export function SearchEmpty({ label, query }) {
  * here and worth nothing on a genuine empty result, so only this state
  * suggests it.
  */
-export function SearchDegraded({ label }) {
+export function SearchDegraded({ label }: { label: string }) {
   return (
     <Notice
       icon="alert"

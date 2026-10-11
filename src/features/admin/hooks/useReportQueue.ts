@@ -18,7 +18,7 @@ const PAGE_LIMIT = 20;
  *
  * @param {{status?: string, reportType?: string}} filters
  */
-export function useReportQueue(filters = {}) {
+export function useReportQueue(filters: { status?: string; reportType?: string } = {}) {
   const role = useAuthStore((state) => state.role);
   const status = filters.status || undefined;
   const reportType = filters.reportType || undefined;
@@ -30,7 +30,7 @@ export function useReportQueue(filters = {}) {
     }),
     queryFn: ({ pageParam }) =>
       adminApi.getReports({ status, reportType, cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     staleTime: STALE_TIME.SHORT,

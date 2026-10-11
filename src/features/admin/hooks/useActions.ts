@@ -30,7 +30,15 @@ const PAGE_LIMIT = 20;
  * @param {{actionType?: string, adminId?: string, targetUserId?: string,
  *          from?: string, to?: string}} filters
  */
-export function useActions(filters = {}) {
+export function useActions(
+  filters: {
+    actionType?: string;
+    adminId?: string;
+    targetUserId?: string;
+    from?: string;
+    to?: string;
+  } = {}
+) {
   const role = useAuthStore((state) => state.role);
   const actionType = filters.actionType || undefined;
   const adminId = filters.adminId || undefined;
@@ -56,7 +64,7 @@ export function useActions(filters = {}) {
         cursor: pageParam,
         limit: PAGE_LIMIT,
       }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     staleTime: STALE_TIME.SHORT,
@@ -87,10 +95,10 @@ export function useActions(filters = {}) {
  *
  * @param {string|null} actionId the open action, or null when the drawer is shut
  */
-export function useActionDetail(actionId) {
+export function useActionDetail(actionId: string | null | undefined) {
   const query = useQuery({
     queryKey: ['admin', 'action', actionId],
-    queryFn: () => adminApi.getAction(actionId),
+    queryFn: () => adminApi.getAction(actionId!),
     enabled: Boolean(actionId),
     staleTime: STALE_TIME.SHORT,
     retry: panelQueryRetry,

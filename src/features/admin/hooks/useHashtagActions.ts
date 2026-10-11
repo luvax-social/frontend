@@ -1,3 +1,8 @@
+import type {
+  AdminCreateHashtagRequest,
+  AdminUpdateHashtagRequest,
+  AdminDeleteHashtagRequest,
+} from '@/types/admin';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { adminApi } from '../api/adminApi';
@@ -21,16 +26,18 @@ export function useHashtagActions() {
   };
 
   const create = useMutation({
-    mutationFn: ({ name, status, note }) => adminApi.createHashtag({ name, status, note }),
+    mutationFn: ({ name, status, note }: AdminCreateHashtagRequest) =>
+      adminApi.createHashtag({ name, status, note }),
     onSuccess: afterAction,
   });
   const update = useMutation({
-    mutationFn: ({ hashtagId, status, note }) =>
+    mutationFn: ({ hashtagId, status, note }: AdminUpdateHashtagRequest & { hashtagId: string }) =>
       adminApi.updateHashtag(hashtagId, { status, note }),
     onSuccess: afterAction,
   });
   const remove = useMutation({
-    mutationFn: ({ hashtagId, reason }) => adminApi.deleteHashtag(hashtagId, { reason }),
+    mutationFn: ({ hashtagId, reason }: AdminDeleteHashtagRequest & { hashtagId: string }) =>
+      adminApi.deleteHashtag(hashtagId, { reason }),
     onSuccess: afterAction,
   });
 

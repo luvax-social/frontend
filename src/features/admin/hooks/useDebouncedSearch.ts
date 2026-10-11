@@ -15,7 +15,10 @@ import { useEffect, useState } from 'react';
  *
  * @param {{minLength?: number, delay?: number}} options
  */
-export function useDebouncedSearch({ minLength = 2, delay = 350 } = {}) {
+export function useDebouncedSearch({
+  minLength = 2,
+  delay = 350,
+}: { minLength?: number; delay?: number } = {}) {
   const [text, setText] = useState('');
   const [debounced, setDebounced] = useState('');
   const [cooldownUntil, setCooldownUntil] = useState(0);
@@ -42,8 +45,9 @@ export function useDebouncedSearch({ minLength = 2, delay = 350 } = {}) {
   // or while blank, so a request fires only for a deliberate, valid query.
   const term = !cooling && trimmed.length >= minLength ? trimmed : '';
 
-  const startCooldown = (seconds) => {
-    const secs = Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
+  const startCooldown = (seconds: number | null | undefined) => {
+    const secs =
+      typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
     setNow(Date.now());
     setCooldownUntil(Date.now() + secs * 1000);
   };

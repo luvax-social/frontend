@@ -24,10 +24,10 @@ import { panelQueryRetry } from '../lib/pagination';
  * error. That is a resolved answer: it is cached like any other, so the row
  * renders a shortened id once and is never retried in a loop.
  */
-export function useResolveUsername(userId) {
+export function useResolveUsername(userId: string | null | undefined) {
   const query = useQuery({
     queryKey: ['admin', 'user-summary', userId],
-    queryFn: () => loadUserSummary(userId),
+    queryFn: () => loadUserSummary(userId!),
     enabled: Boolean(userId),
     staleTime: Infinity,
     gcTime: Infinity,
@@ -45,5 +45,5 @@ export function useResolveUsername(userId) {
 }
 
 /** A stable, honest short form of an id for use before a name resolves. */
-export const shortId = (id) =>
+export const shortId = (id: string | null | undefined) =>
   typeof id === 'string' && id.length >= 8 ? id.slice(0, 8) : (id ?? '');

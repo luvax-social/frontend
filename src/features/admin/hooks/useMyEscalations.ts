@@ -34,7 +34,7 @@ export function useMyEscalations() {
   const query = useInfiniteQuery({
     queryKey: listQueryKey('my-escalations', role, {}),
     queryFn: ({ pageParam }) => adminApi.getMyEscalations({ cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     staleTime: STALE_TIME.SHORT,

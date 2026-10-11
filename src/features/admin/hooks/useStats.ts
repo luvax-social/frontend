@@ -30,7 +30,7 @@ export function useCurrentStats() {
   return {
     snapshot: data,
     /** True only when the server said nothing has ever been collected. */
-    neverCollected: Boolean(data) && !data.computedAt,
+    neverCollected: Boolean(data) && !data?.computedAt,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
@@ -51,7 +51,19 @@ export function useCurrentStats() {
  * The response restates the granularity the server used, which the caller reads
  * for the axis label rather than assuming its own request was honoured.
  */
-export function useStatsTimeseries({ metric, granularity, fromMs, toMs, enabled = true }) {
+export function useStatsTimeseries({
+  metric,
+  granularity,
+  fromMs,
+  toMs,
+  enabled = true,
+}: {
+  metric: string;
+  granularity?: string | null;
+  fromMs: number;
+  toMs: number;
+  enabled?: boolean;
+}) {
   const from = toIso(fromMs);
   const to = toIso(toMs);
 

@@ -1,3 +1,5 @@
+import type { UseInfiniteQueryResult, InfiniteData } from '@tanstack/react-query';
+import type { CursorPage } from '@/types/api';
 import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
@@ -9,9 +11,13 @@ import { getNextPageParam, listQueryKey, panelQueryRetry } from '../lib/paginati
 
 const PAGE_LIMIT = 20;
 
-const flatten = (query) => (query.data?.pages ?? []).flatMap((page) => page?.content ?? []);
+const flatten = <T, E>(query: UseInfiniteQueryResult<InfiniteData<CursorPage<T>>, E>) =>
+  (query.data?.pages ?? []).flatMap((page) => page?.content ?? []);
 
-const surface = (query, rows) => ({
+const surface = <T, E>(
+  query: UseInfiniteQueryResult<InfiniteData<CursorPage<T>>, E>,
+  rows: T[]
+) => ({
   rows,
   isLoading: query.isLoading,
   isError: query.isError,
@@ -30,7 +36,7 @@ const surface = (query, rows) => ({
  *
  * @param {{status?: string, role?: string}} filters
  */
-export function useAccountList(filters = {}) {
+export function useAccountList(filters: { status?: string; role?: string } = {}) {
   const callerRole = useAuthStore((state) => state.role);
   const status = filters.status || undefined;
   const role = filters.role || undefined;
@@ -39,7 +45,7 @@ export function useAccountList(filters = {}) {
     queryKey: listQueryKey('accounts', callerRole, { status: status ?? null, role: role ?? null }),
     queryFn: ({ pageParam }) =>
       adminApi.getUsers({ status, role, cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     staleTime: STALE_TIME.SHORT,
@@ -57,7 +63,7 @@ export function useAccountList(filters = {}) {
  *
  * @param {string} term the debounced, length-checked search term, or '' to idle
  */
-export function useAccountSearch(term) {
+export function useAccountSearch(term: string) {
   const callerRole = useAuthStore((state) => state.role);
   const active = Boolean(term);
 
@@ -65,7 +71,7 @@ export function useAccountSearch(term) {
     queryKey: listQueryKey('account-search', callerRole, { q: term || null }),
     queryFn: ({ pageParam }) =>
       adminApi.searchUsers({ q: term, cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     enabled: active,
     // A rate-limit refusal is never retried; the cooldown in useDebouncedSearch

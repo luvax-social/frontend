@@ -6,7 +6,11 @@ import { adminApi } from '../api/adminApi';
 import { panelQueryRetry } from '../lib/pagination';
 
 /** The query key for one account's detail, so a mutation can refetch it by id. */
-export const accountDetailKey = (userId) => ['admin', 'userDetail', userId];
+export const accountDetailKey = (userId: string | null | undefined) => [
+  'admin',
+  'userDetail',
+  userId,
+];
 
 /**
  * A single account's detail, including its `capabilities`. Administrator only;
@@ -22,10 +26,13 @@ export const accountDetailKey = (userId) => ['admin', 'userDetail', userId];
  *   query key is unchanged, so an administrator's copy is still shared and
  *   deduplicated with every other reader of the same account.
  */
-export function useAccountDetail(userId, { enabled = true } = {}) {
+export function useAccountDetail(
+  userId: string | null | undefined,
+  { enabled = true }: { enabled?: boolean } = {}
+) {
   const query = useQuery({
-    queryKey: accountDetailKey(userId),
-    queryFn: () => adminApi.getUserDetail(userId),
+    queryKey: accountDetailKey(userId!),
+    queryFn: () => adminApi.getUserDetail(userId!),
     enabled: Boolean(userId) && enabled,
     staleTime: STALE_TIME.SHORT,
     retry: panelQueryRetry,

@@ -1,3 +1,8 @@
+import type {
+  RespondSupportTicketRequest,
+  EscalateSupportTicketRequest,
+  VerificationDecisionRequest,
+} from '@/types/support';
 import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -21,7 +26,7 @@ const MAX_LIMIT = 100;
  * more "load more" that returns nothing new; that is the honest cost of a
  * limit-only endpoint and is preferable to hiding rows that do exist.
  */
-export const useSupportQueue = ({ status }) => {
+export const useSupportQueue = ({ status }: { status?: string }) => {
   const role = useAuthStore((state) => state.role);
   const [limit, setLimit] = useState(PAGE_SIZE);
 
@@ -54,20 +59,20 @@ export const useSupportQueue = ({ status }) => {
 };
 
 /** One ticket, read fresh so a claim taken elsewhere is visible immediately. */
-export const useSupportTicket = (ticketId) =>
+export const useSupportTicket = (ticketId: string | null | undefined) =>
   useQuery({
     queryKey: ['admin', 'support-ticket', ticketId],
-    queryFn: () => supportAdminApi.getTicket(ticketId),
+    queryFn: () => supportAdminApi.getTicket(ticketId!),
     enabled: Boolean(ticketId),
     retry: panelQueryRetry,
     staleTime: 0,
   });
 
 /** The structured verification request behind a verification ticket. */
-export const useVerificationRequest = (ticketId, enabled) =>
+export const useVerificationRequest = (ticketId: string | null | undefined, enabled: boolean) =>
   useQuery({
     queryKey: ['admin', 'verification-request', ticketId],
-    queryFn: () => supportAdminApi.getVerificationRequest(ticketId),
+    queryFn: () => supportAdminApi.getVerificationRequest(ticketId!),
     enabled: Boolean(ticketId) && enabled,
     retry: panelQueryRetry,
   });
@@ -80,7 +85,7 @@ export const useVerificationRequest = (ticketId, enabled) =>
  * additionally follows the ticket when a claim moves it out of the current
  * filter, so the reviewer is not left looking at an empty list.
  */
-export const useSupportTicketActions = (ticketId) => {
+export const useSupportTicketActions = (ticketId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   const invalidate = () => {
@@ -90,23 +95,27 @@ export const useSupportTicketActions = (ticketId) => {
 
   return {
     claim: useMutation({
-      mutationFn: () => supportAdminApi.claimTicket(ticketId),
+      mutationFn: () => supportAdminApi.claimTicket(ticketId!),
       onSettled: invalidate,
     }),
     respond: useMutation({
-      mutationFn: (payload) => supportAdminApi.respondToTicket(ticketId, payload),
+      mutationFn: (payload: RespondSupportTicketRequest & { reject?: boolean }) =>
+        supportAdminApi.respondToTicket(ticketId!, payload),
       onSettled: invalidate,
     }),
     escalate: useMutation({
-      mutationFn: (payload) => supportAdminApi.escalateTicket(ticketId, payload),
+      mutationFn: (payload: EscalateSupportTicketRequest) =>
+        supportAdminApi.escalateTicket(ticketId!, payload),
       onSettled: invalidate,
     }),
     approveVerification: useMutation({
-      mutationFn: (payload) => supportAdminApi.approveVerification(ticketId, payload),
+      mutationFn: (payload: VerificationDecisionRequest) =>
+        supportAdminApi.approveVerification(ticketId!, payload),
       onSettled: invalidate,
     }),
     rejectVerification: useMutation({
-      mutationFn: (payload) => supportAdminApi.rejectVerification(ticketId, payload),
+      mutationFn: (payload: VerificationDecisionRequest) =>
+        supportAdminApi.rejectVerification(ticketId!, payload),
       onSettled: invalidate,
     }),
   };

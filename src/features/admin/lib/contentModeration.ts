@@ -1,3 +1,4 @@
+import type { AdminActionResponse, AdminPostRestoreResponse } from '@/types/admin';
 /**
  * The one place a removal or restore outcome is worded, so the report detail and
  * the account content screen say the same thing about the same event.
@@ -23,7 +24,7 @@
  * When the array is empty the caption carries no banned tag and the plain
  * success stands alone, with no dangling label.
  */
-const postRestoreMessage = (data) => {
+const postRestoreMessage = (data: { remainingBannedHashtags?: string[] } | null | undefined) => {
   const remaining = Array.isArray(data?.remainingBannedHashtags)
     ? data.remainingBannedHashtags
     : [];
@@ -75,10 +76,13 @@ const messageRestoreMessage = () =>
  * @param {Object} data the restore response payload
  * @returns {string} the success message to surface
  */
-export const restoreSuccessMessage = (targetType, data) => {
+export const restoreSuccessMessage = (
+  targetType: string,
+  data: AdminActionResponse | AdminPostRestoreResponse | null | undefined
+) => {
   switch (targetType) {
     case 'post':
-      return postRestoreMessage(data);
+      return postRestoreMessage(data && 'remainingBannedHashtags' in data ? data : null);
     case 'story':
       return storyRestoreMessage();
     case 'message':
@@ -95,7 +99,7 @@ export const restoreSuccessMessage = (targetType, data) => {
  * expect — the text, the media, and any shared post or story disappear for both
  * participants, leaving the same placeholder a sender's own deletion leaves.
  */
-export const removeSuccessMessage = (targetType) => {
+export const removeSuccessMessage = (targetType: string) => {
   if (targetType === 'message') {
     return 'message removed. its text and any media are withheld from both participants';
   }
@@ -109,7 +113,7 @@ export const removeSuccessMessage = (targetType) => {
  * text, the media, and any shared post or story from both participants — so the
  * reviewer is told that before confirming rather than after.
  */
-export const removeConfirmDescription = (targetType) => {
+export const removeConfirmDescription = (targetType: string) => {
   if (targetType === 'message') {
     return (
       'take down this message. its text, media, and any shared post or story are withheld from ' +
@@ -128,7 +132,7 @@ export const removeConfirmDescription = (targetType) => {
  * expecting it to reappear and is only told afterwards has already made the
  * decision on a false premise.
  */
-export const restoreConfirmDescription = (targetType) => {
+export const restoreConfirmDescription = (targetType: string) => {
   if (targetType === 'story') {
     return (
       'put this story back. this lifts the removal only: if the story has already passed its ' +

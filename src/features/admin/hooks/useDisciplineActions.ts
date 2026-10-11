@@ -1,3 +1,4 @@
+import type { AdminWarnUserRequest, AdminActionRequest } from '@/types/admin';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { adminApi } from '../api/adminApi';
@@ -16,7 +17,7 @@ import { adminApi } from '../api/adminApi';
  *
  * @param {string} userId the account these mutations act on, for cache invalidation
  */
-export function useDisciplineActions(userId) {
+export function useDisciplineActions(userId: string | null | undefined) {
   const queryClient = useQueryClient();
 
   const invalidateHistory = () => {
@@ -27,17 +28,20 @@ export function useDisciplineActions(userId) {
   };
 
   const warn = useMutation({
-    mutationFn: ({ reasonKey, note }) => adminApi.warnUser(userId, { reasonKey, note }),
+    mutationFn: ({ reasonKey, note }: AdminWarnUserRequest) =>
+      adminApi.warnUser(userId!, { reasonKey, note }),
     onSuccess: invalidateHistory,
   });
 
   const revokeWarning = useMutation({
-    mutationFn: ({ warningId, reason }) => adminApi.revokeWarning(warningId, { reason }),
+    mutationFn: ({ warningId, reason }: AdminActionRequest & { warningId: string }) =>
+      adminApi.revokeWarning(warningId, { reason }),
     onSuccess: invalidateHistory,
   });
 
   const revokeStrike = useMutation({
-    mutationFn: ({ strikeId, reason }) => adminApi.revokeStrike(strikeId, { reason }),
+    mutationFn: ({ strikeId, reason }: AdminActionRequest & { strikeId: string }) =>
+      adminApi.revokeStrike(strikeId, { reason }),
     onSuccess: invalidateHistory,
   });
 

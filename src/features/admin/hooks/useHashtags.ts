@@ -1,3 +1,5 @@
+import type { UseInfiniteQueryResult, InfiniteData } from '@tanstack/react-query';
+import type { CursorPage } from '@/types/api';
 import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
@@ -9,9 +11,13 @@ import { getNextPageParam, listQueryKey, panelQueryRetry } from '../lib/paginati
 
 const PAGE_LIMIT = 20;
 
-const flatten = (query) => (query.data?.pages ?? []).flatMap((page) => page?.content ?? []);
+const flatten = <T, E>(query: UseInfiniteQueryResult<InfiniteData<CursorPage<T>>, E>) =>
+  (query.data?.pages ?? []).flatMap((page) => page?.content ?? []);
 
-const surface = (query, rows) => ({
+const surface = <T, E>(
+  query: UseInfiniteQueryResult<InfiniteData<CursorPage<T>>, E>,
+  rows: T[]
+) => ({
   rows,
   isLoading: query.isLoading,
   isError: query.isError,
@@ -29,7 +35,7 @@ const surface = (query, rows) => ({
  *
  * @param {{status?: string}} filters
  */
-export function useHashtagList(filters = {}) {
+export function useHashtagList(filters: { status?: string } = {}) {
   const role = useAuthStore((state) => state.role);
   const status = filters.status || undefined;
 
@@ -37,7 +43,7 @@ export function useHashtagList(filters = {}) {
     queryKey: listQueryKey('hashtags', role, { status: status ?? null }),
     queryFn: ({ pageParam }) =>
       adminApi.getHashtags({ status, cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     staleTime: STALE_TIME.SHORT,
@@ -55,7 +61,7 @@ export function useHashtagList(filters = {}) {
  * @param {string} term the debounced, length-checked term, or '' to idle
  * @param {{status?: string}} filters
  */
-export function useHashtagSearch(term, filters = {}) {
+export function useHashtagSearch(term: string, filters: { status?: string } = {}) {
   const role = useAuthStore((state) => state.role);
   const status = filters.status || undefined;
   const active = Boolean(term);
@@ -64,7 +70,7 @@ export function useHashtagSearch(term, filters = {}) {
     queryKey: listQueryKey('hashtag-search', role, { q: term || null, status: status ?? null }),
     queryFn: ({ pageParam }) =>
       adminApi.searchHashtags({ q: term, status, cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     enabled: active,
     retry: panelQueryRetry,

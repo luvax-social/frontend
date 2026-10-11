@@ -1,3 +1,31 @@
+import type { AxiosResponse } from 'axios';
+import type { ApiResponse, CursorPage } from '@/types/api';
+import type { ReportResponse, VocabularyResponse, UserEventResponse } from '@/types/domain';
+import type {
+  AdminReportTargetResponse,
+  AdminUserLookupResponse,
+  EscalatedReportCountResponse,
+  AdminActionResponse,
+  AdminPostRestoreResponse,
+  AdminViolationResponse,
+  AdminWarnUserResponse,
+  AdminPostSummaryResponse,
+  AdminCommentSummaryResponse,
+  AdminActionSummaryResponse,
+  AdminUserListItemResponse,
+  AdminUserDetailResponse,
+  CurrentSessionResponse,
+  HashtagAdminResponse,
+  AdminStatsCurrentResponse,
+  AdminStatsTimeseriesResponse,
+  AdminWarnUserRequest,
+  AdminActionRequest,
+  AdminSuspendUserRequest,
+  AdminRoleChangeRequest,
+  AdminCreateHashtagRequest,
+  AdminUpdateHashtagRequest,
+  AdminDeleteHashtagRequest,
+} from '@/types/admin';
 import { axiosClient } from '@/api/axiosClient';
 
 import { buildBody, pickParams } from '@/utils/requestContract';
@@ -12,7 +40,7 @@ import { buildBody, pickParams } from '@/utils/requestContract';
  * query keys, and builds request bodies field by field.
  */
 
-const unwrap = (response) => response?.data?.data;
+const unwrap = <T>(response: AxiosResponse<ApiResponse<T>>): T => response.data.data;
 
 // Declared query parameters per endpoint. Anything outside these lists is
 // stripped before the request, which the admin endpoints enforce with 400 and
@@ -55,7 +83,7 @@ const USER_EVENTS_QUERY_KEYS = ['userId', 'from', 'to', 'eventType', 'cursor', '
 export const adminApi = {
   /** The one-hour-cached vocabulary lists (report reasons, moderation actions). */
   async getVocabularies() {
-    const res = await axiosClient.get('/config/vocabularies');
+    const res = await axiosClient.get<ApiResponse<VocabularyResponse>>('/config/vocabularies');
     return unwrap(res);
   },
 
@@ -64,21 +92,35 @@ export const adminApi = {
    * `escalated`. The result set differs by role: a moderator sees only pending
    * and reviewing reports.
    */
-  async getReports({ status, reportType, cursor, limit } = {}) {
+  async getReports({
+    status,
+    reportType,
+    cursor,
+    limit,
+  }: {
+    status?: string | null;
+    reportType?: string | null;
+    cursor?: string | null;
+    limit?: number;
+  } = {}) {
     const params = pickParams({ status, reportType, cursor, limit }, REPORTS_QUERY_KEYS);
-    const res = await axiosClient.get('/reports', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<ReportResponse>>>('/reports', {
+      params,
+    });
     return unwrap(res);
   },
 
   /** A single report. Returns 404 for a moderator once the report is closed. */
-  async getReport(reportId) {
-    const res = await axiosClient.get(`/reports/${reportId}`);
+  async getReport(reportId: string) {
+    const res = await axiosClient.get<ApiResponse<ReportResponse>>(`/reports/${reportId}`);
     return unwrap(res);
   },
 
   /** The reported entity itself. One payload shape serves all five entity types. */
-  async getReportTarget(reportId) {
-    const res = await axiosClient.get(`/admin/reports/${reportId}/target`);
+  async getReportTarget(reportId: string) {
+    const res = await axiosClient.get<ApiResponse<AdminReportTargetResponse>>(
+      `/admin/reports/${reportId}/target`
+    );
     return unwrap(res);
   },
 
@@ -100,17 +142,22 @@ export const adminApi = {
    * `{ userId, found, user }` with `found: false` and a null `user` for an
    * unknown or deleted id. Callers index by `userId`; see `lib/userSummaries`.
    */
-  async getUserSummaries(ids) {
-    const res = await axiosClient.get('/admin/user-summaries', {
-      params: { ids },
-      paramsSerializer: { indexes: null },
-    });
+  async getUserSummaries(ids: readonly string[]) {
+    const res = await axiosClient.get<ApiResponse<AdminUserLookupResponse[]>>(
+      '/admin/user-summaries',
+      {
+        params: { ids },
+        paramsSerializer: { indexes: null },
+      }
+    );
     return unwrap(res);
   },
 
   /** The escalated report counter. Administrator only; a moderator receives 403. */
   async getEscalatedCount() {
-    const res = await axiosClient.get('/admin/reports/escalated/count');
+    const res = await axiosClient.get<ApiResponse<EscalatedReportCountResponse>>(
+      '/admin/reports/escalated/count'
+    );
     return unwrap(res)?.count ?? 0;
   },
 
@@ -119,32 +166,32 @@ export const adminApi = {
    * five statuses but only this transition happens; no resolution note is sent,
    * because the recorded note is the reason on resolve and dismiss.
    */
-  async markReviewing(reportId) {
-    const res = await axiosClient.patch(
+  async markReviewing(reportId: string) {
+    const res = await axiosClient.patch<ApiResponse<ReportResponse>>(
       `/reports/${reportId}/status`,
       buildBody({ status: 'reviewing' })
     );
     return unwrap(res);
   },
 
-  async resolveReport(reportId, reason) {
-    const res = await axiosClient.patch(
+  async resolveReport(reportId: string, reason: string) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/reports/${reportId}/resolve`,
       buildBody({ reason })
     );
     return unwrap(res);
   },
 
-  async dismissReport(reportId, reason) {
-    const res = await axiosClient.patch(
+  async dismissReport(reportId: string, reason: string) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/reports/${reportId}/dismiss`,
       buildBody({ reason })
     );
     return unwrap(res);
   },
 
-  async escalateReport(reportId, reason) {
-    const res = await axiosClient.patch(
+  async escalateReport(reportId: string, reason: string) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/reports/${reportId}/escalate`,
       buildBody({ reason })
     );
@@ -152,8 +199,8 @@ export const adminApi = {
   },
 
   /** Remove a post. Returns an AdminActionResponse directly. */
-  async removePost(postId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async removePost(postId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/posts/${postId}/remove`,
       buildBody({ reason, reportId })
     );
@@ -170,8 +217,8 @@ export const adminApi = {
    * which is correct and must not read as a bug. Verified in
    * `uptake-contract-verification.md` §3.
    */
-  async restorePost(postId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async restorePost(postId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminPostRestoreResponse>>(
       `/admin/posts/${postId}/restore`,
       buildBody({ reason, reportId })
     );
@@ -179,8 +226,8 @@ export const adminApi = {
   },
 
   /** Remove a comment. Returns an AdminActionResponse directly. */
-  async removeComment(commentId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async removeComment(commentId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/comments/${commentId}/remove`,
       buildBody({ reason, reportId })
     );
@@ -191,8 +238,8 @@ export const adminApi = {
    * Restore a comment. Returns an AdminActionResponse directly, with no
    * dropped-hashtag wrapper, because comments carry no hashtags.
    */
-  async restoreComment(commentId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async restoreComment(commentId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/comments/${commentId}/restore`,
       buildBody({ reason, reportId })
     );
@@ -203,8 +250,8 @@ export const adminApi = {
    * Remove a story. Returns an AdminActionResponse directly. A moderator may
    * call this. 409 means the story is already removed.
    */
-  async removeStory(storyId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async removeStory(storyId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/stories/${storyId}/remove`,
       buildBody({ reason, reportId })
     );
@@ -220,8 +267,8 @@ export const adminApi = {
    * it. Once a story is both removed and expired the cleanup job deletes it and
    * this answers 404. See `uptake-contract-verification.md` §1.1.
    */
-  async restoreStory(storyId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async restoreStory(storyId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/stories/${storyId}/restore`,
       buildBody({ reason, reportId })
     );
@@ -233,8 +280,8 @@ export const adminApi = {
    * text, media, and any shared post or story from both participants; the
    * reviewer's own view of the target still carries the text, marked removed.
    */
-  async removeMessage(messageId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async removeMessage(messageId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/messages/${messageId}/remove`,
       buildBody({ reason, reportId })
     );
@@ -249,8 +296,8 @@ export const adminApi = {
    * already deleted succeeds while leaving it invisible to both participants.
    * See `uptake-contract-verification.md` §1.2.
    */
-  async restoreMessage(messageId, reason, reportId) {
-    const res = await axiosClient.patch(
+  async restoreMessage(messageId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/messages/${messageId}/restore`,
       buildBody({ reason, reportId })
     );
@@ -267,9 +314,22 @@ export const adminApi = {
    * the role, so a cursor from one setting is rejected by the other with
    * INVALID_CURSOR — toggling restarts pagination rather than replaying.
    */
-  async getViolations({ userId, cursor, limit, includeRevoked } = {}) {
+  async getViolations({
+    userId,
+    cursor,
+    limit,
+    includeRevoked,
+  }: {
+    userId?: string | null;
+    cursor?: string | null;
+    limit?: number;
+    includeRevoked?: boolean;
+  } = {}) {
     const params = pickParams({ cursor, limit, includeRevoked }, VIOLATIONS_QUERY_KEYS);
-    const res = await axiosClient.get(`/admin/violations/for-user/${userId}`, { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<AdminViolationResponse>>>(
+      `/admin/violations/for-user/${userId}`,
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -279,8 +339,8 @@ export const adminApi = {
    * A third active warning auto-issues a strike, reflected in the response's
    * `strikeIssued`, `strike`, and `resultingStatus`.
    */
-  async warnUser(userId, { reasonKey, note }) {
-    const res = await axiosClient.post(
+  async warnUser(userId: string, { reasonKey, note }: AdminWarnUserRequest) {
+    const res = await axiosClient.post<ApiResponse<AdminWarnUserResponse>>(
       `/admin/warnings/for-user/${userId}`,
       buildBody({ reasonKey, note })
     );
@@ -288,32 +348,52 @@ export const adminApi = {
   },
 
   /** Revoke a warning. Administrator only; a moderator receives 403. */
-  async revokeWarning(warningId, { reason, reportId }) {
-    const res = await axiosClient.delete(`/admin/warnings/${warningId}`, {
-      data: buildBody({ reason, reportId }),
-    });
+  async revokeWarning(warningId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.delete<ApiResponse<AdminActionResponse>>(
+      `/admin/warnings/${warningId}`,
+      {
+        data: buildBody({ reason, reportId }),
+      }
+    );
     return unwrap(res);
   },
 
   /** Revoke a strike. Administrator only; a moderator receives 403. */
-  async revokeStrike(strikeId, { reason, reportId }) {
-    const res = await axiosClient.delete(`/admin/strikes/${strikeId}`, {
-      data: buildBody({ reason, reportId }),
-    });
+  async revokeStrike(strikeId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.delete<ApiResponse<AdminActionResponse>>(
+      `/admin/strikes/${strikeId}`,
+      {
+        data: buildBody({ reason, reportId }),
+      }
+    );
     return unwrap(res);
   },
 
   /** One page of an account's posts. Both roles may call. */
-  async getUserPosts({ userId, cursor, limit } = {}) {
+  async getUserPosts({
+    userId,
+    cursor,
+    limit,
+  }: { userId?: string | null; cursor?: string | null; limit?: number } = {}) {
     const params = pickParams({ cursor, limit }, CURSOR_QUERY_KEYS);
-    const res = await axiosClient.get(`/admin/content/for-user/${userId}/posts`, { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<AdminPostSummaryResponse>>>(
+      `/admin/content/for-user/${userId}/posts`,
+      { params }
+    );
     return unwrap(res);
   },
 
   /** One page of an account's comments. Both roles may call. */
-  async getUserComments({ userId, cursor, limit } = {}) {
+  async getUserComments({
+    userId,
+    cursor,
+    limit,
+  }: { userId?: string | null; cursor?: string | null; limit?: number } = {}) {
     const params = pickParams({ cursor, limit }, CURSOR_QUERY_KEYS);
-    const res = await axiosClient.get(`/admin/content/for-user/${userId}/comments`, { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<AdminCommentSummaryResponse>>>(
+      `/admin/content/for-user/${userId}/comments`,
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -322,12 +402,31 @@ export const adminApi = {
    * actions; an administrator sees all. Rows never carry `metadata`. The only
    * declared filters are `adminId` and `actionType`.
    */
-  async getActions({ adminId, actionType, targetUserId, from, to, cursor, limit } = {}) {
+  async getActions({
+    adminId,
+    actionType,
+    targetUserId,
+    from,
+    to,
+    cursor,
+    limit,
+  }: {
+    adminId?: string | null;
+    actionType?: string | null;
+    targetUserId?: string | null;
+    from?: string | null;
+    to?: string | null;
+    cursor?: string | null;
+    limit?: number;
+  } = {}) {
     const params = pickParams(
       { adminId, actionType, targetUserId, from, to, cursor, limit },
       ACTIONS_QUERY_KEYS
     );
-    const res = await axiosClient.get('/admin/actions', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<AdminActionSummaryResponse>>>(
+      '/admin/actions',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -335,8 +434,10 @@ export const adminApi = {
    * A single action, the only place `metadata` exists. A moderator receives 404
    * for an action it did not perform.
    */
-  async getAction(actionId) {
-    const res = await axiosClient.get(`/admin/actions/${actionId}`);
+  async getAction(actionId: string) {
+    const res = await axiosClient.get<ApiResponse<AdminActionResponse>>(
+      `/admin/actions/${actionId}`
+    );
     return unwrap(res);
   },
 
@@ -346,9 +447,22 @@ export const adminApi = {
    * only when set. Rows are `AdminUserListItemResponse`, carrying role and status
    * so a row is renderable and triage-able without a second fetch.
    */
-  async getUsers({ status, role, cursor, limit } = {}) {
+  async getUsers({
+    status,
+    role,
+    cursor,
+    limit,
+  }: {
+    status?: string | null;
+    role?: string | null;
+    cursor?: string | null;
+    limit?: number;
+  } = {}) {
     const params = pickParams({ status, role, cursor, limit }, USERS_QUERY_KEYS);
-    const res = await axiosClient.get('/admin/users', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<AdminUserListItemResponse>>>(
+      '/admin/users',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -358,9 +472,16 @@ export const adminApi = {
    * 400, so the caller gates on length before firing. Returns the same row shape
    * as the list. Rate limited (prod 40/min); a 429 carries `Retry-After`.
    */
-  async searchUsers({ q, cursor, limit } = {}) {
+  async searchUsers({
+    q,
+    cursor,
+    limit,
+  }: { q?: string | null; cursor?: string | null; limit?: number } = {}) {
     const params = pickParams({ q, cursor, limit }, USER_SEARCH_QUERY_KEYS);
-    const res = await axiosClient.get('/admin/users/search', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<AdminUserListItemResponse>>>(
+      '/admin/users/search',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -370,14 +491,16 @@ export const adminApi = {
    * endpoint, so it is refetched with the detail after every action; no action
    * response carries capabilities.
    */
-  async getUserDetail(userId) {
-    const res = await axiosClient.get(`/admin/users/${userId}`);
+  async getUserDetail(userId: string) {
+    const res = await axiosClient.get<ApiResponse<AdminUserDetailResponse>>(
+      `/admin/users/${userId}`
+    );
     return unwrap(res);
   },
 
   /** Ban an account. Body is `reason` (required) and an optional `reportId`. */
-  async banUser(userId, { reason, reportId } = {}) {
-    const res = await axiosClient.patch(
+  async banUser(userId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/users/${userId}/ban`,
       buildBody({ reason, reportId })
     );
@@ -385,8 +508,8 @@ export const adminApi = {
   },
 
   /** Lift a ban. Body is `reason` (required) and an optional `reportId`. */
-  async unbanUser(userId, { reason, reportId } = {}) {
-    const res = await axiosClient.patch(
+  async unbanUser(userId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/users/${userId}/unban`,
       buildBody({ reason, reportId })
     );
@@ -399,8 +522,8 @@ export const adminApi = {
    * `suspendedUntil`; the client shows `now + durationDays` in local time before
    * confirming rather than sending an end time.
    */
-  async suspendUser(userId, { reason, reportId, durationDays } = {}) {
-    const res = await axiosClient.patch(
+  async suspendUser(userId: string, { reason, reportId, durationDays }: AdminSuspendUserRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/users/${userId}/suspend`,
       buildBody({ reason, reportId, durationDays })
     );
@@ -408,8 +531,8 @@ export const adminApi = {
   },
 
   /** Lift a suspension. Body is `reason` (required) and an optional `reportId`. */
-  async unsuspendUser(userId, { reason, reportId } = {}) {
-    const res = await axiosClient.patch(
+  async unsuspendUser(userId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/users/${userId}/unsuspend`,
       buildBody({ reason, reportId })
     );
@@ -421,8 +544,11 @@ export const adminApi = {
    * `assignableRoles`) and `reason` (required). Promotion to administrator is
    * irreversible: an existing administrator can never be demoted through the API.
    */
-  async changeUserRole(userId, { role, reason } = {}) {
-    const res = await axiosClient.patch(`/admin/users/${userId}/role`, buildBody({ role, reason }));
+  async changeUserRole(userId: string, { role, reason }: AdminRoleChangeRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
+      `/admin/users/${userId}/role`,
+      buildBody({ role, reason })
+    );
     return unwrap(res);
   },
 
@@ -431,8 +557,8 @@ export const adminApi = {
    * token epoch, so both the refresh path and every already-issued access token
    * die immediately. Body is `reason` (required) and an optional `reportId`.
    */
-  async forceLogout(userId, { reason, reportId } = {}) {
-    const res = await axiosClient.post(
+  async forceLogout(userId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.post<ApiResponse<AdminActionResponse>>(
       `/admin/users/${userId}/force-logout`,
       buildBody({ reason, reportId })
     );
@@ -449,10 +575,13 @@ export const adminApi = {
    * session when it ended nothing. A session id belonging to another account
    * answers 404. A revoked session cannot be un-revoked.
    */
-  async revokeSession(userId, sessionId, { reason, reportId } = {}) {
-    const res = await axiosClient.delete(`/admin/users/${userId}/sessions/${sessionId}`, {
-      data: buildBody({ reason, reportId }),
-    });
+  async revokeSession(userId: string, sessionId: string, { reason, reportId }: AdminActionRequest) {
+    const res = await axiosClient.delete<ApiResponse<AdminActionResponse>>(
+      `/admin/users/${userId}/sessions/${sessionId}`,
+      {
+        data: buildBody({ reason, reportId }),
+      }
+    );
     return unwrap(res);
   },
 
@@ -466,8 +595,11 @@ export const adminApi = {
    * is marked in that case. There is no per-row marker in the session payload
    * and none may be invented; correlating this id is the only mechanism.
    */
-  async getCurrentSession(refreshToken) {
-    const res = await axiosClient.post('/auth/session', buildBody({ refreshToken }));
+  async getCurrentSession(refreshToken: string | null) {
+    const res = await axiosClient.post<ApiResponse<CurrentSessionResponse>>(
+      '/auth/session',
+      buildBody({ refreshToken })
+    );
     return unwrap(res);
   },
 
@@ -477,9 +609,12 @@ export const adminApi = {
    * since closed still appears, which is the outcome the escalation was for.
    * An administrator calling it gets its own escalations, not everyone's.
    */
-  async getMyEscalations({ cursor, limit } = {}) {
+  async getMyEscalations({ cursor, limit }: { cursor?: string | null; limit?: number } = {}) {
     const params = pickParams({ cursor, limit }, CURSOR_QUERY_KEYS);
-    const res = await axiosClient.get('/reports/escalated/mine', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<ReportResponse>>>(
+      '/reports/escalated/mine',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -488,9 +623,16 @@ export const adminApi = {
    * 403. Declares a `status` filter (`active`/`banned`/`deleted`). Rows are
    * `HashtagAdminResponse`.
    */
-  async getHashtags({ status, cursor, limit } = {}) {
+  async getHashtags({
+    status,
+    cursor,
+    limit,
+  }: { status?: string | null; cursor?: string | null; limit?: number } = {}) {
     const params = pickParams({ status, cursor, limit }, HASHTAGS_QUERY_KEYS);
-    const res = await axiosClient.get('/admin/hashtags', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<HashtagAdminResponse>>>(
+      '/admin/hashtags',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -499,9 +641,17 @@ export const adminApi = {
    * one character; blank is 400) and an optional `status` narrows it. Same row
    * shape as the list. Rate limited on its own bucket (prod 40/min).
    */
-  async searchHashtags({ q, status, cursor, limit } = {}) {
+  async searchHashtags({
+    q,
+    status,
+    cursor,
+    limit,
+  }: { q?: string | null; status?: string | null; cursor?: string | null; limit?: number } = {}) {
     const params = pickParams({ q, status, cursor, limit }, HASHTAG_SEARCH_QUERY_KEYS);
-    const res = await axiosClient.get('/admin/hashtags/search', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<HashtagAdminResponse>>>(
+      '/admin/hashtags/search',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -511,8 +661,11 @@ export const adminApi = {
    * hashtag's id is carried in `targetEntityId`. A duplicate name returns 409
    * HASHTAG_ALREADY_EXISTS.
    */
-  async createHashtag({ name, status, note } = {}) {
-    const res = await axiosClient.post('/admin/hashtags', buildBody({ name, status, note }));
+  async createHashtag({ name, status, note }: AdminCreateHashtagRequest) {
+    const res = await axiosClient.post<ApiResponse<AdminActionResponse>>(
+      '/admin/hashtags',
+      buildBody({ name, status, note })
+    );
     return unwrap(res);
   },
 
@@ -521,8 +674,8 @@ export const adminApi = {
    * Returns an `AdminActionResponse`. Banning a hashtag drops it from any post
    * restored later; unbanning returns it to `active`.
    */
-  async updateHashtag(hashtagId, { status, note } = {}) {
-    const res = await axiosClient.patch(
+  async updateHashtag(hashtagId: string, { status, note }: AdminUpdateHashtagRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
       `/admin/hashtags/${hashtagId}`,
       buildBody({ status, note })
     );
@@ -534,10 +687,13 @@ export const adminApi = {
    * `deleted` rather than removing it; it stays queryable under the `deleted`
    * status filter. Returns an `AdminActionResponse`.
    */
-  async deleteHashtag(hashtagId, { reason } = {}) {
-    const res = await axiosClient.delete(`/admin/hashtags/${hashtagId}`, {
-      data: buildBody({ reason }),
-    });
+  async deleteHashtag(hashtagId: string, { reason }: AdminDeleteHashtagRequest) {
+    const res = await axiosClient.delete<ApiResponse<AdminActionResponse>>(
+      `/admin/hashtags/${hashtagId}`,
+      {
+        data: buildBody({ reason }),
+      }
+    );
     return unwrap(res);
   },
 
@@ -552,7 +708,8 @@ export const adminApi = {
    * completed bucket, so they are a snapshot up to 30 minutes old, never live.
    */
   async getCurrentStats() {
-    const res = await axiosClient.get('/admin/stats/current');
+    const res =
+      await axiosClient.get<ApiResponse<AdminStatsCurrentResponse>>('/admin/stats/current');
     return unwrap(res);
   },
 
@@ -570,9 +727,22 @@ export const adminApi = {
    * request: the server may answer at a different granularity from the one that
    * was asked for.
    */
-  async getStatsTimeseries({ metric, granularity, from, to } = {}) {
+  async getStatsTimeseries({
+    metric,
+    granularity,
+    from,
+    to,
+  }: {
+    metric?: string | null;
+    granularity?: string | null;
+    from?: string | null;
+    to?: string | null;
+  } = {}) {
     const params = pickParams({ metric, granularity, from, to }, STATS_TIMESERIES_QUERY_KEYS);
-    const res = await axiosClient.get('/admin/stats/timeseries', { params });
+    const res = await axiosClient.get<ApiResponse<AdminStatsTimeseriesResponse>>(
+      '/admin/stats/timeseries',
+      { params }
+    );
     return unwrap(res);
   },
 
@@ -585,12 +755,29 @@ export const adminApi = {
    * across every account. Rate limited (prod 20/min), the tightest budget in the
    * panel, so the caller fires on commit and never on change.
    */
-  async getUserEvents({ userId, from, to, eventType, cursor, limit } = {}) {
+  async getUserEvents({
+    userId,
+    from,
+    to,
+    eventType,
+    cursor,
+    limit,
+  }: {
+    userId?: string | null;
+    from?: string | null;
+    to?: string | null;
+    eventType?: string | null;
+    cursor?: string | null;
+    limit?: number;
+  } = {}) {
     const params = pickParams(
       { userId, from, to, eventType, cursor, limit },
       USER_EVENTS_QUERY_KEYS
     );
-    const res = await axiosClient.get('/admin/user-events', { params });
+    const res = await axiosClient.get<ApiResponse<CursorPage<UserEventResponse>>>(
+      '/admin/user-events',
+      { params }
+    );
     return unwrap(res);
   },
 };

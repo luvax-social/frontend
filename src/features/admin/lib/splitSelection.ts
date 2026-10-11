@@ -21,7 +21,11 @@
  */
 export const SELECTION_PARAM = 'selected';
 
-export function getSplitSelection(searchParams, rows = [], keyField = 'id') {
+export function getSplitSelection<T extends object>(
+  searchParams: Pick<URLSearchParams, 'get'> | null | undefined,
+  rows: T[] = [],
+  keyField: keyof T = 'id' as keyof T
+) {
   const requested =
     typeof searchParams?.get === 'function' ? searchParams.get(SELECTION_PARAM) : null;
 
@@ -46,7 +50,7 @@ export function getSplitSelection(searchParams, rows = [], keyField = 'id') {
  * Every other parameter — the filters, above all — is carried through, so
  * opening a record never drops the view it was opened from.
  */
-export function withSelection(searchParams, id) {
+export function withSelection(searchParams: URLSearchParams, id: string | null | undefined) {
   const next = new URLSearchParams(searchParams);
   if (id) {
     next.set(SELECTION_PARAM, id);

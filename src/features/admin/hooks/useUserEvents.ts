@@ -1,3 +1,4 @@
+import type { TimeRange } from '../lib/statistics';
 import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
@@ -101,12 +102,20 @@ export const WRITTEN_EVENT_TYPES = [...UNCONDITIONAL_EVENT_TYPES, ...ENGAGEMENT_
  * changing the event type starts a fresh cursor sequence rather than replaying
  * one scoped to the previous query.
  */
-export function useUserEvents({ userId, range, eventType }) {
+export function useUserEvents({
+  userId,
+  range,
+  eventType,
+}: {
+  userId?: string | null;
+  range: TimeRange | null;
+  eventType?: string;
+}) {
   const role = useAuthStore((state) => state.role);
   const enabled = Boolean(range?.fromMs && range?.toMs);
 
-  const from = enabled ? toIso(range.fromMs) : undefined;
-  const to = enabled ? toIso(range.toMs) : undefined;
+  const from = enabled ? toIso(range!.fromMs) : undefined;
+  const to = enabled ? toIso(range!.toMs) : undefined;
 
   const query = useInfiniteQuery({
     queryKey: listQueryKey('user-events', role, {
@@ -124,7 +133,7 @@ export function useUserEvents({ userId, range, eventType }) {
         cursor: pageParam,
         limit: PAGE_LIMIT,
       }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     enabled,
     retry: panelQueryRetry,

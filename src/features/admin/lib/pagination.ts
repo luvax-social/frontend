@@ -14,7 +14,9 @@ import { getErrorCode, isRateLimited } from './errors';
  * cursor only while `hasNextPage` is true, and `undefined` (which stops the
  * query) otherwise. Never returns null, and never inspects page length.
  */
-export const getNextPageParam = (lastPage) => {
+export const getNextPageParam = (
+  lastPage: { pageInfo?: { hasNextPage?: boolean; endCursor?: string | null } } | null | undefined
+) => {
   const info = lastPage?.pageInfo;
   return info?.hasNextPage ? info.endCursor : undefined;
 };
@@ -25,7 +27,7 @@ export const getNextPageParam = (lastPage) => {
  * by restarting pagination rather than by retrying the same request. Otherwise
  * allows a single retry, matching the application's default.
  */
-export const panelQueryRetry = (failureCount, error) => {
+export const panelQueryRetry = (failureCount: number, error: unknown) => {
   if (isRateLimited(error)) {
     return false;
   }
@@ -47,9 +49,8 @@ export const panelQueryRetry = (failureCount, error) => {
  * @param {string|null} role the caller's normalised role
  * @param {Object} filters the filter values, serialised into the key
  */
-export const listQueryKey = (endpoint, role, filters = {}) => [
-  'admin',
-  endpoint,
-  role ?? 'anon',
-  filters,
-];
+export const listQueryKey = (
+  endpoint: string,
+  role: string | null | undefined,
+  filters: Record<string, unknown> = {}
+) => ['admin', endpoint, role ?? 'anon', filters];

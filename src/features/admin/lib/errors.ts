@@ -1,3 +1,12 @@
+import { getErrorData, getErrorMessage, getErrorResponse, getErrorHeader } from '@/utils/errors';
+export interface PanelError {
+  kind: 'field' | 'toast' | 'page' | 'silent';
+  code: string | null;
+  message: string;
+  fields: Record<string, string> | null;
+  retryAfterSeconds: number | null;
+  isConflict: boolean;
+}
 /**
  * Error handling for the panel.
  *
@@ -17,21 +26,24 @@
  */
 
 /** Reads the backend error code from the envelope the interceptor preserves. */
-export const getErrorCode = (error) => error?.response?.data?.code ?? null;
+export const getErrorCode = (error: unknown) =>
+  typeof getErrorData(error)?.code === 'string' ? (getErrorData(error)!.code as string) : null;
 
 /** The field-name-to-message map carried only by VALIDATION_ERROR. */
-export const getFieldErrors = (error) => {
-  const data = error?.response?.data?.data;
-  return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+export const getFieldErrors = (error: unknown) => {
+  const data = getErrorData(error)?.data;
+  return data && typeof data === 'object' && !Array.isArray(data)
+    ? (data as Record<string, string>)
+    : null;
 };
 
 /**
  * Reads `Retry-After` (seconds) from a 429 response. The header is exposed to
  * the browser through the API's CORS configuration, so it is readable here.
  */
-export const getRetryAfterSeconds = (error) => {
-  const raw = error?.response?.headers?.['retry-after'];
-  const parsed = Number.parseInt(raw, 10);
+export const getRetryAfterSeconds = (error: unknown) => {
+  const raw = getErrorHeader(error, 'retry-after');
+  const parsed = Number.parseInt(String(raw), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
@@ -67,9 +79,9 @@ const CONFLICT_CODES = new Set([
  *   message: string, fields: Object|null, retryAfterSeconds: number|null,
  *   isConflict: boolean}}
  */
-export const describeError = (error) => {
+export const describeError = (error: unknown): PanelError => {
   const code = getErrorCode(error);
-  const message = error?.message || 'Something went wrong.';
+  const message = getErrorMessage(error, 'Something went wrong.');
 
   if (code === 'VALIDATION_ERROR') {
     return {
@@ -104,7 +116,7 @@ export const describeError = (error) => {
     };
   }
 
-  if (PAGE_CODES.has(code)) {
+  if (PAGE_CODES.has(code ?? '')) {
     return {
       kind: 'page',
       code,
@@ -115,7 +127,7 @@ export const describeError = (error) => {
     };
   }
 
-  if (CONFLICT_CODES.has(code)) {
+  if (CONFLICT_CODES.has(code ?? '')) {
     return {
       kind: 'toast',
       code,
@@ -130,8 +142,8 @@ export const describeError = (error) => {
 };
 
 /** True for the codes that mean another reviewer or a double submit won the race. */
-export const isConflictError = (error) => CONFLICT_CODES.has(getErrorCode(error));
+export const isConflictError = (error: unknown) => CONFLICT_CODES.has(getErrorCode(error) ?? '');
 
 /** True for a 429, which the caller must never auto-retry. */
-export const isRateLimited = (error) =>
-  getErrorCode(error) === 'TOO_MANY_REQUESTS' || error?.response?.status === 429;
+export const isRateLimited = (error: unknown) =>
+  getErrorCode(error) === 'TOO_MANY_REQUESTS' || getErrorResponse(error)?.status === 429;

@@ -1,3 +1,12 @@
+import type { AxiosResponse } from 'axios';
+import type { ApiResponse } from '@/types/api';
+import type {
+  SupportTicketStaffResponse,
+  VerificationQueueItemResponse,
+  RespondSupportTicketRequest,
+  EscalateSupportTicketRequest,
+  VerificationDecisionRequest,
+} from '@/types/support';
 import { axiosClient } from '@/api/axiosClient';
 import { buildBody, pickParams } from '@/utils/requestContract';
 
@@ -9,7 +18,7 @@ import { buildBody, pickParams } from '@/utils/requestContract';
  * parameter is a 400 rather than something the server quietly ignores.
  */
 
-const unwrap = (response) => response?.data?.data;
+const unwrap = <T>(response: AxiosResponse<ApiResponse<T>>): T => response.data.data;
 
 /** The exact query parameters `GET /admin/support/tickets` declares. */
 const QUEUE_QUERY_KEYS = ['status', 'limit'];
@@ -23,16 +32,20 @@ export const supportAdminApi = {
    * carrying a cursor. `pending_confirmation` is excluded server-side, so an
    * unconfirmed public submission never appears here.
    */
-  listTickets: async ({ status, limit = 20 }) =>
+  listTickets: async ({ status, limit = 20 }: { status?: string; limit?: number }) =>
     unwrap(
-      await axiosClient.get('/admin/support/tickets', {
+      await axiosClient.get<ApiResponse<SupportTicketStaffResponse[]>>('/admin/support/tickets', {
         params: pickParams({ status, limit }, QUEUE_QUERY_KEYS),
       })
     ),
 
   /** One ticket, including its internal note, which is staff-only. */
-  getTicket: async (ticketId) =>
-    unwrap(await axiosClient.get(`/admin/support/tickets/${ticketId}`)),
+  getTicket: async (ticketId: string) =>
+    unwrap(
+      await axiosClient.get<ApiResponse<SupportTicketStaffResponse>>(
+        `/admin/support/tickets/${ticketId}`
+      )
+    ),
 
   /**
    * Takes ownership of an unassigned ticket.
@@ -41,8 +54,12 @@ export const supportAdminApi = {
    * update predicate, so two staff claiming at once produce one winner and one
    * `SUPPORT_TICKET_ALREADY_CLAIMED`.
    */
-  claimTicket: async (ticketId) =>
-    unwrap(await axiosClient.post(`/admin/support/tickets/${ticketId}/claim`)),
+  claimTicket: async (ticketId: string) =>
+    unwrap(
+      await axiosClient.post<ApiResponse<SupportTicketStaffResponse>>(
+        `/admin/support/tickets/${ticketId}/claim`
+      )
+    ),
 
   /**
    * Answers a ticket, or closes it as rejected.
@@ -52,9 +69,16 @@ export const supportAdminApi = {
    * reaches the requester: it is absent from the owner-facing DTO and from the
    * mail metadata map.
    */
-  respondToTicket: async (ticketId, { staffResponse, internalNote, reject = false }) =>
+  respondToTicket: async (
+    ticketId: string,
+    {
+      staffResponse,
+      internalNote,
+      reject = false,
+    }: RespondSupportTicketRequest & { reject?: boolean }
+  ) =>
     unwrap(
-      await axiosClient.post(
+      await axiosClient.post<ApiResponse<SupportTicketStaffResponse>>(
         `/admin/support/tickets/${ticketId}/respond`,
         buildBody({ staffResponse, internalNote }),
         { params: pickParams({ reject }, ['reject']) }
@@ -62,28 +86,41 @@ export const supportAdminApi = {
     ),
 
   /** Hands a ticket up to an administrator. Open to both staff roles. */
-  escalateTicket: async (ticketId, { reason }) =>
+  escalateTicket: async (ticketId: string, { reason }: EscalateSupportTicketRequest) =>
     unwrap(
-      await axiosClient.patch(`/admin/support/tickets/${ticketId}/escalate`, buildBody({ reason }))
+      await axiosClient.patch<ApiResponse<SupportTicketStaffResponse>>(
+        `/admin/support/tickets/${ticketId}/escalate`,
+        buildBody({ reason })
+      )
     ),
 
   /** The structured verification request behind a verification ticket. */
-  getVerificationRequest: async (ticketId) =>
-    unwrap(await axiosClient.get(`/admin/verification/requests/${ticketId}`)),
+  getVerificationRequest: async (ticketId: string) =>
+    unwrap(
+      await axiosClient.get<ApiResponse<VerificationQueueItemResponse>>(
+        `/admin/verification/requests/${ticketId}`
+      )
+    ),
 
   /** Grants the badge and closes the ticket. */
-  approveVerification: async (ticketId, { reason, internalNote }) =>
+  approveVerification: async (
+    ticketId: string,
+    { reason, internalNote }: VerificationDecisionRequest
+  ) =>
     unwrap(
-      await axiosClient.post(
+      await axiosClient.post<ApiResponse<SupportTicketStaffResponse>>(
         `/admin/verification/requests/${ticketId}/approve`,
         buildBody({ reason, internalNote })
       )
     ),
 
   /** Refuses the request and closes the ticket. */
-  rejectVerification: async (ticketId, { reason, internalNote }) =>
+  rejectVerification: async (
+    ticketId: string,
+    { reason, internalNote }: VerificationDecisionRequest
+  ) =>
     unwrap(
-      await axiosClient.post(
+      await axiosClient.post<ApiResponse<SupportTicketStaffResponse>>(
         `/admin/verification/requests/${ticketId}/reject`,
         buildBody({ reason, internalNote })
       )

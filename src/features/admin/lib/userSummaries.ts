@@ -1,3 +1,5 @@
+import type { UserSummaryResponse } from '@/types/domain';
+import type { AdminUserLookupResponse } from '@/types/admin';
 import { adminApi } from '../api/adminApi';
 
 /**
@@ -35,12 +37,15 @@ import { adminApi } from '../api/adminApi';
 export const MAX_IDS_PER_REQUEST = 100;
 
 /** Ids asked for since the last flush, each with everyone waiting on it. */
-const waiting = new Map();
+const waiting = new Map<
+  string,
+  { resolve: (user: UserSummaryResponse | null) => void; reject: (error: unknown) => void }[]
+>();
 
 /** Whether a flush is already queued for the end of this tick. */
 let flushQueued = false;
 
-const chunk = (items, size) => {
+const chunk = <T>(items: T[], size: number) => {
   const out = [];
   for (let i = 0; i < items.length; i += size) {
     out.push(items.slice(i, i + size));
@@ -68,7 +73,7 @@ const flush = async () => {
     try {
       const entries = await adminApi.getUserSummaries(ids);
       // Indexed by the id the entry itself carries. Never by position.
-      const byId = new Map();
+      const byId = new Map<string, AdminUserLookupResponse>();
       for (const entry of entries ?? []) {
         if (entry?.userId) {
           byId.set(entry.userId, entry);
@@ -103,11 +108,13 @@ const flush = async () => {
  * @returns {Promise<{id:string, username:string, displayName:string|null,
  *                    avatarUrl:string|null, isVerified:boolean}|null>}
  */
-export const loadUserSummary = (userId) => {
+export const loadUserSummary = (
+  userId: string | null | undefined
+): Promise<UserSummaryResponse | null> => {
   if (!userId) {
     return Promise.resolve(null);
   }
-  return new Promise((resolve, reject) => {
+  return new Promise<UserSummaryResponse | null>((resolve, reject) => {
     const settlers = waiting.get(userId);
     if (settlers) {
       settlers.push({ resolve, reject });

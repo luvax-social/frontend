@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Typed admin API contracts, role-scoped pagination, moderation mutations, staff support actions and statistics helpers.
 - TypeScript contracts for message history, optimistic sending, attachment previews, conversations and live subscriptions.
 - TypeScript contracts for search, support tickets, appeal links and verification requests, with schema-derived forms and explicit API responses.
 - TypeScript contracts for profile editing, settings, follow lists and notification events, cache updates and rollback.

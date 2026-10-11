@@ -5,11 +5,11 @@ import { adminApi } from '../api/adminApi';
 
 const ONE_HOUR = 60 * 60 * 1000;
 
-const toSortedByOrder = (list = []) =>
+const toSortedByOrder = <T extends { key: string; sortOrder?: number }>(list: T[] = []) =>
   [...list].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
-const toLabelMap = (list = []) => {
-  const map = new Map();
+const toLabelMap = <T extends { key: string }>(list: T[] = []) => {
+  const map = new Map<string, T>();
   for (const entry of list) {
     map.set(entry.key, entry);
   }
@@ -56,17 +56,17 @@ export function useVocabularies() {
       moderationActions,
       // Renders a reason key as its display name, falling back to the raw key
       // only if the vocabulary has not loaded or the key is unknown.
-      reasonLabel: (key) => reasonMap.get(key)?.displayName ?? key,
+      reasonLabel: (key: string) => reasonMap.get(key)?.displayName ?? key,
       // Whether a reason key is currently enabled; a disabled entry is rendered
       // as unavailable and unselectable rather than hidden.
-      reasonEnabled: (key) => reasonMap.get(key)?.isEnabled ?? true,
-      actionLabel: (key) => actionMap.get(key)?.displayName ?? key,
+      reasonEnabled: (key: string) => reasonMap.get(key)?.isEnabled ?? true,
+      actionLabel: (key: string) => actionMap.get(key)?.displayName ?? key,
       // Whether an action type exists in the moderation-action vocabulary. An
       // observed type absent from it renders as its raw key with a marker rather
       // than blank, and is recorded as a finding. Reported as unknown only once
       // the vocabulary has actually loaded, so a slow fetch never mislabels a
       // known type.
-      actionKnown: (key) => (query.isSuccess ? actionMap.has(key) : true),
+      actionKnown: (key: string) => (query.isSuccess ? actionMap.has(key) : true),
     };
   }, [data, query.isLoading, query.isError]);
 }

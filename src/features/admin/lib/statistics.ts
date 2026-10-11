@@ -1,3 +1,12 @@
+import type { StatPointResponse } from '@/types/admin';
+export interface PlotPoint {
+  t: number;
+  value: number;
+}
+export interface TimeRange {
+  fromMs: number;
+  toMs: number;
+}
 /**
  * The statistics contract, expressed as data and pure functions.
  *
@@ -51,7 +60,8 @@ export const METRICS = [
   },
 ];
 
-export const metricFor = (key) => METRICS.find((m) => m.key === key) ?? METRICS[0];
+export const metricFor = (key: string | null | undefined) =>
+  METRICS.find((m) => m.key === key) ?? METRICS[0];
 
 /**
  * The two granularities the server accepts. There is no hourly bucket; asking
@@ -64,7 +74,8 @@ export const GRANULARITIES = [
   { key: 'day', label: 'daily', stepMs: 24 * 60 * 60 * 1000 },
 ];
 
-export const granularityFor = (key) => GRANULARITIES.find((g) => g.key === key) ?? GRANULARITIES[0];
+export const granularityFor = (key: string | null | undefined) =>
+  GRANULARITIES.find((g) => g.key === key) ?? GRANULARITIES[0];
 
 /** Longest span a single series read may cover. Verified: 365 days passes, 366 is refused. */
 export const MAX_WINDOW_DAYS = 365;
@@ -90,7 +101,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * A small safety margin is applied so a request composed a few seconds before it
  * is sent does not cross the rolling boundary in flight.
  */
-export const isGranularityAvailable = (granularityKey, fromMs, nowMs = Date.now()) => {
+export const isGranularityAvailable = (
+  granularityKey: string,
+  fromMs: number,
+  nowMs = Date.now()
+) => {
   if (granularityKey !== 'half_hour') {
     return true;
   }
@@ -100,7 +115,7 @@ export const isGranularityAvailable = (granularityKey, fromMs, nowMs = Date.now(
 };
 
 /** The granularities selectable for a window, each flagged with why it is or is not. */
-export const availableGranularities = (fromMs, nowMs = Date.now()) =>
+export const availableGranularities = (fromMs: number, nowMs = Date.now()) =>
   GRANULARITIES.map((g) => ({
     ...g,
     available: isGranularityAvailable(g.key, fromMs, nowMs),
@@ -121,10 +136,10 @@ export const availableGranularities = (fromMs, nowMs = Date.now()) =>
  * Returns the corrected range together with a note naming what was changed, so
  * the control can say what it did instead of silently altering the input.
  */
-export const clampRange = (fromMs, toMs, maxDays = MAX_WINDOW_DAYS) => {
+export const clampRange = (fromMs: number, toMs: number, maxDays = MAX_WINDOW_DAYS) => {
   let from = fromMs;
   let to = toMs;
-  let note = null;
+  let note: string | null = null;
 
   if (!(to > from)) {
     to = from + DAY_MS;
@@ -146,14 +161,14 @@ export const clampRange = (fromMs, toMs, maxDays = MAX_WINDOW_DAYS) => {
  * row at all rather than a row holding zero, which is why a series may be
  * shorter than its neighbours without anything being wrong.
  */
-export const groupByDimension = (points = []) => {
-  const map = new Map();
+export const groupByDimension = (points: StatPointResponse[] = []) => {
+  const map = new Map<string, PlotPoint[]>();
   for (const point of points) {
     const key = point?.dimension ?? '';
     if (!map.has(key)) {
       map.set(key, []);
     }
-    map.get(key).push({ t: Date.parse(point.bucketStart), value: Number(point.value) || 0 });
+    map.get(key)!.push({ t: Date.parse(point.bucketStart), value: Number(point.value) || 0 });
   }
   return [...map.entries()]
     .map(([dimension, values]) => ({
@@ -180,7 +195,7 @@ export const groupByDimension = (points = []) => {
  * A segment holding a single point is kept: it is drawn as a lone marker, which
  * is honest, rather than dropped for being unlineable.
  */
-export const toSegments = (points = [], stepMs) => {
+export const toSegments = (points: PlotPoint[] = [], stepMs: number) => {
   if (points.length === 0) {
     return [];
   }
@@ -198,7 +213,7 @@ export const toSegments = (points = [], stepMs) => {
 };
 
 /** How many buckets are missing between two consecutive segments. */
-export const missingBucketCount = (endMs, startMs, stepMs) =>
+export const missingBucketCount = (endMs: number, startMs: number, stepMs: number) =>
   Math.max(0, Math.round((startMs - endMs) / stepMs) - 1);
 
 /**
@@ -213,7 +228,7 @@ export const missingBucketCount = (endMs, startMs, stepMs) =>
  * Collapsing `empty` into `zero` is how a panel lies: it turns "we do not know"
  * into "we know it was none".
  */
-export const seriesState = (points = []) => {
+export const seriesState = (points: Pick<StatPointResponse, 'value'>[] = []) => {
   if (points.length === 0) {
     return 'empty';
   }
@@ -230,7 +245,7 @@ export const seriesState = (points = []) => {
  * A series that is entirely zero gets a nominal bound of 1 so the axis has a
  * scale at all; the line then sits on the baseline, which is exactly right.
  */
-export const valueAxis = (maxValue, tickCount = 4) => {
+export const valueAxis = (maxValue: number, tickCount = 4) => {
   if (!(maxValue > 0)) {
     return { max: 1, ticks: [0, 1] };
   }
@@ -257,7 +272,7 @@ export const localZone = () => {
 };
 
 /** Formats a bucket start for a time-axis tick, in the viewer's own timezone. */
-export const formatAxisTime = (ms, granularityKey) =>
+export const formatAxisTime = (ms: number, granularityKey: string | null | undefined) =>
   new Date(ms).toLocaleString(
     undefined,
     granularityKey === 'day'
@@ -266,7 +281,7 @@ export const formatAxisTime = (ms, granularityKey) =>
   );
 
 /** Formats a bucket start in full, for a readout where precision matters. */
-export const formatFullTime = (ms) =>
+export const formatFullTime = (ms: number) =>
   new Date(ms).toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -276,8 +291,8 @@ export const formatFullTime = (ms) =>
   });
 
 /** A dimension key as a label. The empty dimension means the metric has no breakdown. */
-export const dimensionLabel = (dimension, metric) =>
+export const dimensionLabel = (dimension: string, metric: { label: string }) =>
   dimension === '' ? metric.label : dimension.replace(/_/g, ' ');
 
 /** An ISO instant for the wire, from a local millisecond value. */
-export const toIso = (ms) => new Date(ms).toISOString();
+export const toIso = (ms: number) => new Date(ms).toISOString();

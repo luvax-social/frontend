@@ -1,3 +1,9 @@
+type TicketGate = {
+  adminActionId?: string | null;
+  category?: string;
+  status?: string;
+  assignedTo?: string | null;
+};
 import { ROLES } from '@/config/roles';
 
 /**
@@ -44,7 +50,8 @@ const APPEAL_CATEGORIES = new Set([
  * Used for what the console shows. What the console *offers* is gated by
  * `requiresAdminDecision` below, which is a different question.
  */
-export const isAppealTicket = (ticket) => Boolean(ticket?.adminActionId);
+export const isAppealTicket = (ticket: TicketGate | null | undefined) =>
+  Boolean(ticket?.adminActionId);
 
 /**
  * Whether only an administrator may decide this ticket.
@@ -57,10 +64,12 @@ export const isAppealTicket = (ticket) => Boolean(ticket?.adminActionId);
  * whose every outcome is a refusal, which is the failure this module already
  * exists to prevent.
  */
-export const requiresAdminDecision = (ticket) => APPEAL_CATEGORIES.has(ticket?.category);
+export const requiresAdminDecision = (ticket: TicketGate | null | undefined) =>
+  APPEAL_CATEGORIES.has(ticket?.category ?? '');
 
 /** Whether a ticket has been decided and can no longer move. */
-export const isTerminalTicket = (ticket) => !ACTIVE_STATUSES.has(ticket?.status);
+export const isTerminalTicket = (ticket: TicketGate | null | undefined) =>
+  !ACTIVE_STATUSES.has(ticket?.status ?? '');
 
 /**
  * What a given staff member may do with a given ticket.
@@ -86,7 +95,10 @@ export const isTerminalTicket = (ticket) => !ACTIVE_STATUSES.has(ticket?.status)
  * @param {Object} viewer `{ id, role }` for the signed-in staff member
  * @returns {Object} what the interface may offer, and why it may not
  */
-export const ticketCapabilities = (ticket, viewer) => {
+export const ticketCapabilities = (
+  ticket: TicketGate | null | undefined,
+  viewer: { id?: string; role?: string | null } | null | undefined
+) => {
   const none = {
     canClaim: false,
     canRespond: false,
@@ -95,7 +107,7 @@ export const ticketCapabilities = (ticket, viewer) => {
     claimedByMe: false,
     claimedBySomeoneElse: false,
     isAppeal: false,
-    blockedReason: null,
+    blockedReason: null as string | null,
   };
 
   if (!ticket || !viewer?.id) {
@@ -146,14 +158,16 @@ export const ticketCapabilities = (ticket, viewer) => {
 };
 
 /** Lowercase, human wording for why a control is not offered. */
-export const blockedReasonLabel = (reason) =>
-  ({
-    decided: 'this ticket has been decided and cannot be changed.',
-    'claimed-by-other': 'another reviewer holds this ticket.',
-    // Naming what is actually gated. Reading a ticket before claiming it is
-    // intended - a moderator can already see the body and the reply address -
-    // and the previous wording implied the whole ticket was behind the claim.
-    unclaimed: 'you can read this ticket. claim it to reply, reject or escalate.',
-    'appeal-requires-admin':
-      'only an administrator can answer an appeal. you can read it and escalate it.',
-  })[reason] ?? null;
+export const blockedReasonLabel = (reason: string | null | undefined) =>
+  (
+    ({
+      decided: 'this ticket has been decided and cannot be changed.',
+      'claimed-by-other': 'another reviewer holds this ticket.',
+      // Naming what is actually gated. Reading a ticket before claiming it is
+      // intended - a moderator can already see the body and the reply address -
+      // and the previous wording implied the whole ticket was behind the claim.
+      unclaimed: 'you can read this ticket. claim it to reply, reject or escalate.',
+      'appeal-requires-admin':
+        'only an administrator can answer an appeal. you can read it and escalate it.',
+    }) as Record<string, string>
+  )[reason ?? ''] ?? null;

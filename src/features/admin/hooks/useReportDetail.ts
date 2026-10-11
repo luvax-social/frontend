@@ -10,10 +10,10 @@ import { panelQueryRetry } from '../lib/pagination';
  * is resolved or dismissed, which the detail screen renders as a calm
  * not-found; the retry policy does not retry that.
  */
-export function useReportDetail(reportId) {
+export function useReportDetail(reportId: string | null | undefined) {
   const query = useQuery({
     queryKey: ['admin', 'report', reportId],
-    queryFn: () => adminApi.getReport(reportId),
+    queryFn: () => adminApi.getReport(reportId!),
     enabled: Boolean(reportId),
     staleTime: STALE_TIME.SHORT,
     retry: panelQueryRetry,
@@ -32,10 +32,10 @@ export function useReportDetail(reportId) {
  * The reported entity, loaded independently of the report so its region can
  * render on its own without blocking the report itself.
  */
-export function useReportTarget(reportId) {
+export function useReportTarget(reportId: string | null | undefined) {
   const query = useQuery({
     queryKey: ['admin', 'report-target', reportId],
-    queryFn: () => adminApi.getReportTarget(reportId),
+    queryFn: () => adminApi.getReportTarget(reportId!),
     enabled: Boolean(reportId),
     staleTime: STALE_TIME.SHORT,
     retry: panelQueryRetry,

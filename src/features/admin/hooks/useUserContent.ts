@@ -1,3 +1,6 @@
+import type { InfiniteData } from '@tanstack/react-query';
+import type { CursorPage } from '@/types/api';
+import type { AdminPostSummaryResponse, AdminCommentSummaryResponse } from '@/types/admin';
 import { useMemo } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -17,14 +20,20 @@ const PAGE_LIMIT = 20;
  * @param {string} userId the account whose content to read
  * @param {'posts'|'comments'} kind which endpoint to page
  */
-export function useUserContent(userId, kind) {
-  const query = useInfiniteQuery({
+export function useUserContent(userId: string | null | undefined, kind: 'posts' | 'comments') {
+  const query = useInfiniteQuery<
+    CursorPage<AdminPostSummaryResponse | AdminCommentSummaryResponse>,
+    Error,
+    InfiniteData<CursorPage<AdminPostSummaryResponse | AdminCommentSummaryResponse>>,
+    readonly unknown[],
+    string | null | undefined
+  >({
     queryKey: ['admin', 'content', kind, userId],
     queryFn: ({ pageParam }) =>
       kind === 'posts'
         ? adminApi.getUserPosts({ userId, cursor: pageParam, limit: PAGE_LIMIT })
         : adminApi.getUserComments({ userId, cursor: pageParam, limit: PAGE_LIMIT }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     enabled: Boolean(userId) && (kind === 'posts' || kind === 'comments'),
@@ -62,7 +71,7 @@ export function useUserContent(userId, kind) {
  *
  * @param {string} userId the account whose content lists to invalidate
  */
-export function useContentModeration(userId) {
+export function useContentModeration(userId: string | null | undefined) {
   const queryClient = useQueryClient();
 
   const invalidate = () => {
@@ -72,19 +81,23 @@ export function useContentModeration(userId) {
   };
 
   const removePost = useMutation({
-    mutationFn: ({ entityId, reason }) => adminApi.removePost(entityId, reason),
+    mutationFn: ({ entityId, reason }: { entityId: string; reason: string }) =>
+      adminApi.removePost(entityId, reason),
     onSuccess: invalidate,
   });
   const restorePost = useMutation({
-    mutationFn: ({ entityId, reason }) => adminApi.restorePost(entityId, reason),
+    mutationFn: ({ entityId, reason }: { entityId: string; reason: string }) =>
+      adminApi.restorePost(entityId, reason),
     onSuccess: invalidate,
   });
   const removeComment = useMutation({
-    mutationFn: ({ entityId, reason }) => adminApi.removeComment(entityId, reason),
+    mutationFn: ({ entityId, reason }: { entityId: string; reason: string }) =>
+      adminApi.removeComment(entityId, reason),
     onSuccess: invalidate,
   });
   const restoreComment = useMutation({
-    mutationFn: ({ entityId, reason }) => adminApi.restoreComment(entityId, reason),
+    mutationFn: ({ entityId, reason }: { entityId: string; reason: string }) =>
+      adminApi.restoreComment(entityId, reason),
     onSuccess: invalidate,
   });
 

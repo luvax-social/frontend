@@ -31,7 +31,7 @@ const PAGE_LIMIT = 20;
  * @param {boolean} includeRevoked whether revoked records are listed too;
  *   false by default, matching the server
  */
-export function useViolations(userId, includeRevoked = false) {
+export function useViolations(userId: string | null | undefined, includeRevoked = false) {
   const role = useAuthStore((state) => state.role);
 
   const query = useInfiniteQuery({
@@ -48,7 +48,7 @@ export function useViolations(userId, includeRevoked = false) {
         // request contract carries no redundant keys.
         includeRevoked: includeRevoked ? true : undefined,
       }),
-    initialPageParam: undefined,
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam,
     retry: panelQueryRetry,
     enabled: Boolean(userId),
@@ -73,5 +73,7 @@ export function useViolations(userId, includeRevoked = false) {
 }
 
 /** The query-key prefix a mutation invalidates to refetch a user's history. */
-export const violationsKeyPrefix = (role, userId) =>
-  listQueryKey('violations', role, { userId: userId ?? null });
+export const violationsKeyPrefix = (
+  role: string | null | undefined,
+  userId: string | null | undefined
+) => listQueryKey('violations', role, { userId: userId ?? null });

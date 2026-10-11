@@ -37,8 +37,9 @@ export function useRateLimitCooldown() {
      * when the header is missing or unreadable, which matches the window every
      * one of these limiters is configured with.
      */
-    start: (seconds) => {
-      const secs = Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
+    start: (seconds: number | null | undefined) => {
+      const secs =
+        typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
       setNow(Date.now());
       setUntil(Date.now() + secs * 1000);
     },

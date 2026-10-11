@@ -6,6 +6,8 @@
  * server reaches the interface without a frontend edit.
  */
 
+import type { MediaConstraintsResponse } from '@/types/domain';
+
 const MEGABYTE = 1024 * 1024;
 
 /**
@@ -24,7 +26,7 @@ export const MIN_CAROUSEL_ITEMS = 2;
 /**
  * A size in bytes rendered the way a limit should read to a person.
  */
-export const formatBytes = (bytes) => {
+export const formatBytes = (bytes: number) => {
   if (!Number.isFinite(bytes) || bytes <= 0) return '';
   const megabytes = bytes / MEGABYTE;
   if (megabytes >= 1024) {
@@ -39,16 +41,17 @@ export const formatBytes = (bytes) => {
  * The short label a MIME type reads as in helper text, so that image/jpeg
  * shows as jpeg rather than as its full type.
  */
-const subtypeOf = (mimeType) => mimeType.split('/')[1] || mimeType;
+const subtypeOf = (mimeType: string) => mimeType.split('/')[1] || mimeType;
 
-export const isVideoFile = (file) => Boolean(file?.type?.startsWith('video/'));
+export const isVideoFile = (file: Pick<File, 'type'> | null | undefined) =>
+  Boolean(file?.type?.startsWith('video/'));
 
 /**
  * The post type is a consequence of what is attached, never a mode the person
  * picks first. Two or more items of any mix is a carousel, which the server
  * confirmed it accepts including when images and video are combined.
  */
-export const derivePostType = (items) => {
+export const derivePostType = (items: { file: Pick<File, 'type'> }[] | null | undefined) => {
   if (!items || items.length === 0) return 'TEXT';
   if (items.length > 1) return 'CAROUSEL';
   return isVideoFile(items[0].file) ? 'VIDEO' : 'IMAGE';
@@ -57,7 +60,7 @@ export const derivePostType = (items) => {
 /**
  * The file picker offers exactly what the server accepts and nothing more.
  */
-export const buildAcceptAttribute = (constraints) => {
+export const buildAcceptAttribute = (constraints: MediaConstraintsResponse | null | undefined) => {
   if (!constraints) return '';
   return [...constraints.acceptedImageMimeTypes, ...constraints.acceptedVideoMimeTypes].join(',');
 };
@@ -66,7 +69,7 @@ export const buildAcceptAttribute = (constraints) => {
  * The helper line under the drop zone, built from the same values the checks
  * use, so the text cannot describe a rule that is not applied.
  */
-export const buildHelperText = (constraints) => {
+export const buildHelperText = (constraints: MediaConstraintsResponse | null | undefined) => {
   if (!constraints) return '';
   const images = constraints.acceptedImageMimeTypes.map(subtypeOf).join(', ');
   const videos = constraints.acceptedVideoMimeTypes.map(subtypeOf).join(', ');
@@ -80,7 +83,10 @@ export const buildHelperText = (constraints) => {
  * oversized file says only that the limit was exceeded without saying what it
  * is, and a refusal that does not name the number leaves the person guessing.
  */
-export const validateFile = (file, constraints) => {
+export const validateFile = (
+  file: Pick<File, 'name' | 'type' | 'size'>,
+  constraints: MediaConstraintsResponse | null | undefined
+) => {
   if (!constraints) {
     return { ok: false, message: "we can't check that file right now. try again in a moment." };
   }
@@ -123,7 +129,11 @@ export const validateFile = (file, constraints) => {
  * accepted. This check is therefore the only place a genuinely long video is
  * stopped.
  */
-export const validateDuration = (file, durationSeconds, constraints) => {
+export const validateDuration = (
+  file: Pick<File, 'name' | 'type'>,
+  durationSeconds: number,
+  constraints: MediaConstraintsResponse | null | undefined
+) => {
   if (!constraints || !isVideoFile(file)) return { ok: true };
   if (!Number.isFinite(durationSeconds)) return { ok: true };
   if (durationSeconds > constraints.maxVideoDurationSeconds) {
@@ -138,7 +148,7 @@ export const validateDuration = (file, durationSeconds, constraints) => {
 /**
  * Reorder without mutating, since the order shown is the order stored.
  */
-export const moveItem = (items, fromIndex, toIndex) => {
+export const moveItem = <T>(items: T[], fromIndex: number, toIndex: number) => {
   if (toIndex < 0 || toIndex >= items.length || fromIndex === toIndex) return items;
   const next = [...items];
   const [moved] = next.splice(fromIndex, 1);

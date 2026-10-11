@@ -1,3 +1,4 @@
+import type { ComponentPropsWithoutRef, CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxAvatar } from '@/components/ui/lx-avatar';
@@ -7,7 +8,17 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 export { LxIcon, LxAvatar, LxDropdownMenu };
 
-export function LxTag({ children, active = false, onClick, size = 'md' }) {
+export function LxTag({
+  children,
+  active = false,
+  onClick,
+  size = 'md',
+}: {
+  children?: ReactNode;
+  active?: boolean;
+  onClick?: MouseEventHandler<HTMLSpanElement>;
+  size?: 'sm' | 'md';
+}) {
   const sizes = {
     sm: { fontSize: 11, padding: '3px 9px' },
     md: { fontSize: 12, padding: '5px 12px' },
@@ -50,6 +61,9 @@ export function LxBtn({
   // `type="button"` that never reaches the DOM silently does nothing.
   type,
   ...rest
+}: ComponentPropsWithoutRef<'button'> & {
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
 }) {
   const sizes = {
     sm: { fontSize: 12, padding: '5px 14px' },
@@ -100,11 +114,21 @@ export function LxBtn({
   );
 }
 
-export function LxDivider({ mx = 0 }) {
+export function LxDivider({ mx = 0 }: { mx?: number }) {
   return <div style={{ height: 1, background: v.border, margin: `0 ${mx}px` }} />;
 }
 
-export function LxBottomSheet({ open, onClose, children, height = '70vh' }) {
+export function LxBottomSheet({
+  open,
+  onClose,
+  children,
+  height = '70vh',
+}: {
+  open: boolean;
+  onClose: () => void;
+  children?: ReactNode;
+  height?: CSSProperties['height'];
+}) {
   useEscapeKey(open, onClose);
   useBodyScrollLock(open);
 
@@ -155,7 +179,21 @@ export function LxBottomSheet({ open, onClose, children, height = '70vh' }) {
   );
 }
 
-export function LxModal({ open, onClose, title, children, actions, zIndex = 1000 }) {
+export function LxModal({
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  zIndex = 1000,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title?: ReactNode;
+  children?: ReactNode;
+  actions?: ReactNode;
+  zIndex?: number;
+}) {
   useEscapeKey(open, onClose);
 
   if (!open) return null;

@@ -13,7 +13,7 @@
 
 export const ACCENT_PALETTES = ['#C8A97E', '#7A9E7A', '#C4847A'];
 
-export const FONT_MAP = {
+export const FONT_MAP: Record<string, string> = {
   syne: "'Syne', sans-serif",
   serif: "'Instrument Serif', serif",
 };

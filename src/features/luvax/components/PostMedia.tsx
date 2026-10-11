@@ -1,3 +1,12 @@
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  TouchEvent,
+  MouseEvent,
+  MouseEventHandler,
+  RefCallback,
+} from 'react';
+import type { PostMediaSource, RenderableMedia } from '@/types/composer';
 import { useEffect, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { getFrameRatio, getMediaList, isVideoMedia } from '@/utils/helpers';
@@ -20,7 +29,7 @@ const CONTROL_SHADOW = '0 1px 5px rgba(0,0,0,0.3)';
 // tap that wobbled.
 const SWIPE_THRESHOLD = 40;
 
-function MediaFallback({ kind }) {
+function MediaFallback({ kind }: { kind: 'video' | 'image' }) {
   return (
     <div
       style={{
@@ -42,7 +51,15 @@ function MediaFallback({ kind }) {
   );
 }
 
-function MediaItem({ media, active, registerVideo }) {
+function MediaItem({
+  media,
+  active,
+  registerVideo,
+}: {
+  media: RenderableMedia;
+  active: boolean;
+  registerVideo: RefCallback<HTMLVideoElement>;
+}) {
   const [failed, setFailed] = useState(false);
   const isVideo = isVideoMedia(media);
 
@@ -54,7 +71,12 @@ function MediaItem({ media, active, registerVideo }) {
   // fills it exactly for a single item and letterboxes only the carousel items
   // that differ from the first. cover would crop them, which is the defect this
   // component exists to remove.
-  const fit = { width: '100%', height: '100%', objectFit: 'contain', display: 'block' };
+  const fit: CSSProperties = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    display: 'block',
+  };
 
   if (isVideo) {
     return (
@@ -98,11 +120,21 @@ function MediaItem({ media, active, registerVideo }) {
  * The frame takes its aspect ratio from the first item and keeps it for every
  * item, so moving through a carousel of mixed shapes never resizes the card.
  */
-export function PostMedia({ post, radius = 0, onOpen = null, minAspect = 0.8 }) {
+export function PostMedia({
+  post,
+  radius = 0,
+  onOpen = null,
+  minAspect = 0.8,
+}: {
+  post: PostMediaSource;
+  radius?: number;
+  onOpen?: MouseEventHandler<HTMLDivElement> | null;
+  minAspect?: number;
+}) {
   const items = getMediaList(post);
   const [index, setIndex] = useState(0);
-  const videoRefs = useRef([]);
-  const touchStartX = useRef(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const touchStartX = useRef<number | null>(null);
 
   const count = items.length;
   const safeIndex = Math.min(index, Math.max(count - 1, 0));
@@ -129,6 +161,7 @@ export function PostMedia({ post, radius = 0, onOpen = null, minAspect = 0.8 }) 
       (entries) => {
         entries.forEach((entry) => {
           const video = entry.target;
+          if (!(video instanceof HTMLVideoElement)) return;
           if (entry.isIntersecting) {
             // Force muted before autoplay so sound never starts on its own, unless
             // the reader has already unmuted this video, whose choice is kept.
@@ -145,7 +178,7 @@ export function PostMedia({ post, radius = 0, onOpen = null, minAspect = 0.8 }) 
       { threshold: 0.6 }
     );
 
-    const nodes = videoRefs.current.filter(Boolean);
+    const nodes = videoRefs.current.filter((node): node is HTMLVideoElement => Boolean(node));
     nodes.forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, [count]);
@@ -162,12 +195,12 @@ export function PostMedia({ post, radius = 0, onOpen = null, minAspect = 0.8 }) 
   const ratio = Math.max(rawRatio, minAspect);
   const isCarousel = count > 1;
 
-  const go = (next) => {
+  const go = (next: number) => {
     if (next < 0 || next > count - 1) return;
     setIndex(next);
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!isCarousel) return;
     if (event.key === 'ArrowRight') {
       event.preventDefault();
@@ -179,11 +212,11 @@ export function PostMedia({ post, radius = 0, onOpen = null, minAspect = 0.8 }) 
     }
   };
 
-  const handleTouchStart = (event) => {
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     touchStartX.current = event.touches[0].clientX;
   };
 
-  const handleTouchEnd = (event) => {
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
     if (touchStartX.current === null) return;
     const delta = event.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(delta) > SWIPE_THRESHOLD) {
@@ -192,13 +225,13 @@ export function PostMedia({ post, radius = 0, onOpen = null, minAspect = 0.8 }) 
     touchStartX.current = null;
   };
 
-  const handleClick = (event) => {
+  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     if (!onOpen) return;
-    if (event.target.closest('[data-lxtap]')) return;
+    if (event.target instanceof Element && event.target.closest('[data-lxtap]')) return;
     onOpen(event);
   };
 
-  const arrowStyle = (side) => ({
+  const arrowStyle = (side: 'left' | 'right'): CSSProperties => ({
     position: 'absolute',
     top: '50%',
     [side]: 8,

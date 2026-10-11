@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { v } from '@/config/tokens';
@@ -26,11 +27,11 @@ const hashtagPattern = () => /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,100})/gu;
  * hides the tag from discovery surfaces, not from the posts that used it.
  * @param {{text: string}} props
  */
-export function CaptionText({ text }) {
+export function CaptionText({ text }: { text?: string | null }) {
   const navigate = useNavigate();
   if (!text) return null;
 
-  const nodes = [];
+  const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let match;
   // Built per call rather than held at module scope: a /g regex carries lastIndex between calls,

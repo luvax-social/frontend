@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const resolveSeedDisplayDate = (dateStr, seedKey) => {
+const resolveSeedDisplayDate = (dateStr: string | null | undefined, seedKey?: string | null) => {
   if (!dateStr || !seedKey?.startsWith('seed_')) {
     return dateStr;
   }
@@ -22,7 +22,10 @@ const resolveSeedDisplayDate = (dateStr, seedKey) => {
   return new Date(Date.now() - freshDays * DAY_MS).toISOString();
 };
 
-export const formatRelativeTime = (dateStr, options = {}) => {
+export const formatRelativeTime = (
+  dateStr: string | null | undefined,
+  options: { seedKey?: string | null } = {}
+) => {
   const effectiveDate = resolveSeedDisplayDate(dateStr, options.seedKey);
   if (!effectiveDate) return 'now';
 
@@ -44,7 +47,10 @@ export const formatRelativeTime = (dateStr, options = {}) => {
   return `${days}d`;
 };
 
-export const useRelativeTime = (dateStr, options = {}) => {
+export const useRelativeTime = (
+  dateStr: string | null | undefined,
+  options: { seedKey?: string | null } = {}
+) => {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {

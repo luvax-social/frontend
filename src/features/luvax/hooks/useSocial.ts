@@ -6,9 +6,9 @@ import { patchCachedAuthorRelationship } from './usePostLikeState';
 
 export const socialKeys = {
   all: ['social'],
-  followers: (userId) =>
+  followers: (userId?: string | null) =>
     userId ? [...socialKeys.all, 'followers', userId] : [...socialKeys.all, 'followers'],
-  following: (userId) =>
+  following: (userId?: string | null) =>
     userId ? [...socialKeys.all, 'following', userId] : [...socialKeys.all, 'following'],
   requests: () => [...socialKeys.all, 'follow-requests'],
   blocked: () => [...socialKeys.all, 'blocked'],
@@ -16,21 +16,23 @@ export const socialKeys = {
 
 // --- Queries ---
 
-export const useFollowers = (userId, enabled = true) => {
+export const useFollowers = (userId: string | null | undefined, enabled = true) => {
   return useInfiniteQuery({
     queryKey: socialKeys.followers(userId),
     queryFn: ({ pageParam = null, signal }) =>
-      socialService.getFollowers(userId, pageParam, undefined, signal),
+      socialService.getFollowers(userId!, pageParam, undefined, signal),
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam: getNextCursor,
     enabled: !!userId && enabled,
   });
 };
 
-export const useFollowing = (userId, enabled = true) => {
+export const useFollowing = (userId: string | null | undefined, enabled = true) => {
   return useInfiniteQuery({
     queryKey: socialKeys.following(userId),
     queryFn: ({ pageParam = null, signal }) =>
-      socialService.getFollowing(userId, pageParam, undefined, signal),
+      socialService.getFollowing(userId!, pageParam, undefined, signal),
+    initialPageParam: undefined as string | null | undefined,
     getNextPageParam: getNextCursor,
     enabled: !!userId && enabled,
   });
@@ -57,7 +59,7 @@ export const useBlockedUsers = () => {
 export const useFollow = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (targetUserId) => socialService.followUser(targetUserId),
+    mutationFn: (targetUserId: string) => socialService.followUser(targetUserId),
     onMutate: (targetUserId) => {
       const restore = patchCachedAuthorRelationship(queryClient, targetUserId, {
         isFollowing: true,
@@ -86,7 +88,7 @@ export const useFollow = () => {
 export const useUnfollow = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (targetUserId) => socialService.unfollowUser(targetUserId),
+    mutationFn: (targetUserId: string) => socialService.unfollowUser(targetUserId),
     onMutate: (targetUserId) => {
       const restore = patchCachedAuthorRelationship(queryClient, targetUserId, {
         isFollowing: false,
@@ -120,7 +122,7 @@ export const useUnfollow = () => {
 export const useBlock = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (targetUserId) => socialService.blockUser(targetUserId),
+    mutationFn: (targetUserId: string) => socialService.blockUser(targetUserId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -138,7 +140,7 @@ export const useBlock = () => {
 export const useUnblock = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (targetUserId) => socialService.unblockUser(targetUserId),
+    mutationFn: (targetUserId: string) => socialService.unblockUser(targetUserId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -149,7 +151,7 @@ export const useUnblock = () => {
 export const useApproveFollowRequest = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (requesterId) => socialService.approveFollowRequest(requesterId),
+    mutationFn: (requesterId: string) => socialService.approveFollowRequest(requesterId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: socialKeys.requests() });
       queryClient.invalidateQueries({ queryKey: socialKeys.followers() });
@@ -161,7 +163,7 @@ export const useApproveFollowRequest = () => {
 export const useRejectFollowRequest = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (requesterId) => socialService.rejectFollowRequest(requesterId),
+    mutationFn: (requesterId: string) => socialService.rejectFollowRequest(requesterId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: socialKeys.requests() });
       queryClient.invalidateQueries({ queryKey: notifKeys.all });

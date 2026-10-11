@@ -1,3 +1,15 @@
+import type { CursorParams } from '@/types/api';
+import type {
+  CreatePostRequest,
+  PostStatus,
+  UpdatePostCaptionRequest,
+  CommentResponse,
+  LikeActionResponse,
+} from '@/types/domain';
+import type { Post } from '@/types/social';
+import type { CommentCachePage } from '@/types/cache';
+import { getErrorResponse } from '@/utils/errors';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { postService } from '@/services/post.service';
@@ -7,7 +19,7 @@ import { STALE_TIME } from '@/config/constants';
 import { patchCachedPost, removeCachedPost } from './usePostLikeState';
 import { beginSelfPostLike, endSelfPostLike, noteSelfCommentLike } from './useLivePostUpdates';
 
-export const useFeed = (params = {}, { enabled = true } = {}) => {
+export const useFeed = (params: CursorParams = {}, { enabled = true } = {}) => {
   return useInfiniteQuery({
     queryKey: ['feed', params],
     queryFn: ({ pageParam = null, signal }) =>
@@ -31,7 +43,7 @@ export const useFeed = (params = {}, { enabled = true } = {}) => {
  * pre-existing search-as-you-type path and is out of this task's scope
  * beyond not breaking it.
  */
-export const useExploreSearch = (params = {}) => {
+export const useExploreSearch = (params: CursorParams & { q?: string } = {}) => {
   return useInfiniteQuery({
     queryKey: ['exploreSearch', params],
     queryFn: ({ pageParam = null, signal }) =>
@@ -72,7 +84,7 @@ export const useExploreSearch = (params = {}) => {
  * src/hooks/useRateLimitCooldown.js and its call sites) is the thing
  * deciding when to try again.
  */
-export const useRecommendedFeed = (excludeFollowed, { enabled = true } = {}) => {
+export const useRecommendedFeed = (excludeFollowed: boolean, { enabled = true } = {}) => {
   return useInfiniteQuery({
     queryKey: ['recommendedFeed', excludeFollowed],
     queryFn: ({ pageParam = null, signal }) =>
@@ -86,7 +98,7 @@ export const useRecommendedFeed = (excludeFollowed, { enabled = true } = {}) => 
     getNextPageParam: getNextCursor,
     initialPageParam: null,
     staleTime: STALE_TIME.MEDIUM,
-    retry: (failureCount, error) => error?.response?.status !== 429 && failureCount < 1,
+    retry: (failureCount, error) => getErrorResponse(error)?.status !== 429 && failureCount < 1,
     enabled,
   });
 };
@@ -119,12 +131,16 @@ export const useExplore = () => useRecommendedFeed(true);
  * @param {string[]} [types] - Post types to include; omit or pass an empty array for all.
  * @param {{enabled?: boolean}} [options] - Set enabled false when the profile is unreadable.
  */
-export const useUserPosts = (userId, types = [], { enabled = true } = {}) => {
+export const useUserPosts = (
+  userId: string | null | undefined,
+  types: string[] = [],
+  { enabled = true } = {}
+) => {
   const type = types.length > 0 ? types : undefined;
   return useInfiniteQuery({
     queryKey: ['userPosts', userId, type ?? 'all'],
     queryFn: ({ pageParam = null, signal }) =>
-      postService.getUserPosts(userId, { type, cursor: pageParam, limit: 10, signal }),
+      postService.getUserPosts(userId!, { type, cursor: pageParam, limit: 10, signal }),
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -136,10 +152,10 @@ export const useUserPosts = (userId, types = [], { enabled = true } = {}) => {
   });
 };
 
-export const usePostDetail = (postId) => {
+export const usePostDetail = (postId: string | null | undefined) => {
   return useQuery({
     queryKey: ['post', postId],
-    queryFn: () => postService.getPostById(postId),
+    queryFn: () => postService.getPostById(postId!),
     enabled: !!postId,
     staleTime: 0,
     refetchOnWindowFocus: true,
@@ -153,7 +169,7 @@ export const useCreatePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data) => postService.createPost(data),
+    mutationFn: (data: CreatePostRequest) => postService.createPost(data),
     onSuccess: () => {
       // Invalidate feed and userPosts so the new post appears everywhere
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -167,7 +183,8 @@ export const useUpdatePostStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ postId, status }) => postService.updatePostStatus(postId, status),
+    mutationFn: ({ postId, status }: { postId: string; status: PostStatus }) =>
+      postService.updatePostStatus(postId, status),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['post', variables.postId] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -181,9 +198,10 @@ export const useUpdatePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ postId, data }) => postService.updatePost(postId, data),
+    mutationFn: ({ postId, data }: { postId: string; data: UpdatePostCaptionRequest }) =>
+      postService.updatePost(postId, data),
     onSuccess: (response, variables) => {
-      const updated = response?.data || response;
+      const updated = unwrapApiResponse<Post>(response);
       if (updated?.id) {
         patchCachedPost(queryClient, variables.postId, {
           caption: updated.caption,
@@ -207,7 +225,7 @@ export const useDeletePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (postId) => postService.deletePost(postId),
+    mutationFn: (postId: string) => postService.deletePost(postId),
     onSuccess: (_data, postId) => {
       removeCachedPost(queryClient, postId);
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -231,7 +249,7 @@ export const useLikePost = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ postId, liked }) =>
+    mutationFn: ({ postId, liked }: { postId: string; liked: boolean }) =>
       liked ? postService.unlikePost(postId) : postService.likePost(postId),
     // Two mechanisms cooperate on the like path. The optimistic patch gives the
     // tap an immediate result across every rendering of the post at once. The
@@ -255,7 +273,7 @@ export const useLikePost = () => {
       // The endpoint may answer with the authoritative count. Applying it
       // through the same patch reaches both renderings, which is what the
       // per-component reconciliation could not do.
-      const result = data?.data || data;
+      const result = unwrapApiResponse<LikeActionResponse>(data);
       if (typeof result?.likeCount === 'number') {
         patchCachedPost(queryClient, postId, { likeCount: result.likeCount });
       }
@@ -323,7 +341,7 @@ export const useLikedPosts = (enabled = true) => {
 export const useSavePost = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ postId, saved }) =>
+    mutationFn: ({ postId, saved }: { postId: string; saved: boolean }) =>
       saved ? postService.unsavePost(postId) : postService.savePost(postId),
     onMutate: async ({ postId, saved }) => {
       await queryClient.cancelQueries({ queryKey: ['post', postId] });
@@ -347,18 +365,18 @@ export const useSavePost = () => {
   });
 };
 
-export const useTopLevelComments = (postId) => {
+export const useTopLevelComments = (postId: string | null | undefined) => {
   return useInfiniteQuery({
     queryKey: ['comments', postId],
     queryFn: ({ pageParam = null }) =>
-      postService.getComments(postId, { cursor: pageParam, limit: 20 }),
+      postService.getComments(postId!, { cursor: pageParam, limit: 20 }),
     getNextPageParam: getNextCursor,
     initialPageParam: null,
     enabled: !!postId,
   });
 };
 
-export const useCommentReplies = (commentId, enabled) => {
+export const useCommentReplies = (commentId: string, enabled: boolean) => {
   return useQuery({
     queryKey: ['commentReplies', commentId],
     queryFn: () => postService.getCommentReplies(commentId, { limit: 50 }),
@@ -373,7 +391,7 @@ export const useCommentReplies = (commentId, enabled) => {
  * wording that works without a number, so a second attempt would keep the user
  * waiting for something the screen does not need.
  */
-export const useCommentDeletionScope = (commentId, enabled) => {
+export const useCommentDeletionScope = (commentId: string, enabled: boolean) => {
   return useQuery({
     queryKey: ['commentDeletionScope', commentId],
     queryFn: () => postService.getCommentDeletionScope(commentId),
@@ -391,7 +409,7 @@ export const useCommentDeletionScope = (commentId, enabled) => {
  * parent's replies query. Targeting the exact entry is what keeps liking a deep
  * reply from refetching the whole tree.
  */
-const commentListKey = (postId, parentId) =>
+const commentListKey = (postId: string | null | undefined, parentId?: string | null) =>
   parentId ? ['commentReplies', parentId] : ['comments', postId];
 
 /**
@@ -401,40 +419,42 @@ const commentListKey = (postId, parentId) =>
  * infinite query with a `pages` array, the replies query is a single payload.
  * Both wrap the rows in the `ApiResponse` envelope under `data.content`.
  */
-const mapCachedComments = (mapper) => (cached) => {
-  if (!cached) {
-    return cached;
-  }
-
-  const mapPayload = (payload) => {
-    const rows = payload?.data?.content;
-    if (!Array.isArray(rows)) {
-      return payload;
+const mapCachedComments =
+  (mapper: (comment: CommentResponse) => CommentResponse) =>
+  (cached: CommentCachePage | undefined) => {
+    if (!cached) {
+      return cached;
     }
-    return { ...payload, data: { ...payload.data, content: rows.map(mapper) } };
+
+    const mapPayload = (payload: CommentCachePage) => {
+      const rows = payload?.data?.content;
+      if (!Array.isArray(rows)) {
+        return payload;
+      }
+      return { ...payload, data: { ...payload.data, content: rows.map(mapper) } };
+    };
+
+    if (Array.isArray(cached.pages)) {
+      return { ...cached, pages: cached.pages.map(mapPayload) };
+    }
+
+    return mapPayload(cached);
   };
 
-  if (Array.isArray(cached.pages)) {
-    return { ...cached, pages: cached.pages.map(mapPayload) };
-  }
-
-  return mapPayload(cached);
-};
-
-export const useCreateComment = (postId) => {
+export const useCreateComment = (postId: string | null | undefined) => {
   const queryClient = useQueryClient();
   // Held across attempts so a retry of the same submission replays the same key
   // and the backend returns the original comment instead of creating a second.
   // Cleared once a submission succeeds, so the next comment gets a fresh key.
-  const pendingKeyRef = useRef(null);
+  const pendingKeyRef = useRef<string | null>(null);
 
   return useMutation({
-    mutationFn: ({ parentId, content }) => {
+    mutationFn: ({ parentId, content }: { parentId?: string | null; content: string }) => {
       if (!pendingKeyRef.current) {
         pendingKeyRef.current = crypto.randomUUID();
       }
 
-      return postService.createComment(postId, {
+      return postService.createComment(postId!, {
         parentId,
         content,
         idempotencyKey: pendingKeyRef.current,
@@ -462,12 +482,18 @@ export const useCreateComment = (postId) => {
  * applied here, and refetching the first page would re-run the pinned selection
  * and could reorder comments under the reader mid-interaction.
  */
-export const useToggleCommentLike = (postId) => {
+export const useToggleCommentLike = (postId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ commentId, isLiked }) =>
-      isLiked ? postService.unlikeComment(commentId) : postService.likeComment(commentId),
+    mutationFn: ({
+      commentId,
+      isLiked,
+    }: {
+      commentId: string;
+      isLiked: boolean;
+      parentId?: string | null;
+    }) => (isLiked ? postService.unlikeComment(commentId) : postService.likeComment(commentId)),
     onMutate: async ({ commentId, isLiked, parentId }) => {
       // The like broadcast carries no count and does not say who liked, so the
       // live handler moves the count by one for every frame it sees. This
@@ -480,7 +506,7 @@ export const useToggleCommentLike = (postId) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData(queryKey);
 
-      queryClient.setQueryData(
+      queryClient.setQueryData<CommentCachePage>(
         queryKey,
         mapCachedComments((comment) =>
           comment.id === commentId
@@ -515,18 +541,25 @@ export const useToggleCommentLike = (postId) => {
  * only the body would leave the marker absent until the list happened to be
  * refetched.
  */
-export const useEditComment = (postId) => {
+export const useEditComment = (postId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ commentId, content }) => postService.editComment(commentId, content),
+    mutationFn: ({
+      commentId,
+      content,
+    }: {
+      commentId: string;
+      content: string;
+      parentId?: string | null;
+    }) => postService.editComment(commentId, content),
     onSuccess: (response, { parentId }) => {
       const updated = response?.data;
       if (!updated?.id) {
         return;
       }
 
-      queryClient.setQueryData(
+      queryClient.setQueryData<CommentCachePage>(
         commentListKey(postId, parentId),
         mapCachedComments((comment) =>
           comment.id === updated.id
@@ -556,11 +589,12 @@ export const useEditComment = (postId) => {
  * The count is used to drop the deleted subtree's own replies entry, which can
  * no longer be fetched and would otherwise sit in the cache until collected.
  */
-export const useDeleteComment = (postId) => {
+export const useDeleteComment = (postId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ commentId }) => postService.deleteComment(commentId),
+    mutationFn: ({ commentId }: { commentId: string; parentId?: string | null }) =>
+      postService.deleteComment(commentId),
     onSuccess: (response, { commentId, parentId }) => {
       const removedCount = response?.data?.deletedCommentCount ?? 0;
 

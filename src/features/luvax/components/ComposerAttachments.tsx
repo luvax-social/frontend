@@ -1,3 +1,4 @@
+import type { ComposerAttachment } from '@/types/composer';
 import { v } from '@/config/tokens';
 import { LxIcon } from './primitives';
 
@@ -17,14 +18,24 @@ import { LxIcon } from './primitives';
 
 const TILE = 96;
 
-const statusLabel = (item) => {
+const statusLabel = (item: ComposerAttachment) => {
   if (item.status === 'uploading') return `${item.progress}%`;
   if (item.status === 'done') return 'ready';
   if (item.status === 'failed') return 'failed';
   return '';
 };
 
-export function ComposerAttachments({ items, onRemove, onMove, onRetry }) {
+export function ComposerAttachments({
+  items,
+  onRemove,
+  onMove,
+  onRetry,
+}: {
+  items: ComposerAttachment[];
+  onRemove: (id: string) => void;
+  onMove: (id: string, direction: number) => void;
+  onRetry: (id: string) => void;
+}) {
   if (items.length === 0) return null;
 
   return (

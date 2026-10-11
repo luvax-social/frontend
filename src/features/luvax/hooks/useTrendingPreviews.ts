@@ -11,7 +11,7 @@ const POOL_SIZE = 10;
 
 export const trendingPreviewKeys = {
   all: ['trendingPreviews'],
-  list: (size, scope) => [...trendingPreviewKeys.all, size, scope],
+  list: (size: number, scope: string) => [...trendingPreviewKeys.all, size, scope],
 };
 
 /**

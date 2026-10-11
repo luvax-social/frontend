@@ -1,3 +1,6 @@
+import type { QueryClient } from '@tanstack/react-query';
+import type { ApiResponse } from '@/types/api';
+import type { CreateStoryRequest, StoryFeedItemResponse, StoryResponse } from '@/types/domain';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { storyService } from '@/services/story.service';
 import { STALE_TIME } from '@/config/constants';
@@ -22,7 +25,7 @@ export const useStoryFeed = () => {
 export const useCreateStory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => storyService.createStory(data),
+    mutationFn: (data: CreateStoryRequest) => storyService.createStory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: storyFeedKey });
     },
@@ -32,9 +35,9 @@ export const useCreateStory = () => {
 export const useDeleteStory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (storyId) => storyService.deleteStory(storyId),
+    mutationFn: (storyId: string) => storyService.deleteStory(storyId),
     onSuccess: (_data, storyId) => {
-      queryClient.setQueryData(storyFeedKey, (envelope) => {
+      queryClient.setQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey, (envelope) => {
         if (!envelope?.data) return envelope;
         return {
           ...envelope,
@@ -57,7 +60,7 @@ export const useDeleteStory = () => {
  */
 export const useRecordStoryView = () => {
   return useMutation({
-    mutationFn: (storyId) => storyService.recordStoryView(storyId),
+    mutationFn: (storyId: string) => storyService.recordStoryView(storyId),
   });
 };
 
@@ -68,11 +71,11 @@ export const useRecordStoryView = () => {
  * `storyFeed` query the rail does - so a single tree walk is enough to reach
  * every rendering of a story at once.
  */
-const patchCachedStory = (queryClient, storyId, patch) => {
-  const previous = queryClient.getQueryData(storyFeedKey);
+const patchCachedStory = (queryClient: QueryClient, storyId: string, patch: Partial<StoryResponse>) => {
+  const previous = queryClient.getQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey);
   // The cache holds the raw ApiResponse envelope, not the array useStoryFeed
   // unwraps it to, so the tray lives at envelope.data.
-  queryClient.setQueryData(storyFeedKey, (envelope) => {
+  queryClient.setQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey, (envelope) => {
     if (!envelope?.data) return envelope;
     return {
       ...envelope,
@@ -84,14 +87,14 @@ const patchCachedStory = (queryClient, storyId, patch) => {
       })),
     };
   });
-  return () => queryClient.setQueryData(storyFeedKey, previous);
+  return () => queryClient.setQueryData<ApiResponse<StoryFeedItemResponse[]>>(storyFeedKey, previous);
 };
 
 export const useLikeStory = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ storyId, liked }) =>
+    mutationFn: ({ storyId, liked }: {storyId: string; liked: boolean}) =>
       liked ? storyService.unlikeStory(storyId) : storyService.likeStory(storyId),
     onMutate: async ({ storyId, liked }) => {
       await queryClient.cancelQueries({ queryKey: storyFeedKey });

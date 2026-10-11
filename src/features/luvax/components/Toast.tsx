@@ -8,7 +8,12 @@ import { v } from '@/config/tokens';
 // already see is noise, so callers only reach for this when nothing visible
 // changed. See docs/layout-overhaul/changes-applied.md.
 
-const listeners = new Set();
+interface ToastItem {
+  id: number;
+  message: string;
+  leaving?: boolean;
+}
+const listeners = new Set<(item: ToastItem) => void>();
 let nextId = 0;
 let lastToast = { message: '', at: 0 };
 
@@ -17,7 +22,7 @@ const DWELL_MS = 1700;
 // Exit animation length, kept in step with the motion vocabulary.
 const EXIT_MS = 200;
 
-export function toast(message) {
+export function toast(message: string) {
   if (!message) return;
   const now = Date.now();
   if (lastToast.message === message && now - lastToast.at < DWELL_MS) return;
@@ -27,10 +32,10 @@ export function toast(message) {
 }
 
 export function ToastHost() {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<ToastItem[]>([]);
 
   useEffect(() => {
-    const add = ({ id, message }) => {
+    const add = ({ id, message }: ToastItem) => {
       setItems((current) => [...current, { id, message, leaving: false }]);
       window.setTimeout(() => {
         setItems((current) =>
@@ -42,7 +47,9 @@ export function ToastHost() {
       }, DWELL_MS);
     };
     listeners.add(add);
-    return () => listeners.delete(add);
+    return () => {
+      listeners.delete(add);
+    };
   }, []);
 
   if (items.length === 0) return null;

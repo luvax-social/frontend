@@ -1,4 +1,13 @@
-const relationshipSignals = (post, author = post?.author) => [
+import type { SocialUser, ViewerState, Relationship } from '@/types/social';
+interface RelationshipPost {
+  author?: SocialUser;
+  viewerState?: ViewerState;
+}
+
+const relationshipSignals = (
+  post: RelationshipPost | null | undefined,
+  author: SocialUser | null | undefined = post?.author
+) => [
   post?.viewerState?.author?.isFollowing,
   post?.viewerState?.author?.isFollowedByViewer,
   post?.viewerState?.authorRelationship?.isFollowing,
@@ -18,10 +27,12 @@ const relationshipSignals = (post, author = post?.author) => [
   author?.isFollowedByViewer,
 ];
 
-export const viewerFollowsAuthor = (post, author) =>
-  relationshipSignals(post, author).some((value) => value === true);
+export const viewerFollowsAuthor = (
+  post: RelationshipPost | null | undefined,
+  author?: SocialUser | null
+) => relationshipSignals(post, author).some((value) => value === true);
 
-export const withRelationshipPatch = (viewerState = {}, patch = {}) => {
+export const withRelationshipPatch = (viewerState: ViewerState = {}, patch: Relationship = {}) => {
   const isFollowing =
     patch.isFollowing ?? patch.isFollowedByViewer ?? viewerState.isFollowingAuthor;
 

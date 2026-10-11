@@ -11,7 +11,11 @@
  */
 
 /** Rotation order. One card type per slot, cycling. */
-export const CARD_TYPES = ['people', 'hashtags'];
+export const CARD_TYPES = ['people', 'hashtags'] as const;
+export type FeedCardType = (typeof CARD_TYPES)[number];
+export type FeedItem<T> =
+  | { kind: 'post'; post: T }
+  | { kind: 'card'; type: FeedCardType; key: string; occurrence: number };
 
 /** Posts before the first card. */
 export const FIRST_SLOT = 3;
@@ -33,9 +37,13 @@ export const SLOT_STRIDE = 5;
  *   entries, where `occurrence` is the zero-based index of that type's appearance and is what a
  *   repeatable card uses to pick which subject it shows.
  */
-export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
+export function interleaveFeed<T>(
+  posts: T[] = [],
+  availability: Partial<Record<FeedCardType, boolean | number>> = {},
+  dismissed: string[] = []
+) {
   const skipped = new Set(dismissed);
-  const items = [];
+  const items: FeedItem<T>[] = [];
   // Advances only when a card is actually placed. Advancing once per slot instead would let a type
   // skipped for having no data still consume its turn, so the next slot would repeat whichever
   // type took its place.
@@ -45,15 +53,15 @@ export function interleaveFeed(posts = [], availability = {}, dismissed = []) {
   // How many times a type may appear. A boolean is the once-only case. A count is the paged case:
   // the people card shows one page of accounts per appearance, so repeating it carries the next
   // page rather than the same card twice, and the number of pages is the natural bound.
-  const capacityOf = (type) => {
+  const capacityOf = (type: FeedCardType) => {
     const value = availability[type];
     if (typeof value === 'number') return Math.max(0, value);
     return value ? 1 : 0;
   };
 
-  const used = {};
+  const used: Partial<Record<FeedCardType, number>> = {};
 
-  const place = () => {
+  const place = (): Extract<FeedItem<T>, { kind: 'card' }> | null => {
     for (let offset = 0; offset < CARD_TYPES.length; offset += 1) {
       const type = CARD_TYPES[(cursor + offset) % CARD_TYPES.length];
       const taken = used[type] ?? 0;

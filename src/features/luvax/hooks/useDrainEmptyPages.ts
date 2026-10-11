@@ -40,6 +40,12 @@ export function useDrainEmptyPages({
   isFetchingNextPage,
   fetchNextPage,
   enabled = true,
+}: {
+  rowCount: number;
+  hasNextPage?: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => unknown;
+  enabled?: boolean;
 }) {
   const isDraining = Boolean(enabled && rowCount === 0 && hasNextPage);
 

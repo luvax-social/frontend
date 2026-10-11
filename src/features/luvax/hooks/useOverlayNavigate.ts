@@ -1,3 +1,4 @@
+import type { To } from 'react-router-dom';
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -25,7 +26,7 @@ export function useOverlayNavigate() {
   // extraState rides alongside the recorded background, so an overlay can be told
   // what to focus once it opens - for example the comment a notification points at.
   return useCallback(
-    (to, extraState) =>
+    (to: To, extraState?: Record<string, unknown>) =>
       navigate(to, {
         state: {
           background: location.pathname,

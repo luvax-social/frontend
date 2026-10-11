@@ -1,3 +1,4 @@
+import { getErrorResponse } from '@/utils/errors';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { STALE_TIME } from '@/config/constants';
@@ -6,9 +7,9 @@ import { getNextCursor } from '@/utils/helpers';
 
 export const hashtagKeys = {
   all: ['hashtag'],
-  detail: (name) => [...hashtagKeys.all, 'detail', name],
-  posts: (hashtagId) => [...hashtagKeys.all, 'posts', hashtagId],
-  trending: (scope, size) => [...hashtagKeys.all, 'trending', scope, size],
+  detail: (name: string | undefined) => [...hashtagKeys.all, 'detail', name],
+  posts: (hashtagId: string | undefined) => [...hashtagKeys.all, 'posts', hashtagId],
+  trending: (scope: string, size: number) => [...hashtagKeys.all, 'trending', scope, size],
 };
 
 /**
@@ -20,14 +21,14 @@ export const hashtagKeys = {
  * @param {string} name - Hashtag name from the route.
  * @returns {import('@tanstack/react-query').UseQueryResult} The query result.
  */
-export function useHashtagDetail(name) {
+export function useHashtagDetail(name: string | undefined) {
   return useQuery({
     queryKey: hashtagKeys.detail(name),
-    queryFn: ({ signal }) => hashtagService.getHashtagByName(name, signal),
+    queryFn: ({ signal }) => hashtagService.getHashtagByName(name!, signal),
     enabled: Boolean(name),
     staleTime: STALE_TIME.MEDIUM,
     retry: (failureCount, error) => {
-      if (error?.response?.status === 404) return false;
+      if (getErrorResponse(error)?.status === 404) return false;
       return failureCount < 2;
     },
   });
@@ -41,11 +42,11 @@ export function useHashtagDetail(name) {
  * @param {string|undefined} hashtagId - Identifier from {@link useHashtagDetail}.
  * @returns {import('@tanstack/react-query').UseInfiniteQueryResult} The infinite query result.
  */
-export function useHashtagPosts(hashtagId) {
+export function useHashtagPosts(hashtagId: string | undefined) {
   return useInfiniteQuery({
     queryKey: hashtagKeys.posts(hashtagId),
     queryFn: ({ pageParam, signal }) =>
-      hashtagService.getPostsByHashtag(hashtagId, pageParam, undefined, signal),
+      hashtagService.getPostsByHashtag(hashtagId!, pageParam, undefined, signal),
     initialPageParam: null,
     getNextPageParam: getNextCursor,
     enabled: Boolean(hashtagId),
@@ -62,7 +63,7 @@ export function useHashtagPosts(hashtagId) {
  * @param {boolean} [enabled] - Whether to issue the request at all.
  * @returns {import('@tanstack/react-query').UseQueryResult} The query result.
  */
-export function useTrendingHashtags(scope, size = 10, enabled = true) {
+export function useTrendingHashtags(scope: string, size = 10, enabled = true) {
   return useQuery({
     queryKey: hashtagKeys.trending(scope, size),
     queryFn: ({ signal }) =>

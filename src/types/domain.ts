@@ -104,13 +104,13 @@ export interface LikeActionResponse {
 
 // modules/post/dto/request/CreatePostRequest.java
 export interface CreatePostRequest {
-  caption?: string;
+  caption?: string | null;
   postType: PostType;
-  mediaIds?: string[];
-  status?: PostStatus;
-  locationName?: string;
-  latitude?: number;
-  longitude?: number;
+  mediaIds?: string[] | null;
+  status?: PostStatus | null;
+  locationName?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 // modules/post/dto/request/UpdatePostCaptionRequest.java
@@ -214,27 +214,27 @@ export type MessagePermission = 'everyone' | 'following' | 'nobody';
 
 // modules/users/dto/request/UpdateProfileRequest.java
 export interface UpdateProfileRequest {
-  username?: string;
-  displayName?: string;
-  bio?: string;
-  avatarUrl?: string;
-  bannerUrl?: string;
-  websiteUrl?: string;
-  isPrivate?: boolean;
+  username?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  websiteUrl?: string | null;
+  isPrivate?: boolean | null;
 }
 
 // modules/users/dto/request/UpdateSettingsRequest.java
 export interface UpdateSettingsRequest {
-  notifyLikes?: boolean;
-  notifyComments?: boolean;
-  notifyFollows?: boolean;
-  notifyMentions?: boolean;
-  notifyMessages?: boolean;
-  showActivityStatus?: boolean;
-  allowStoryReplies?: boolean;
-  messagePermission?: MessagePermission;
-  suggestible?: boolean | null;
-  hiddenWordsSystemEnabled?: boolean | null;
+  notifyLikes?: boolean | null;
+  notifyComments?: boolean | null;
+  notifyFollows?: boolean | null;
+  notifyMentions?: boolean | null;
+  notifyMessages?: boolean | null;
+  showActivityStatus?: boolean | null;
+  allowStoryReplies?: boolean | null;
+  messagePermission?: MessagePermission | null;
+  suggestible?: boolean | null | null;
+  hiddenWordsSystemEnabled?: boolean | null | null;
 }
 
 // common/response/UserListItemResponse.java
@@ -463,7 +463,7 @@ export interface StoryLikeActionResponse {
 // modules/story/dto/request/CreateStoryRequest.java
 export interface CreateStoryRequest {
   mediaId: string;
-  caption?: string;
+  caption?: string | null;
 }
 
 // modules/hashtag/dto/response/HashtagResponse.java
@@ -556,7 +556,7 @@ export interface CreateReportRequest {
   reportType: ReportType;
   reportReason: ReportReason;
   entityId: string;
-  description?: string;
+  description?: string | null;
   turnstileToken: string;
 }
 
@@ -649,18 +649,18 @@ export interface MediaUploadCompleteRequest {
   storageKey: string;
   mediaType: MediaType;
   mimeType: string;
-  fileSize?: number;
+  fileSize: number;
   width: number;
   height: number;
-  duration?: number;
-  blurhash?: string;
+  duration?: number | null;
+  blurhash?: string | null;
 }
 
 // modules/media/dto/request/MediaUploadUrlRequest.java
 export interface MediaUploadUrlRequest {
   mediaType: MediaType;
   mimeType: string;
-  fileSize?: number;
+  fileSize: number;
 }
 
 // modules/media/dto/response/MediaAssetResponse.java
@@ -757,11 +757,11 @@ export interface MessageMediaResponse {
 // modules/message/dto/request/SendMessageRequest.java
 export interface SendMessageRequest {
   messageType: MessageType;
-  content?: string;
-  mediaAssetId?: string;
-  sharedPostId?: string;
-  sharedStoryId?: string;
-  replyToId?: string;
+  content?: string | null;
+  mediaAssetId?: string | null;
+  sharedPostId?: string | null;
+  sharedStoryId?: string | null;
+  replyToId?: string | null;
 }
 
 // modules/message/dto/response/UnreadCountResponse.java

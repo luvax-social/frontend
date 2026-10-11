@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { createContext, useContext } from 'react';
 import { TWEAK_DEFAULTS } from './constants/data';
 
@@ -9,13 +10,26 @@ import { TWEAK_DEFAULTS } from './constants/data';
  * through context instead. This carries appearance settings only: navigation
  * state lives in the URL.
  */
-const LuvaxTweaksContext = createContext({
+export type Tweaks = typeof TWEAK_DEFAULTS;
+export type Viewport = 'desktop' | 'tablet' | 'mobile';
+export interface TweaksContextValue {
+  tweaks: Tweaks;
+  setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
+  viewport: Viewport;
+}
+const LuvaxTweaksContext = createContext<TweaksContextValue>({
   tweaks: TWEAK_DEFAULTS,
   setTweak: () => {},
   viewport: 'desktop',
 });
 
-export function LuvaxTweaksProvider({ value, children }) {
+export function LuvaxTweaksProvider({
+  value,
+  children,
+}: {
+  value: TweaksContextValue;
+  children?: ReactNode;
+}) {
   return <LuvaxTweaksContext.Provider value={value}>{children}</LuvaxTweaksContext.Provider>;
 }
 

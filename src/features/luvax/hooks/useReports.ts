@@ -1,3 +1,6 @@
+import type { CreateReportRequest, ReportType } from '@/types/domain';
+import { getErrorCode } from '@/utils/captchaErrors';
+import { getErrorMessage } from '@/utils/errors';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as reportService from '../../../services/report.service';
 import { userKeys } from './useUsers';
@@ -16,7 +19,7 @@ export const REPORT_ERROR_CODES = {
 };
 
 /** Returns the backend's error code for a failed request, or null when there is none. */
-export const getReportErrorCode = (error) => error?.response?.data?.code ?? null;
+export const getReportErrorCode = (error: unknown) => getErrorCode(error);
 
 /**
  * Turns a failed submission into copy the reader can act on.
@@ -28,7 +31,7 @@ export const getReportErrorCode = (error) => error?.response?.data?.code ?? null
  * "already reported for that reason" would tell the reader a different reason would work,
  * which it would not.
  */
-export const describeReportError = (error) => {
+export const describeReportError = (error: unknown) => {
   switch (getReportErrorCode(error)) {
     case REPORT_ERROR_CODES.DUPLICATE:
       return {
@@ -53,7 +56,7 @@ export const describeReportError = (error) => {
       return {
         tone: 'error',
         title: "that report couldn't be sent",
-        message: error?.message || 'Please try again.',
+        message: getErrorMessage(error, '') || 'Please try again.',
       };
   }
 };
@@ -73,7 +76,7 @@ export const describeReportError = (error) => {
 export const useSubmitReport = () => {
   const queryClient = useQueryClient();
 
-  const refreshReportedItem = (reportType) => {
+  const refreshReportedItem = (reportType: ReportType) => {
     if (reportType === reportService.REPORT_TYPES.USER) {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
       return;
@@ -92,7 +95,7 @@ export const useSubmitReport = () => {
   };
 
   return useMutation({
-    mutationFn: (input) => reportService.submitReport(input),
+    mutationFn: (input: CreateReportRequest) => reportService.submitReport(input),
     onSuccess: (_response, variables) => refreshReportedItem(variables?.reportType),
     onError: (error, variables) => {
       if (getReportErrorCode(error) === REPORT_ERROR_CODES.DUPLICATE) {

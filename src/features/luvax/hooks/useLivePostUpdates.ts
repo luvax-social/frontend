@@ -1,3 +1,24 @@
+import type { QueryClient } from '@tanstack/react-query';
+import type { ApiResponse } from '@/types/api';
+import type { Post } from '@/types/social';
+import type { CommentResponse } from '@/types/domain';
+import type { CommentCachePage } from '@/types/cache';
+type CommentBroadcast = Omit<CommentResponse, 'isLiked' | 'hasReported' | 'pinned'>;
+interface CommentEvent {
+  eventType: string;
+  data?: {
+    comment?: CommentBroadcast;
+    userId?: string;
+    parentId?: string | null;
+    rootId?: string | null;
+    commentId?: string;
+    deletedCommentCount?: number;
+  };
+}
+interface PostEvent {
+  eventType: string;
+  data?: { likeCount?: number };
+}
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -15,8 +36,8 @@ import { useAuthStore } from '@/store/useAuthStore';
  * competing.
  */
 
-const COMMENT_TOPIC = (postId) => `/topic/comments.${postId}.events`;
-const POST_TOPIC = (postId) => `/topic/posts.${postId}.events`;
+const COMMENT_TOPIC = (postId: string) => `/topic/comments.${postId}.events`;
+const POST_TOPIC = (postId: string) => `/topic/posts.${postId}.events`;
 
 /**
  * Records of actions the viewer performed themselves, so the broadcast echo of
@@ -34,17 +55,17 @@ const POST_TOPIC = (postId) => `/topic/posts.${postId}.events`;
  * genuinely remote event forever.
  */
 const SELF_ECHO_TTL_MS = 10000;
-const selfEchoes = new Map();
+const selfEchoes = new Map<string, { count: number; at: number }>();
 
-const echoKey = (id, eventType) => `${id}:${eventType}`;
+const echoKey = (id: string, eventType: string) => `${id}:${eventType}`;
 
-const noteSelfEcho = (id, eventType) => {
+const noteSelfEcho = (id: string, eventType: string) => {
   const key = echoKey(id, eventType);
   const entry = selfEchoes.get(key) ?? { count: 0, at: 0 };
   selfEchoes.set(key, { count: entry.count + 1, at: Date.now() });
 };
 
-const consumeSelfEcho = (id, eventType) => {
+const consumeSelfEcho = (id: string, eventType: string) => {
   const key = echoKey(id, eventType);
   const entry = selfEchoes.get(key);
   if (!entry) {
@@ -63,7 +84,7 @@ const consumeSelfEcho = (id, eventType) => {
 };
 
 /** Called by the comment like mutation so its own broadcast echo is ignored. */
-export const noteSelfCommentLike = (commentId, willBeLiked) =>
+export const noteSelfCommentLike = (commentId: string, willBeLiked: boolean) =>
   noteSelfEcho(commentId, willBeLiked ? 'comment.liked.v1' : 'comment.unliked.v1');
 
 /**
@@ -74,12 +95,12 @@ export const noteSelfCommentLike = (commentId, willBeLiked) =>
  * is in flight: the server's count may not include it yet, so applying the frame
  * would visibly undo the viewer's own action before the mutation settles.
  */
-const postLikesInFlight = new Map();
+const postLikesInFlight = new Map<string, number>();
 
-export const beginSelfPostLike = (postId) =>
+export const beginSelfPostLike = (postId: string) =>
   postLikesInFlight.set(postId, (postLikesInFlight.get(postId) ?? 0) + 1);
 
-export const endSelfPostLike = (postId) => {
+export const endSelfPostLike = (postId: string) => {
   const next = (postLikesInFlight.get(postId) ?? 1) - 1;
   if (next <= 0) {
     postLikesInFlight.delete(postId);
@@ -95,28 +116,30 @@ export const endSelfPostLike = (postId) => {
  * infinite query with a `pages` array, the replies query is a single payload.
  * Both wrap rows in the `ApiResponse` envelope under `data.content`.
  */
-const mapCachedComments = (mapper) => (cached) => {
-  if (!cached) {
-    return cached;
-  }
-  const mapPayload = (payload) => {
-    const rows = payload?.data?.content;
-    if (!Array.isArray(rows)) {
-      return payload;
+const mapCachedComments =
+  (mapper: (comment: CommentResponse) => CommentResponse) =>
+  (cached: CommentCachePage | undefined) => {
+    if (!cached) {
+      return cached;
     }
-    return { ...payload, data: { ...payload.data, content: rows.map(mapper) } };
+    const mapPayload = (payload: CommentCachePage) => {
+      const rows = payload?.data?.content;
+      if (!cached || !Array.isArray(rows)) {
+        return payload;
+      }
+      return { ...payload, data: { ...payload.data, content: rows.map(mapper) } };
+    };
+    if (Array.isArray(cached.pages)) {
+      return { ...cached, pages: cached.pages.map(mapPayload) };
+    }
+    return mapPayload(cached);
   };
-  if (Array.isArray(cached.pages)) {
-    return { ...cached, pages: cached.pages.map(mapPayload) };
-  }
-  return mapPayload(cached);
-};
 
-const removeCachedComment = (commentId) => (cached) => {
+const removeCachedComment = (commentId: string) => (cached: CommentCachePage | undefined) => {
   if (!cached) {
     return cached;
   }
-  const filterPayload = (payload) => {
+  const filterPayload = (payload: CommentCachePage) => {
     const rows = payload?.data?.content;
     if (!Array.isArray(rows)) {
       return payload;
@@ -132,9 +155,9 @@ const removeCachedComment = (commentId) => (cached) => {
   return filterPayload(cached);
 };
 
-const cachedCommentIds = (cached) => {
-  const ids = new Set();
-  const collect = (payload) => {
+const cachedCommentIds = (cached: CommentCachePage | undefined) => {
+  const ids = new Set<string>();
+  const collect = (payload: CommentCachePage) => {
     for (const row of payload?.data?.content ?? []) {
       ids.add(row.id);
     }
@@ -148,8 +171,13 @@ const cachedCommentIds = (cached) => {
 };
 
 /** Adjusts a counter on the cached post detail without touching viewer state. */
-const adjustPostCounter = (queryClient, postId, field, delta) => {
-  queryClient.setQueryData(['post', postId], (cached) => {
+const adjustPostCounter = (
+  queryClient: QueryClient,
+  postId: string,
+  field: 'likeCount' | 'commentCount',
+  delta: number
+) => {
+  queryClient.setQueryData<ApiResponse<Post>>(['post', postId], (cached) => {
     const post = cached?.data;
     if (!post) {
       return cached;
@@ -161,7 +189,7 @@ const adjustPostCounter = (queryClient, postId, field, delta) => {
   });
 };
 
-export const useLivePostUpdates = (postId) => {
+export const useLivePostUpdates = (postId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -169,7 +197,7 @@ export const useLivePostUpdates = (postId) => {
       return undefined;
     }
 
-    const onCommentEvent = ({ eventType, data }) => {
+    const onCommentEvent = ({ eventType, data }: CommentEvent) => {
       if (!data) {
         return;
       }
@@ -198,8 +226,8 @@ export const useLivePostUpdates = (postId) => {
         // nothing to update and the count below is the only visible effect.
         if (incoming.parentId) {
           const repliesKey = ['commentReplies', incoming.parentId];
-          if (queryClient.getQueryData(repliesKey)) {
-            queryClient.setQueryData(repliesKey, (cached) => {
+          if (queryClient.getQueryData<CommentCachePage>(repliesKey)) {
+            queryClient.setQueryData<CommentCachePage>(repliesKey, (cached) => {
               if (cachedCommentIds(cached).has(incoming.id)) {
                 return cached;
               }
@@ -209,11 +237,11 @@ export const useLivePostUpdates = (postId) => {
               }
               return {
                 ...cached,
-                data: { ...cached.data, content: [...rows, decorateNewComment(incoming)] },
+                data: { ...cached?.data, content: [...rows, decorateNewComment(incoming)] },
               };
             });
           }
-          queryClient.setQueryData(
+          queryClient.setQueryData<CommentCachePage>(
             commentsKey,
             mapCachedComments((comment) =>
               comment.id === incoming.parentId
@@ -225,7 +253,7 @@ export const useLivePostUpdates = (postId) => {
           return;
         }
 
-        queryClient.setQueryData(commentsKey, (cached) => {
+        queryClient.setQueryData<CommentCachePage>(commentsKey, (cached) => {
           if (!cached || !Array.isArray(cached.pages) || cached.pages.length === 0) {
             return cached;
           }
@@ -266,7 +294,7 @@ export const useLivePostUpdates = (postId) => {
         // per-viewer or per-page, so the cached values are kept verbatim. This
         // is the case where overwriting with a default would silently reset the
         // viewer's own like.
-        const applyEdit = (comment) =>
+        const applyEdit = (comment: CommentResponse) =>
           comment.id === incoming.id
             ? {
                 ...comment,
@@ -275,9 +303,12 @@ export const useLivePostUpdates = (postId) => {
                 updatedAt: incoming.updatedAt,
               }
             : comment;
-        queryClient.setQueryData(commentsKey, mapCachedComments(applyEdit));
+        queryClient.setQueryData<CommentCachePage>(commentsKey, mapCachedComments(applyEdit));
         if (data.parentId) {
-          queryClient.setQueryData(['commentReplies', data.parentId], mapCachedComments(applyEdit));
+          queryClient.setQueryData<CommentCachePage>(
+            ['commentReplies', data.parentId],
+            mapCachedComments(applyEdit)
+          );
         }
         return;
       }
@@ -287,8 +318,8 @@ export const useLivePostUpdates = (postId) => {
         if (!commentId) {
           return;
         }
-        queryClient.setQueryData(commentsKey, removeCachedComment(commentId));
-        queryClient.setQueryData(['commentReplies', commentId], undefined);
+        queryClient.setQueryData<CommentCachePage>(commentsKey, removeCachedComment(commentId));
+        queryClient.setQueryData<CommentCachePage>(['commentReplies', commentId], undefined);
         queryClient.removeQueries({ queryKey: ['commentReplies', commentId] });
         // The frame carries how many comments went, because deleting a comment
         // soft-deletes its replies too. That count is used rather than
@@ -309,33 +340,37 @@ export const useLivePostUpdates = (postId) => {
         // viewer's own isLiked is never touched: the frame does not say who
         // liked, so it cannot say anything about this viewer.
         const delta = eventType === 'comment.liked.v1' ? 1 : -1;
-        const applyLike = (comment) =>
+        const applyLike = (comment: CommentResponse) =>
           comment.id === commentId
             ? { ...comment, likeCount: Math.max(0, (comment.likeCount ?? 0) + delta) }
             : comment;
-        queryClient.setQueryData(commentsKey, mapCachedComments(applyLike));
+        queryClient.setQueryData<CommentCachePage>(commentsKey, mapCachedComments(applyLike));
         if (data.rootId) {
-          queryClient.setQueryData(['commentReplies', data.rootId], mapCachedComments(applyLike));
+          queryClient.setQueryData<CommentCachePage>(
+            ['commentReplies', data.rootId],
+            mapCachedComments(applyLike)
+          );
         }
       }
     };
 
-    const onPostEvent = ({ eventType, data }) => {
+    const onPostEvent = ({ eventType, data }: PostEvent) => {
       if (eventType !== 'post.live.liked.v1' && eventType !== 'post.live.unliked.v1') {
         return;
       }
       if (typeof data?.likeCount !== 'number' || postLikesInFlight.has(postId)) {
         return;
       }
+      const likeCount = data.likeCount;
       // The count is absolute rather than a delta, so it is assigned, not added.
       // isLiked is left exactly as the cache holds it: the frame is shared by
       // every subscriber and says nothing about this viewer.
-      queryClient.setQueryData(['post', postId], (cached) => {
+      queryClient.setQueryData<ApiResponse<Post>>(['post', postId], (cached) => {
         const post = cached?.data;
-        if (!post || post.likeCount === data.likeCount) {
+        if (!post || post.likeCount === likeCount) {
           return cached;
         }
-        return { ...cached, data: { ...post, likeCount: data.likeCount } };
+        return { ...cached, data: { ...post, likeCount } };
       });
     };
 
@@ -359,7 +394,7 @@ export const useLivePostUpdates = (postId) => {
  * three values are determined rather than guessed. The same assumption would be
  * wrong on any other event type, which is why this is only applied here.
  */
-const decorateNewComment = (comment) => ({
+const decorateNewComment = (comment: CommentBroadcast): CommentResponse => ({
   ...comment,
   isLiked: false,
   hasReported: false,

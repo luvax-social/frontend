@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+import type { PostMediaSource } from '@/types/composer';
 import { useState } from 'react';
 import { v } from '@/config/tokens';
 import { getMediaList, isVideoMedia } from '@/utils/helpers';
@@ -7,7 +9,7 @@ import { LxIcon } from './primitives';
 // as the same family. 26,24,22 is the design's own card shadow colour.
 const SCRIM = 'rgba(26,24,22,0.28)';
 
-function Badge({ icon, label }) {
+function Badge({ icon, label }: { icon: string; label?: string | null }) {
   return (
     <div
       style={{
@@ -37,13 +39,13 @@ function Badge({ icon, label }) {
  * A tile is one square, never a carousel: it shows the post's first item and
  * indicates when the post carries more.
  */
-export function MediaThumb({ post, radius = 0 }) {
+export function MediaThumb({ post, radius = 0 }: { post: PostMediaSource; radius?: number }) {
   const [failed, setFailed] = useState(false);
   const items = getMediaList(post);
   const first = items[0] || null;
   const isVideo = first ? isVideoMedia(first) : false;
 
-  const frame = {
+  const frame: CSSProperties = {
     position: 'relative',
     width: '100%',
     aspectRatio: '1/1',
@@ -55,7 +57,12 @@ export function MediaThumb({ post, radius = 0 }) {
   // A grid tile is a square crop by definition, and the design crops its tiles
   // too, so cover is correct here. The no-crop rule applies to the feed and
   // detail frames, where the media is the subject rather than a thumbnail.
-  const fit = { width: '100%', height: '100%', objectFit: 'cover', display: 'block' };
+  const fit: CSSProperties = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  };
 
   if (!first || !first.cdnUrl || failed) {
     return (

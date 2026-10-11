@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import type { TurnstileHandle } from '@/types/turnstile';
 
 /**
  * Wiring every form that carries a Turnstile challenge needs.
@@ -21,8 +22,8 @@ import { useCallback, useRef, useState } from 'react';
  *   `ready` is whether the challenge has actually drawn, which gates the "complete
  *   the challenge" hint so it does not appear while there is nothing to complete
  */
-export function useTurnstile(onTokenChange) {
-  const widgetRef = useRef(null);
+export function useTurnstile(onTokenChange: (token: string | null) => void) {
+  const widgetRef = useRef<TurnstileHandle | null>(null);
   const [unavailable, setUnavailable] = useState('');
   const [ready, setReady] = useState(false);
 

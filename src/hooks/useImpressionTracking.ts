@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 // Search's pre-query grid, which renders the same underlying recommendation
 // content). Session-scoped, not per-hook-instance: two mounted tiles for the
 // same postId must not double-report either.
-const reportedThisSession = new Set();
+const reportedThisSession = new Set<string>();
 
 const VISIBILITY_THRESHOLD = 0.5;
 const DWELL_MS = 1000;
@@ -25,7 +25,10 @@ const DWELL_SECONDS = DWELL_MS / 1000;
  * @param {'feed'|'explore'|'search'|undefined} surface
  * @returns {{ ref: (node: Element|null) => void }}
  */
-export function useImpressionTracking(postId, surface) {
+export function useImpressionTracking(
+  postId: string | undefined,
+  surface: 'feed' | 'explore' | 'search' | undefined
+) {
   const { ref, inView } = useInView({ threshold: VISIBILITY_THRESHOLD });
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 

@@ -48,7 +48,7 @@ export function useThemeChoice() {
       return undefined;
     }
     const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (event) => {
+    const handleChange = (event: MediaQueryListEvent) => {
       if (window.localStorage.getItem(MANUAL_KEY) === null) {
         setDark(event.matches);
       }
@@ -57,7 +57,7 @@ export function useThemeChoice() {
     return () => media.removeEventListener('change', handleChange);
   }, []);
 
-  const setTheme = useCallback((next) => {
+  const setTheme = useCallback((next: boolean) => {
     window.localStorage.setItem(MANUAL_KEY, '1');
     window.localStorage.setItem(VALUE_KEY, String(next));
     setDark(next);

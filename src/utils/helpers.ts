@@ -1,3 +1,24 @@
+import type { PageInfo } from '@/types/api';
+import type { UserSummaryView } from '@/types/user';
+
+interface PageLike<T> {
+  data?: { content?: T[]; pageInfo?: Partial<PageInfo>; degraded?: boolean };
+  content?: T[];
+  pageInfo?: Partial<PageInfo>;
+  degraded?: boolean;
+}
+
+interface ViewerState {
+  isFollowing?: boolean;
+  isSelf?: boolean;
+  isOwner?: boolean;
+}
+
+interface PrivacyUser {
+  isPrivate?: boolean;
+  viewerState?: ViewerState;
+}
+
 /**
  * Global utility helpers
  */
@@ -9,7 +30,7 @@
  * @param {string} [currency='USD']
  * @returns {string}
  */
-export function formatCurrency(value, locale = 'en-US', currency = 'USD') {
+export function formatCurrency(value: number, locale = 'en-US', currency = 'USD') {
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
 }
 
@@ -19,7 +40,10 @@ export function formatCurrency(value, locale = 'en-US', currency = 'USD') {
  * @param {Intl.DateTimeFormatOptions} [options]
  * @returns {string}
  */
-export function formatDate(date, options = { dateStyle: 'medium' }) {
+export function formatDate(
+  date: Date | string,
+  options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }
+) {
   return new Intl.DateTimeFormat('en-US', options).format(new Date(date));
 }
 
@@ -29,7 +53,7 @@ export function formatDate(date, options = { dateStyle: 'medium' }) {
  * @param {number} maxLength
  * @returns {string}
  */
-export function truncate(str, maxLength = 100) {
+export function truncate(str: string, maxLength = 100) {
   if (!str || str.length <= maxLength) {
     return str;
   }
@@ -41,8 +65,8 @@ export function truncate(str, maxLength = 100) {
  * @param {number} ms
  * @returns {Promise<void>}
  */
-export function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+export function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -52,7 +76,7 @@ export function sleep(ms) {
  * @param {T} fallback
  * @returns {T}
  */
-export function safeJsonParse(jsonString, fallback = null) {
+export function safeJsonParse(jsonString: string, fallback: unknown = null): unknown {
   try {
     return JSON.parse(jsonString);
   } catch {
@@ -66,7 +90,7 @@ export function safeJsonParse(jsonString, fallback = null) {
  * @param {{data?: {content?: Array}, content?: Array}} page
  * @returns {Array}
  */
-export function extractPageContent(page) {
+export function extractPageContent<T>(page: PageLike<T> | null | undefined): T[] {
   return page?.data?.content ?? page?.content ?? [];
 }
 
@@ -79,7 +103,7 @@ export function extractPageContent(page) {
  * @param {{data?: {pageInfo?: object}, pageInfo?: object}} page
  * @returns {{hasNextPage?: boolean, hasPreviousPage?: boolean, startCursor?: string, endCursor?: string}}
  */
-export function extractPageInfo(page) {
+export function extractPageInfo(page: PageLike<unknown> | null | undefined): Partial<PageInfo> {
   return page?.data?.pageInfo ?? page?.pageInfo ?? {};
 }
 
@@ -98,7 +122,7 @@ export function extractPageInfo(page) {
  * @param {{data?: {degraded?: boolean}, degraded?: boolean}} page
  * @returns {boolean}
  */
-export function isPageDegraded(page) {
+export function isPageDegraded(page: PageLike<unknown> | null | undefined) {
   return Boolean(page?.data?.degraded ?? page?.degraded);
 }
 
@@ -108,7 +132,7 @@ export function isPageDegraded(page) {
  * @param {object} page a raw ApiResponse page wrapping a CursorPageResponse
  * @returns {string|undefined}
  */
-export function getNextCursor(page) {
+export function getNextCursor(page: PageLike<unknown>) {
   const pageInfo = extractPageInfo(page);
 
   // A page that carries content but no pageInfo means pagination silently
@@ -120,7 +144,9 @@ export function getNextCursor(page) {
   return pageInfo.hasNextPage ? pageInfo.endCursor : undefined;
 }
 
-export function canViewerSeePost(post) {
+export function canViewerSeePost(
+  post: { author?: PrivacyUser; user?: PrivacyUser; viewerState?: ViewerState } | null | undefined
+) {
   const author = post?.author || post?.user || {};
   const viewerState = author.viewerState || post?.viewerState || {};
   return !author.isPrivate || viewerState.isFollowing || viewerState.isSelf || viewerState.isOwner;
@@ -141,7 +167,10 @@ export function canViewerSeePost(post) {
  * @param {{pages: Array, pageParams: Array}} data raw infinite query data
  * @returns {{pages: Array, pageParams: Array}}
  */
-export function dedupeInfinitePagesById(data) {
+export function dedupeInfinitePagesById<
+  T extends { id: string },
+  D extends { pages: PageLike<T>[]; pageParams: unknown[] },
+>(data: D): D {
   const seen = new Set();
 
   const pages = data.pages.map((page) => {
@@ -159,7 +188,7 @@ export function dedupeInfinitePagesById(data) {
     return { ...page, content: deduped };
   });
 
-  return { ...data, pages };
+  return { ...data, pages } as D;
 }
 
 /**
@@ -180,7 +209,7 @@ export function dedupeInfinitePagesById(data) {
  * @param {string} key the field expected on it
  * @param {string} label what the field was expected to contain
  */
-function warnOnShapeDrift(source, key, label) {
+function warnOnShapeDrift(source: unknown, key: string, label: string) {
   if (!import.meta.env.DEV) return;
   if (!source || typeof source !== 'object' || Object.keys(source).length === 0) return;
 
@@ -222,7 +251,11 @@ const ABSENT_USER_SUMMARY = Object.freeze({
  * @param {{optional?: boolean}} [options] `optional` when an absent summary is expected
  * @returns {{id: ?string, username: ?string, displayName: ?string, avatarUrl: ?string, isVerified: boolean}}
  */
-export function getUserSummary(source, key = 'author', { optional = false } = {}) {
+export function getUserSummary(
+  source: { author?: UserSummaryView | null; actor?: UserSummaryView | null } | null | undefined,
+  key: 'author' | 'actor' = 'author',
+  { optional = false } = {}
+): UserSummaryView {
   const summary = source?.[key];
 
   if (summary && typeof summary === 'object') {
@@ -242,7 +275,10 @@ export function getUserSummary(source, key = 'author', { optional = false } = {}
  * @param {string} [fallback] rendered when the summary carries neither
  * @returns {string}
  */
-export function getDisplayName(summary, fallback = 'unknown') {
+export function getDisplayName(
+  summary: Pick<UserSummaryView, 'displayName' | 'username'> | null | undefined,
+  fallback = 'unknown'
+) {
   return summary?.displayName || summary?.username || fallback;
 }
 
@@ -256,7 +292,7 @@ export function getDisplayName(summary, fallback = 'unknown') {
  * @param {?number} count
  * @returns {string}
  */
-export function formatCount(count) {
+export function formatCount(count: number | null | undefined) {
   return typeof count === 'number' ? String(count) : '–';
 }
 
@@ -270,7 +306,7 @@ export function formatCount(count) {
  * @param {?number} count
  * @returns {string}
  */
-export function formatPostCount(count) {
+export function formatPostCount(count: number | null | undefined) {
   return `${formatCount(count)} ${count === 1 ? 'post' : 'posts'}`;
 }
 
@@ -281,7 +317,7 @@ export function formatPostCount(count) {
  * @param {string} [promptMessage='copy text']
  * @returns {Promise<void>}
  */
-export async function copyToClipboard(text, promptMessage = 'copy text') {
+export async function copyToClipboard(text: string, promptMessage = 'copy text') {
   if (!text) return;
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     try {
@@ -319,7 +355,7 @@ export async function copyToClipboard(text, promptMessage = 'copy text') {
  * @param {string} postId
  * @returns {string}
  */
-export function buildPostLink(postId) {
+export function buildPostLink(postId: string) {
   if (typeof window === 'undefined') return `luvax://post/${postId}`;
   return `${window.location.origin}${window.location.pathname}#post-${postId}`;
 }
@@ -329,7 +365,7 @@ export function buildPostLink(postId) {
  * @param {string} postId
  * @returns {Promise<void>}
  */
-export async function copyPostLink(postId) {
+export async function copyPostLink(postId: string) {
   const link = buildPostLink(postId);
   await copyToClipboard(link, 'copy link');
 }
@@ -340,7 +376,7 @@ export async function copyPostLink(postId) {
  * @param {string} postId
  * @returns {Promise<void>}
  */
-export async function sharePost(postId) {
+export async function sharePost(postId: string) {
   const link = buildPostLink(postId);
   if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     await navigator.share({
@@ -362,7 +398,7 @@ export async function sharePost(postId) {
  * @param {{mediaType?: string}} media
  * @returns {boolean}
  */
-export function isVideoMedia(media) {
+export function isVideoMedia(media: { mediaType?: string } | null | undefined) {
   return media?.mediaType === 'video';
 }
 
@@ -386,7 +422,7 @@ export const MEDIA_FALLBACK_RATIO = 1;
  * @param {{media?: unknown}} post
  * @returns {Array<object>}
  */
-export function getMediaList(post) {
+export function getMediaList<T>(post: { media?: T[] | null } | null | undefined): T[] {
   return Array.isArray(post?.media) ? post.media : [];
 }
 
@@ -398,7 +434,9 @@ export function getMediaList(post) {
  * @param {{width?: number, height?: number}} media
  * @returns {number}
  */
-export function getFrameRatio(media) {
+export function getFrameRatio(
+  media: { width?: number | null; height?: number | null } | null | undefined
+) {
   const width = Number(media?.width);
   const height = Number(media?.height);
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {

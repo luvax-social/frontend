@@ -16,7 +16,7 @@ import { ROUTES } from '@/config/constants';
  * @param {string} adminActionId the audit row the decision was recorded under
  * @returns {string} the support address, or the plain support address when there is no decision
  */
-export const appealPath = (adminActionId) =>
+export const appealPath = (adminActionId: string | null | undefined) =>
   adminActionId
     ? `${ROUTES.SETTINGS_SUPPORT}?appeal=${encodeURIComponent(adminActionId)}`
     : ROUTES.SETTINGS_SUPPORT;
@@ -48,7 +48,9 @@ export const CONTENT_REMOVAL_TYPES = new Set([
  * @param {Object} notification the notification row
  * @returns {string|null} the audit row identifier, or null when there is none to appeal
  */
-export const appealableActionId = (notification) =>
-  CONTENT_REMOVAL_TYPES.has(notification?.type) && notification?.entityType === 'admin_action'
+export const appealableActionId = (
+  notification: { type?: string; entityType?: string; entityId?: string | null } | null | undefined
+) =>
+  CONTENT_REMOVAL_TYPES.has(notification?.type ?? '') && notification?.entityType === 'admin_action'
     ? (notification.entityId ?? null)
     : null;

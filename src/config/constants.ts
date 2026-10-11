@@ -166,7 +166,7 @@ export const ROUTES = {
   NOT_FOUND: '*',
 };
 
-const withParams = (pattern, params) =>
+const withParams = (pattern: string, params: Record<string, string | null | undefined>) =>
   Object.entries(params).reduce(
     (path, [key, value]) => path.replace(`:${key}`, encodeURIComponent(value ?? '')),
     pattern
@@ -174,18 +174,23 @@ const withParams = (pattern, params) =>
 
 /** Builders for the parameterised routes above. */
 export const routeTo = {
-  userProfile: (userId) => withParams(ROUTES.USER_PROFILE, { userId }),
-  userFollowers: (userId) => withParams(ROUTES.USER_FOLLOWERS, { userId }),
-  userFollowing: (userId) => withParams(ROUTES.USER_FOLLOWING, { userId }),
-  postDetail: (postId) => withParams(ROUTES.POST_DETAIL, { postId }),
-  hashtag: (name) => withParams(ROUTES.HASHTAG, { name }),
-  storyView: (storyId) => withParams(ROUTES.STORY_VIEW, { storyId }),
-  adminReportDetail: (reportId) => withParams(ROUTES.ADMIN_REPORT_DETAIL, { reportId }),
-  adminUser: (userId) => withParams(ROUTES.ADMIN_USER, { userId }),
-  supportTicket: (ticketId) => withParams(ROUTES.SUPPORT_TICKET, { ticketId }),
+  userProfile: (userId: string | null | undefined) => withParams(ROUTES.USER_PROFILE, { userId }),
+  userFollowers: (userId: string | null | undefined) =>
+    withParams(ROUTES.USER_FOLLOWERS, { userId }),
+  userFollowing: (userId: string | null | undefined) =>
+    withParams(ROUTES.USER_FOLLOWING, { userId }),
+  postDetail: (postId: string | null | undefined) => withParams(ROUTES.POST_DETAIL, { postId }),
+  hashtag: (name: string | null | undefined) => withParams(ROUTES.HASHTAG, { name }),
+  storyView: (storyId: string | null | undefined) => withParams(ROUTES.STORY_VIEW, { storyId }),
+  adminReportDetail: (reportId: string | null | undefined) =>
+    withParams(ROUTES.ADMIN_REPORT_DETAIL, { reportId }),
+  adminUser: (userId: string | null | undefined) => withParams(ROUTES.ADMIN_USER, { userId }),
+  supportTicket: (ticketId: string | null | undefined) =>
+    withParams(ROUTES.SUPPORT_TICKET, { ticketId }),
   // The action log with a specific action open in its drawer; the open state is
   // a query parameter so the link is shareable and the list stays mounted.
-  adminAction: (actionId) => `${ROUTES.ADMIN_ACTIONS}?action=${encodeURIComponent(actionId ?? '')}`,
+  adminAction: (actionId: string | null | undefined) =>
+    `${ROUTES.ADMIN_ACTIONS}?action=${encodeURIComponent(actionId ?? '')}`,
 };
 
 /** Query cache stale times (ms) */

@@ -24,7 +24,7 @@ import { useEffect } from 'react';
  * @param {number} [restoreScrollY] a scroll offset captured before `isOpen` went true, used
  *   instead of reading `window.scrollY` live
  */
-export const useBodyScrollLock = (isOpen, restoreScrollY) => {
+export const useBodyScrollLock = (isOpen: boolean, restoreScrollY?: number) => {
   useEffect(() => {
     if (!isOpen || typeof document === 'undefined') return undefined;
 

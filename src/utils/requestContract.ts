@@ -22,8 +22,11 @@
  * @param {string[]} declaredKeys the exact parameter names the endpoint accepts
  * @returns {Object} a params object containing only declared, meaningful values
  */
-export const pickParams = (filters = {}, declaredKeys = []) => {
-  const out = {};
+export const pickParams = (
+  filters: Record<string, unknown> = {},
+  declaredKeys: readonly string[] = []
+) => {
+  const out: Record<string, unknown> = {};
   for (const key of declaredKeys) {
     const value = filters?.[key];
     if (value === undefined || value === null) {
@@ -49,8 +52,8 @@ export const pickParams = (filters = {}, declaredKeys = []) => {
  * @param {Object} fields an object whose keys are exactly the declared body fields
  * @returns {Object} the same object without its undefined-valued keys
  */
-export const buildBody = (fields = {}) => {
-  const out = {};
+export const buildBody = (fields: Record<string, unknown> = {}) => {
+  const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined) {
       continue;

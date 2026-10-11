@@ -37,8 +37,9 @@ export function useRateLimitCooldown() {
      * seconds when the header is missing or unreadable, matching the
      * dev-profile recommendation rate limit window (200 requests / 60s).
      */
-    start: (seconds) => {
-      const secs = Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
+    start: (seconds: unknown) => {
+      const secs =
+        typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0 ? seconds : 60;
       setNow(Date.now());
       setUntil(Date.now() + secs * 1000);
     },

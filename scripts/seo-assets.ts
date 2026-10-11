@@ -1,11 +1,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { createSeoConfig, getPageMetadata, metadataEntries } from '../src/config/seo.js';
+import { createSeoConfig, getPageMetadata, metadataEntries } from '../src/config/seo.ts';
+import type { SeoConfig, SeoEnv } from '../src/config/seo.ts';
+import type { Plugin } from 'vite';
 
-const escape = (value) =>
+const escape = (value: string) =>
   value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function replaceHead(html, metadata) {
+function replaceHead(html: string, metadata: ReturnType<typeof getPageMetadata>) {
   const clean = html
     .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, '')
     .replace(/<meta\b[^>]*name=["'](?:description|robots)["'][^>]*>/gi, '')
@@ -24,7 +26,7 @@ function replaceHead(html, metadata) {
   return clean.replace('</head>', `${head}\n</head>`);
 }
 
-export function createSeoDocuments(html, config) {
+export function createSeoDocuments(html: string, config: SeoConfig) {
   const home = replaceHead(html, getPageMetadata(config, '/', ''));
   const spa = replaceHead(html, getPageMetadata(config, '/app', '', 'Luvax'));
   const missing = replaceHead(
@@ -45,9 +47,9 @@ export function createSeoDocuments(html, config) {
   };
 }
 
-export function seoAssetsPlugin(env) {
+export function seoAssetsPlugin(env: SeoEnv): Plugin {
   const config = createSeoConfig(env);
-  let outDir;
+  let outDir = '';
   return {
     name: 'luvax-seo-assets',
     apply: 'build',

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 
-export function useLocalStorage(key, initialValue) {
-  const [storedValue, setStoredValue] = useState(() => {
+export function useLocalStorage<T>(key: string, initialValue: T) {
+  const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      return item ? (JSON.parse(item) as T) : initialValue;
     } catch {
       return initialValue;
     }
@@ -20,7 +20,7 @@ export function useLocalStorage(key, initialValue) {
     }
   }, [key, storedValue]);
 
-  return [storedValue, setStoredValue];
+  return [storedValue, setStoredValue] as const;
 }
 
 /**
@@ -31,7 +31,7 @@ export function useLocalStorage(key, initialValue) {
  * @param {number} delay - debounce delay in ms
  * @returns {T}
  */
-export function useDebounce(value, delay = 300) {
+export function useDebounce<T>(value: T, delay = 300) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {

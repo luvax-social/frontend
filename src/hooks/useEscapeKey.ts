@@ -11,11 +11,11 @@ import { useEffect } from 'react';
  * @param {boolean} isOpen whether the overlay is currently showing
  * @param {Function} onClose called when Escape is pressed while open
  */
-export const useEscapeKey = (isOpen, onClose) => {
+export const useEscapeKey = (isOpen: boolean, onClose: () => void) => {
   useEffect(() => {
     if (!isOpen) return undefined;
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
     };
 

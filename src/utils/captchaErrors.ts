@@ -22,7 +22,13 @@ export const SUPPORT_CAPTCHA_FAILED = 'SUPPORT_CAPTCHA_FAILED';
 export const AUTH_CAPTCHA_FAILED = 'AUTH_CAPTCHA_FAILED';
 
 /** Reads the backend error code from the envelope the interceptor preserves. */
-export const getErrorCode = (error) => error?.response?.data?.code ?? null;
+export const getErrorCode = (error: unknown) => {
+  if (!error || typeof error !== 'object' || !('response' in error)) return null;
+  const response = error.response;
+  if (!response || typeof response !== 'object' || !('data' in response)) return null;
+  const data = response.data;
+  return data && typeof data === 'object' && 'code' in data ? data.code : null;
+};
 
 /**
  * True when the server refused the challenge rather than the form's contents.
@@ -34,7 +40,7 @@ export const getErrorCode = (error) => error?.response?.data?.code ?? null;
  * @param {unknown} error an Axios error
  * @returns {boolean} whether this failure was the challenge
  */
-export const isCaptchaFailure = (error) => {
+export const isCaptchaFailure = (error: unknown) => {
   const code = getErrorCode(error);
   return code === SUPPORT_CAPTCHA_FAILED || code === AUTH_CAPTCHA_FAILED;
 };

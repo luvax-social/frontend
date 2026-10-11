@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { dedupeInfinitePagesById } from '@/utils/helpers';
 
-const page = (ids) => ({ data: { content: ids.map((id) => ({ id })), pageInfo: {} } });
+const page = (ids: string[]) => ({ data: { content: ids.map((id) => ({ id })), pageInfo: {} } });
 
 describe('dedupeInfinitePagesById', () => {
   it('keeps every id when nothing repeats', () => {

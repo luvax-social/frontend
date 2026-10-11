@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GlobalErrorBoundary from '@/components/common/ErrorBoundary';
 import RouteMetadata from '@/components/common/RouteMetadata';
 import { createSeoConfig, getPageMetadata } from '@/config/seo';
-import { createSeoDocuments } from '../../scripts/seo-assets.js';
+import { createSeoDocuments } from '../../scripts/seo-assets.ts';
 
 const production = { VITE_SITE_URL: 'https://luvax.online/', VITE_SEO_INDEXABLE: 'true' };
 const template =

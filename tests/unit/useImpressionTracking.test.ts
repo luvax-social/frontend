@@ -1,19 +1,21 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import type { IntersectionOptions } from 'react-intersection-observer';
+import type { Mock } from 'vitest';
 
 const reportImpressionMock = vi.fn();
 vi.mock('@/services/impressionQueue', () => ({
-  reportImpression: (...args) => reportImpressionMock(...args),
+  reportImpression: (...args: unknown[]) => reportImpressionMock(...args),
 }));
 
 const authState = { isAuthenticated: true };
 vi.mock('@/store/useAuthStore', () => ({
-  useAuthStore: (selector) => selector(authState),
+  useAuthStore: (selector: (state: typeof authState) => unknown) => selector(authState),
 }));
 
-let inViewState;
+let inViewState: { ref: Mock; value: boolean; lastOptions?: IntersectionOptions };
 vi.mock('react-intersection-observer', () => ({
-  useInView: (opts) => {
+  useInView: (opts: IntersectionOptions) => {
     inViewState.lastOptions = opts;
     return { ref: inViewState.ref, inView: inViewState.value };
   },

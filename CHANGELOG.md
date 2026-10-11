@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Authentication state, role normalization and API refresh handling now use explicit TypeScript contracts while preserving session persistence and cookie credentials.
 - Authentication views now use shareable query URLs, a stable visible primary heading, smaller responsive images and earlier font discovery, while the moderation support queue loads on demand.
 - The historical admin panel backend reference now identifies itself as an API contract and uses a descriptive filename.
 - The sign-in challenge now expands to match the width of the login fields.
@@ -180,4 +181,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Coverage for the notification cache reducers, the rolling time-section buckets, and the per-type sentence builder.
 - Coverage for the notifications screen's seen flow: one call on the first page load and none on any other chip, and mark-all-read bound to the most recently fetched page rather than the moment of the click.
 - A Playwright suite for the notifications screen at 390, 768, 1024, 1440 and 1920 pixels, covering the seen flow, chip filtering, the read/unread/delete menu with rollback, and an unavailable target.
-

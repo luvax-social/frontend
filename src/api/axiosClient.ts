@@ -1,6 +1,27 @@
 import axios from 'axios';
 
 import { useAuthStore } from '@/store/useAuthStore';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AuthInput, AuthPayload, TokenPair } from '@/types/auth';
+import type { ErrorPayload } from '@/types/api';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuthRefresh?: boolean;
+    _retry?: boolean;
+  }
+}
+
+export interface AppError extends Error {
+  isAxiosError?: boolean;
+  response?: AxiosResponse<ErrorPayload>;
+  fieldErrors?: Record<string, string>;
+}
+
+interface RefreshWaiter {
+  resolve: (auth: TokenPair) => void;
+  reject: (error: unknown) => void;
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '') || '/api/v1';
 // The refresh token is delivered as an HttpOnly cookie. The API sits on a
@@ -16,7 +37,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '') || 
 const AUTH_WITH_CREDENTIALS = true;
 const REFRESH_PATH = '/auth/refresh';
 
-const createClient = (config = {}) =>
+const createClient = (config: AxiosRequestConfig = {}) =>
   axios.create({
     baseURL: API_BASE_URL,
     timeout: 20000,
@@ -32,7 +53,7 @@ export const axiosClient = createClient();
 
 let isRefreshing = false;
 let isRedirecting = false;
-let refreshQueue = [];
+let refreshQueue: RefreshWaiter[] = [];
 
 const PUBLIC_AUTH_PATHS = [
   '/auth/login',
@@ -44,7 +65,7 @@ const PUBLIC_AUTH_PATHS = [
   '/auth/oauth2/exchange',
 ];
 
-export const getTokenFromResponse = (payload) =>
+export const getTokenFromResponse = (payload: AuthPayload | null | undefined) =>
   payload?.accessToken ??
   payload?.token ??
   payload?.data?.accessToken ??
@@ -53,7 +74,7 @@ export const getTokenFromResponse = (payload) =>
   payload?.access_token ??
   null;
 
-export const getRefreshTokenFromResponse = (payload) =>
+export const getRefreshTokenFromResponse = (payload: AuthPayload | null | undefined) =>
   payload?.refreshToken ??
   payload?.data?.refreshToken ??
   payload?.data?.refresh_token ??
@@ -64,9 +85,10 @@ export const getRefreshTokenFromResponse = (payload) =>
 // role. Pulling it out here lets the interceptor-driven refresh repopulate the
 // role, not only the tokens; without it a background refresh would leave the
 // role stale because setTokens does not touch the user.
-export const getUserFromResponse = (payload) => payload?.data?.user ?? payload?.user ?? null;
+export const getUserFromResponse = (payload: AuthPayload | null | undefined) =>
+  payload?.data?.user ?? payload?.user ?? null;
 
-const isSkippableRequest = (config = {}) => {
+const isSkippableRequest = (config: AxiosRequestConfig = {}) => {
   const url = config.url || '';
   return (
     config.skipAuthRefresh ||
@@ -75,14 +97,14 @@ const isSkippableRequest = (config = {}) => {
   );
 };
 
-const flushRefreshQueue = (error, nextAuth = null) => {
+const flushRefreshQueue = (error: unknown, nextAuth: TokenPair | null = null) => {
   refreshQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);
       return;
     }
 
-    resolve(nextAuth);
+    if (nextAuth) resolve(nextAuth);
   });
 
   refreshQueue = [];
@@ -115,7 +137,7 @@ export const clearAuthAndRedirect = () => {
   isRedirecting = false;
 };
 
-const persistAuthSession = ({ accessToken, refreshToken, user }) => {
+const persistAuthSession = ({ accessToken, refreshToken, user }: AuthInput) => {
   const { setAuth, setTokens } = useAuthStore.getState();
 
   if (user !== undefined) {
@@ -133,9 +155,13 @@ const refreshAccessToken = async () => {
   // rides along with the request and the server falls back to it when the body
   // omits the field. Sending an empty body is what lets a reloaded tab, which
   // has lost the in-memory copy, still rotate a session.
-  const response = await publicClient.post(REFRESH_PATH, refreshToken ? { refreshToken } : {}, {
-    skipAuthRefresh: true,
-  });
+  const response = await publicClient.post<AuthPayload>(
+    REFRESH_PATH,
+    refreshToken ? { refreshToken } : {},
+    {
+      skipAuthRefresh: true,
+    }
+  );
 
   const payload = response?.data;
   const nextAccessToken = getTokenFromResponse(payload);
@@ -169,7 +195,7 @@ const refreshAccessToken = async () => {
  * These are the fallback when the backend does not supply its own message.
  * Never expose raw database errors, constraint names, or internal stack traces.
  */
-const STATUS_MESSAGES = {
+const STATUS_MESSAGES: Record<number, string> = {
   400: 'The request was invalid. Please check your input and try again.',
   401: 'Your session has expired. Please sign in again.',
   403: 'You do not have permission to perform this action.',
@@ -226,7 +252,7 @@ const REDACTED_PATTERNS = [
  * (authApi.normalizeMessage, LoginForm error display, etc.) see a safe value
  * without requiring changes at each call site.
  */
-const normalizeAxiosError = (error) => {
+const normalizeAxiosError = (error: AppError | null | undefined): AppError => {
   if (!error || !error.isAxiosError) {
     // If it's a generic JS Error (like thrown during refresh token checks), keep its message
     if (error && !error.response && error.message) {
@@ -275,7 +301,7 @@ const normalizeAxiosError = (error) => {
   // into `error.response.data` for itself. Only string values are copied, so a
   // nested or unexpected payload cannot end up rendered as a field message.
   if (data.code === 'VALIDATION_ERROR' && data.data && typeof data.data === 'object') {
-    const fieldErrors = {};
+    const fieldErrors: Record<string, string> = {};
     for (const [field, message] of Object.entries(data.data)) {
       if (typeof message === 'string') fieldErrors[field] = message;
     }
@@ -354,7 +380,9 @@ axiosClient.interceptors.response.use(
     } catch (refreshError) {
       flushRefreshQueue(refreshError);
       clearAuthAndRedirect();
-      return Promise.reject(normalizeAxiosError(refreshError));
+      return Promise.reject(
+        normalizeAxiosError(refreshError instanceof Error ? refreshError : null)
+      );
     } finally {
       isRefreshing = false;
     }

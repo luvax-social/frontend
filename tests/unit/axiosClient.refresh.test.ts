@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { axiosClient, publicClient } from '@/api/axiosClient';
 import { useAuthStore } from '@/store/useAuthStore';
 
-let authMock;
-let publicMock;
+let authMock: MockAdapter;
+let publicMock: MockAdapter;
 
 beforeEach(() => {
   authMock = new MockAdapter(axiosClient);
@@ -45,10 +45,10 @@ describe('single-flight token refresh', () => {
   });
 
   it('replays the original request with the new token, not the stale one', async () => {
-    const seen = [];
+    const seen: unknown[] = [];
     authMock.onGet('/protected').replyOnce(401);
     authMock.onGet('/protected').replyOnce((config) => {
-      seen.push(config.headers.Authorization);
+      seen.push(config.headers?.Authorization);
       return [200, { ok: true }];
     });
     publicMock.onPost('/auth/refresh').reply(200, { accessToken: 'fresh-token' });
@@ -80,9 +80,9 @@ describe('single-flight token refresh', () => {
   });
 
   it('attaches the current access token to an outgoing request', async () => {
-    let seenHeader;
+    let seenHeader: unknown;
     authMock.onGet('/whoami').reply((config) => {
-      seenHeader = config.headers.Authorization;
+      seenHeader = config.headers?.Authorization;
       return [200, {}];
     });
 

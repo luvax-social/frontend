@@ -5,16 +5,30 @@ import {
   publicClient,
 } from '@/api/axiosClient';
 import { useAuthStore } from '@/store/useAuthStore';
+import type { AxiosResponse } from 'axios';
+import type { AppError } from '@/api/axiosClient';
+import type { AuthFormValues, AuthPayload, SessionUser } from '@/types/auth';
+
+type UserPayload = SessionUser & {
+  user?: SessionUser;
+  data?: { user?: SessionUser };
+  profile?: SessionUser;
+};
+
+type CompatiblePayload = AuthPayload & Partial<UserPayload>;
+type AuthEnvelope = CompatiblePayload & { data?: CompatiblePayload };
 
 const DEFAULT_GOOGLE_AUTHORIZATION_PATH = '/api/v1/auth/oauth2/authorize/google';
 
-const getPayload = (response) => response?.data?.data ?? response?.data ?? {};
+const getPayload = (response: AxiosResponse<AuthEnvelope>): CompatiblePayload =>
+  response?.data?.data ?? response?.data ?? {};
 
-const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : email);
+const normalizeEmail = (email: string | undefined) =>
+  typeof email === 'string' ? email.trim().toLowerCase() : email;
 
 // The backend resolves the account type by '@' presence, so only lowercase the
 // email form here and leave usernames as typed.
-const normalizeIdentifier = (identifier) => {
+const normalizeIdentifier = (identifier: string | undefined) => {
   if (typeof identifier !== 'string') {
     return identifier;
   }
@@ -23,7 +37,7 @@ const normalizeIdentifier = (identifier) => {
   return trimmed.includes('@') ? trimmed.toLowerCase() : trimmed;
 };
 
-const normalizeUser = (payload) => {
+const normalizeUser = (payload: Partial<UserPayload> | null | undefined) => {
   const rawUser = payload?.user ?? payload?.data?.user ?? payload?.profile ?? payload ?? null;
 
   if (!rawUser || typeof rawUser !== 'object') {
@@ -37,13 +51,13 @@ const normalizeUser = (payload) => {
   };
 };
 
-const normalizeMessage = (error, fallback) =>
+const normalizeMessage = (error: AppError | null | undefined, fallback: string) =>
   error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
 
-const isGoogleCallbackPath = (pathname) =>
+const isGoogleCallbackPath = (pathname: string) =>
   /\/(?:auth\/oauth2\/callback|oauth2\/callback|oauth\/callback)\/?/i.test(pathname);
 
-const containsProviderPlaceholder = (value) =>
+const containsProviderPlaceholder = (value: string) =>
   /\{provider\}/i.test(value) || /%7Bprovider/i.test(value);
 
 const deriveBackendOriginFromApiUrl = () => {
@@ -64,7 +78,7 @@ const deriveBackendOriginFromApiUrl = () => {
   }
 };
 
-const buildRequestBody = (payload = {}) =>
+const buildRequestBody = (payload: Record<string, unknown> = {}) =>
   Object.fromEntries(
     Object.entries(payload).filter(([, value]) => {
       if (value === undefined || value === null) {
@@ -79,7 +93,7 @@ const buildRequestBody = (payload = {}) =>
     })
   );
 
-const extractAuthSession = (response) => {
+const extractAuthSession = (response: AxiosResponse<AuthEnvelope>) => {
   const payload = getPayload(response);
 
   return {
@@ -90,7 +104,7 @@ const extractAuthSession = (response) => {
   };
 };
 
-const normalizeVerificationPayload = (values = {}) => {
+const normalizeVerificationPayload = (values: AuthFormValues = {}) => {
   const token = values?.token?.trim?.() || values?.otp?.trim?.() || values?.code?.trim?.() || '';
 
   return {
@@ -100,8 +114,8 @@ const normalizeVerificationPayload = (values = {}) => {
 };
 
 export const authApi = {
-  async login(values) {
-    const response = await publicClient.post(
+  async login(values: AuthFormValues) {
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/login',
       buildRequestBody({
         identifier: normalizeIdentifier(values?.identifier ?? values?.email),
@@ -113,8 +127,8 @@ export const authApi = {
     return extractAuthSession(response);
   },
 
-  async register(values) {
-    const response = await publicClient.post(
+  async register(values: AuthFormValues) {
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/register',
       buildRequestBody({
         displayName: values?.name,
@@ -143,7 +157,7 @@ export const authApi = {
   },
 
   async refreshSession(refreshToken = useAuthStore.getState().refreshToken) {
-    const response = await publicClient.post(
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/refresh',
       buildRequestBody({
         refreshToken: refreshToken ?? undefined,
@@ -157,18 +171,18 @@ export const authApi = {
   },
 
   async getCurrentUser() {
-    const response = await axiosClient.get('/users/me');
+    const response = await axiosClient.get<AuthEnvelope>('/users/me');
     return normalizeUser(getPayload(response));
   },
 
-  async verifyEmail(values) {
+  async verifyEmail(values: AuthFormValues) {
     const verification = normalizeVerificationPayload(values);
 
     if (!verification.token) {
       throw new Error('Verification token is required.');
     }
 
-    const response = await publicClient.get('/auth/verify-email', {
+    const response = await publicClient.get<AuthEnvelope>('/auth/verify-email', {
       params: {
         token: verification.token,
       },
@@ -177,8 +191,8 @@ export const authApi = {
     return getPayload(response);
   },
 
-  async resendVerification(values) {
-    const response = await publicClient.post(
+  async resendVerification(values: AuthFormValues) {
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/verify-email/resend',
       buildRequestBody({
         email: normalizeEmail(values?.email),
@@ -189,8 +203,8 @@ export const authApi = {
     return getPayload(response);
   },
 
-  async forgotPassword(values) {
-    const response = await publicClient.post(
+  async forgotPassword(values: AuthFormValues) {
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/forgot-password',
       buildRequestBody({
         email: normalizeEmail(values?.email),
@@ -201,13 +215,13 @@ export const authApi = {
     return getPayload(response);
   },
 
-  async resetPassword(values) {
+  async resetPassword(values: AuthFormValues) {
     const verification = normalizeVerificationPayload(values);
     const nextPassword = values?.newPassword ?? values?.password ?? '';
 
     // The backend rejects unrecognised fields on this endpoint, so the body must
     // carry exactly token + newPassword + turnstileToken.
-    const response = await publicClient.post(
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/reset-password',
       buildRequestBody({
         token: verification.token || undefined,
@@ -219,8 +233,8 @@ export const authApi = {
     return getPayload(response);
   },
 
-  async exchangeOAuthCode(code) {
-    const response = await publicClient.post(
+  async exchangeOAuthCode(code: string) {
+    const response = await publicClient.post<AuthEnvelope>(
       '/auth/oauth2/exchange',
       buildRequestBody({
         code,

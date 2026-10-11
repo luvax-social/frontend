@@ -2,6 +2,30 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 import { normalizeRole } from '@/config/roles';
+import type { AuthInput, Role, SessionUser } from '@/types/auth';
+
+interface AuthState {
+  accessToken: string | null;
+  refreshToken: string | null;
+  user: SessionUser | null;
+  role: Role | null;
+  isAuthenticated: boolean;
+  isBootstrapping: boolean;
+  hasHydrated: boolean;
+}
+
+interface AuthActions {
+  setAuth: (input: AuthInput) => void;
+  setTokens: (input: Omit<AuthInput, 'user'>) => void;
+  setAccessToken: (token: unknown) => void;
+  setRefreshToken: (token: unknown) => void;
+  setUser: (user: SessionUser | null | undefined) => void;
+  setBootstrapping: (value: boolean) => void;
+  markHydrated: () => void;
+  logout: () => void;
+}
+
+type PersistedAuth = { user: Omit<SessionUser, 'role'> | null; isAuthenticated: boolean };
 
 /**
  * Drops the `role` from a user object before it is persisted. The role is a
@@ -9,7 +33,7 @@ import { normalizeRole } from '@/config/roles';
  * browser storage, so it must not ride along inside the persisted `user`. The
  * in-memory `user` keeps its role; only the on-disk copy is stripped.
  */
-const stripPersistedRole = (user) => {
+const stripPersistedRole = (user: SessionUser | null) => {
   if (!user || typeof user !== 'object') {
     return user;
   }
@@ -79,9 +103,10 @@ const migrateLegacyPersistedTokens = () => {
  * argument. Deriving it from the argument let a blank token persist `isAuthenticated: true`
  * alongside `accessToken: null`, and `isAuthenticated` is the half that reaches localStorage.
  */
-const normalizeToken = (value) => (typeof value === 'string' && value.trim() ? value : null);
+const normalizeToken = (value: unknown) =>
+  typeof value === 'string' && value.trim() ? value : null;
 
-const initialState = {
+const initialState: AuthState = {
   // Access token is in-memory only — never persisted to localStorage.
   accessToken: null,
   // Refresh token is in-memory only — ready to be migrated to HttpOnly cookie
@@ -98,8 +123,8 @@ const initialState = {
   hasHydrated: false,
 };
 
-export const useAuthStore = create(
-  persist(
+export const useAuthStore = create<AuthState & AuthActions>()(
+  persist<AuthState & AuthActions, [], [], PersistedAuth>(
     (set) => ({
       ...initialState,
 

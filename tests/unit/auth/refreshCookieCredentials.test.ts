@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { authApi } from '@/api/authApi';
 import { axiosClient, publicClient } from '@/api/axiosClient';
 import { useAuthStore } from '@/store/useAuthStore';
+import type { AxiosRequestConfig } from 'axios';
 
 // The API is served from a different origin than the SPA (localhost:8080 against localhost:5173
 // in development, api.luvax.online against luvax.online in production). A browser only stores a
@@ -13,14 +14,16 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 const session = { accessToken: 'access-1', refreshToken: 'refresh-1', user: { id: 'u1' } };
 
-let publicMock;
-let authMock;
-let seen;
+let publicMock: MockAdapter;
+let authMock: MockAdapter;
+let seen: Record<string, boolean>;
 
-const record = (label) => (config) => {
-  seen[label] = config.withCredentials === true;
-  return [200, { data: session }];
-};
+const record =
+  (label: string) =>
+  (config: AxiosRequestConfig): [number, { data: typeof session }] => {
+    seen[label] = config.withCredentials === true;
+    return [200, { data: session }];
+  };
 
 beforeEach(() => {
   seen = {};

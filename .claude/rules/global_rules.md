@@ -120,4 +120,3 @@ TypeScript is the target language for application code and tests.
 - Never log tokens, user PII, or sensitive headers to the console in production code.
 - All user-facing error messages must be normalized (the `axiosClient` interceptor handles this).
   Never surface raw BE error bodies, SQL details, or Java stack traces in the UI.
-

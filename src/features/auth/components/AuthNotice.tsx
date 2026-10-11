@@ -1,3 +1,4 @@
+import type { MouseEventHandler, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 import { LxIcon } from '@/components/ui/lx-icon';
@@ -29,7 +30,31 @@ import './AuthPage.css';
  * an unrecognised code falls through to a generic sentence rather than being
  * printed.
  */
-export function AuthNotice({ tone = 'calm', icon, title, message, actions, children }) {
+export interface NoticeOutcome {
+  tone: 'calm' | 'problem';
+  icon?: string;
+  title: string;
+  message: string;
+}
+interface NoticeProps extends NoticeOutcome {
+  actions: {
+    label: string;
+    to?: string;
+    primary?: boolean;
+    onClick?: MouseEventHandler<HTMLButtonElement>;
+    disabled?: boolean;
+  }[];
+  children?: ReactNode;
+}
+
+export function AuthNotice({
+  tone = 'calm',
+  icon,
+  title,
+  message,
+  actions,
+  children,
+}: Omit<NoticeProps, 'tone'> & { tone?: NoticeOutcome['tone'] }) {
   const isProblem = tone === 'problem';
 
   return (

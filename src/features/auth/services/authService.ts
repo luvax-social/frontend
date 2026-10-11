@@ -1,3 +1,4 @@
+import type { AuthFormValues } from '@/types/auth';
 import { authApi } from '@/api/authApi';
 
 /**
@@ -8,7 +9,7 @@ const authService = {
    * @param {{ email: string, password: string }} credentials
    * @returns {Promise<{ user: object, token: string }>}
    */
-  login: async (credentials) => {
+  login: async (credentials: AuthFormValues) => {
     return authApi.login(credentials);
   },
 
@@ -16,14 +17,14 @@ const authService = {
    * @param {{ name: string, email: string, password: string }} payload
    * @returns {Promise<{ user: object, token: string }>}
    */
-  register: async (payload) => {
+  register: async (payload: AuthFormValues) => {
     return authApi.register(payload);
   },
 
   /**
    * @returns {Promise<void>}
    */
-  logout: async (refreshToken) => {
+  logout: async (refreshToken?: string | null) => {
     await authApi.logout(refreshToken);
   },
 
@@ -38,31 +39,31 @@ const authService = {
    * @param {{ token: string, email?: string }} values
    * @returns {Promise<object>}
    */
-  verifyEmail: async (values) => authApi.verifyEmail(values),
+  verifyEmail: async (values: AuthFormValues) => authApi.verifyEmail(values),
 
   /**
    * @param {{ email: string }} values
    * @returns {Promise<object>}
    */
-  resendVerification: async (values) => authApi.resendVerification(values),
+  resendVerification: async (values: AuthFormValues) => authApi.resendVerification(values),
 
   /**
    * @param {{ email: string }} values
    * @returns {Promise<object>}
    */
-  forgotPassword: async (values) => authApi.forgotPassword(values),
+  forgotPassword: async (values: AuthFormValues) => authApi.forgotPassword(values),
 
   /**
    * @param {{ token: string, password: string }} values
    * @returns {Promise<object>}
    */
-  resetPassword: async (values) => authApi.resetPassword(values),
+  resetPassword: async (values: AuthFormValues) => authApi.resetPassword(values),
 
   /**
    * @param {string} code
    * @returns {Promise<{ user: object, accessToken: string, refreshToken: string }>}
    */
-  exchangeOAuthCode: async (code) => authApi.exchangeOAuthCode(code),
+  exchangeOAuthCode: async (code: string) => authApi.exchangeOAuthCode(code),
 };
 
 export default authService;

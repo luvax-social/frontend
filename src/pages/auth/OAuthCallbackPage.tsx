@@ -1,3 +1,5 @@
+import type { NoticeOutcome } from '@/features/auth/components/AuthNotice';
+import { getErrorCode } from '@/utils/captchaErrors';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -42,8 +44,8 @@ import { useAuthStore } from '@/store/useAuthStore';
  * through to the generic case, so a backend code, a raw message or an
  * exception can never be rendered.
  */
-const describeFailure = (error) => {
-  const code = error?.response?.data?.code;
+const describeFailure = (error: unknown): NoticeOutcome => {
+  const code = getErrorCode(error);
 
   if (code === 'AUTH_OAUTH2_EXCHANGE_CODE_INVALID') {
     return {
@@ -85,7 +87,7 @@ const describeFailure = (error) => {
 };
 
 /** The reason Google itself reported, where a return ever carries one. */
-const describeCallbackError = (raw) => {
+const describeCallbackError = (raw: string): NoticeOutcome => {
   if (raw === 'access_denied') {
     return {
       tone: 'calm',
@@ -110,7 +112,7 @@ export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
   const logout = useAuthStore((state) => state.logout);
-  const [outcome, setOutcome] = useState(null);
+  const [outcome, setOutcome] = useState<NoticeOutcome | null>(null);
   const didRun = useRef(false);
 
   const callbackError = searchParams.get('error') || '';
@@ -177,7 +179,7 @@ export default function OAuthCallbackPage() {
     finishOAuth();
   }, [callbackError, hasHashToken, logout, navigate, searchParams, setAuth]);
 
-  const shown = callbackError
+  const shown: NoticeOutcome | null = callbackError
     ? describeCallbackError(callbackError)
     : hasHashToken
       ? {

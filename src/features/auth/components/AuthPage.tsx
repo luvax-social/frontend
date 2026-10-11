@@ -1,3 +1,7 @@
+import type { z } from 'zod';
+import type { UseFormReturn } from 'react-hook-form';
+import { getErrorCode } from '@/utils/captchaErrors';
+import { getErrorData } from '@/utils/errors';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
@@ -16,7 +20,10 @@ import './AuthPage.css';
 
 // The registration form calls its display-name input `name`; the server calls
 // the same field `displayName`. Every other name matches.
-const SERVER_FIELD_TO_FORM_FIELD = {
+type LoginValues = z.infer<typeof loginSchema>;
+type RegisterValues = z.infer<typeof authPageRegisterSchema>;
+type EmailValues = z.infer<typeof emailSchema>;
+const SERVER_FIELD_TO_FORM_FIELD: Record<string, keyof RegisterValues> = {
   username: 'username',
   email: 'email',
   password: 'password',
@@ -31,7 +38,7 @@ const SERVER_FIELD_TO_FORM_FIELD = {
  * validation failed. Returns whether anything was placed, so the caller can fall
  * back to the banner when the failure was not field-level.
  */
-const applyServerFieldErrors = (form, fieldErrors) => {
+const applyServerFieldErrors = (form: UseFormReturn<RegisterValues>, fieldErrors: unknown) => {
   if (!fieldErrors || typeof fieldErrors !== 'object' || Array.isArray(fieldErrors)) {
     return false;
   }
@@ -79,7 +86,7 @@ const applyServerFieldErrors = (form, fieldErrors) => {
  * @returns {{text: string, offerSupport: boolean}} the sentence and whether to
  *   offer the support link beside it
  */
-const describeLoginFailure = (code) => {
+const describeLoginFailure = (code: unknown) => {
   if (code === 'AUTH_ACCOUNT_LOCKED') {
     return {
       text: 'This account has been banned, so you cannot sign in to it.',
@@ -107,7 +114,8 @@ const describeLoginFailure = (code) => {
   return { text: 'We could not sign you in just now. Try again in a moment.', offerSupport: false };
 };
 
-const getSuccessMessage = (state) => {
+const getSuccessMessage = (input: unknown) => {
+  const state = input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined;
   if (typeof state?.registerSuccess === 'string') return state.registerSuccess;
   if (typeof state?.verificationSuccess === 'string') return state.verificationSuccess;
   if (state?.verificationSuccess) return 'Your email has been verified. You can sign in now.';
@@ -188,7 +196,7 @@ export default function AuthPage() {
         : 'login';
 
   const view = initialView;
-  const setView = (nextView) => {
+  const setView = (nextView: 'login' | 'register' | 'forgot') => {
     const params = new URLSearchParams(location.search);
     if (nextView === 'login') params.delete('view');
     else params.set('view', nextView);
@@ -198,7 +206,9 @@ export default function AuthPage() {
   const [showLoginPw, setShowLoginPw] = useState(false);
   const [showRegPw, setShowRegPw] = useState(false);
   // { text, offerSupport } once a sign-in has been refused, null before that.
-  const [serverError, setServerError] = useState(null);
+  const [serverError, setServerError] = useState<ReturnType<typeof describeLoginFailure> | null>(
+    null
+  );
   const [regServerError, setRegServerError] = useState('');
   const [fpServerError, setFpServerError] = useState('');
   const [fpSent, setFpSent] = useState(false);
@@ -244,15 +254,18 @@ export default function AuthPage() {
   // Zod schema is what decides whether a submission may go out and there is one
   // source of truth for it.
   const setLoginToken = useCallback(
-    (token) => loginForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
+    (token: string | null) =>
+      loginForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
     [loginForm]
   );
   const setRegisterToken = useCallback(
-    (token) => registerForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
+    (token: string | null) =>
+      registerForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
     [registerForm]
   );
   const setForgotToken = useCallback(
-    (token) => forgotForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
+    (token: string | null) =>
+      forgotForm.setValue('turnstileToken', token ?? '', { shouldValidate: false }),
     [forgotForm]
   );
 
@@ -287,7 +300,7 @@ export default function AuthPage() {
     }
   };
 
-  const onLoginSubmit = async (values) => {
+  const onLoginSubmit = async (values: LoginValues) => {
     setServerError(null);
 
     try {
@@ -315,7 +328,7 @@ export default function AuthPage() {
       loginChallenge.reset();
       // The backend returns 403 with code AUTH_EMAIL_NOT_VERIFIED on the
       // envelope's `code` field.
-      const errorCode = error?.response?.data?.code;
+      const errorCode = getErrorCode(error);
       if (errorCode === 'AUTH_EMAIL_NOT_VERIFIED') {
         // The identifier may be a username, in which case there is no address
         // to prefill the resend form with.
@@ -327,11 +340,11 @@ export default function AuthPage() {
         return;
       }
       logout();
-      setServerError(describeLoginFailure(error?.response?.data?.code));
+      setServerError(describeLoginFailure(getErrorCode(error)));
     }
   };
 
-  const onRegSubmit = async (values) => {
+  const onRegSubmit = async (values: RegisterValues) => {
     setRegServerError('');
 
     try {
@@ -358,7 +371,7 @@ export default function AuthPage() {
       // keyed by field name, while `message` only says validation failed.
       // Showing the rule beside the field it belongs to beats repeating the
       // generic sentence in the banner.
-      const fieldErrors = error?.response?.data?.errors;
+      const fieldErrors = getErrorData(error)?.errors;
       const applied = applyServerFieldErrors(registerForm, fieldErrors);
 
       if (!applied) {
@@ -367,7 +380,7 @@ export default function AuthPage() {
     }
   };
 
-  const onForgotSubmit = async (values) => {
+  const onForgotSubmit = async (values: EmailValues) => {
     setFpServerError('');
 
     try {

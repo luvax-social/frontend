@@ -1,3 +1,16 @@
+import type { HTMLInputTypeAttribute, ReactNode } from 'react';
+import type { UseFormRegisterReturn } from 'react-hook-form';
+interface FieldProps {
+  id: string;
+  label: string;
+  type?: HTMLInputTypeAttribute;
+  autoComplete?: string;
+  error?: string;
+  register: UseFormRegisterReturn;
+  rightSlot?: ReactNode;
+  className?: string;
+}
+
 export default function Field({
   id,
   label,
@@ -7,7 +20,7 @@ export default function Field({
   register,
   rightSlot,
   className = '',
-}) {
+}: FieldProps) {
   return (
     <div className="lx-fg">
       <div className={`lx-field ${className}`} data-error={error ? 'true' : 'false'}>

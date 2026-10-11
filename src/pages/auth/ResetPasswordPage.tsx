@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import { getErrorCode } from '@/utils/captchaErrors';
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
@@ -39,7 +41,8 @@ export default function ResetPasswordPage() {
   // Named `challengeToken` rather than `token`: `token` above is the reset link's
   // one-time token, and the two are unrelated.
   const setChallengeToken = useCallback(
-    (challengeToken) => setValue('turnstileToken', challengeToken ?? '', { shouldValidate: false }),
+    (challengeToken: string | null) =>
+      setValue('turnstileToken', challengeToken ?? '', { shouldValidate: false }),
     [setValue]
   );
   const challenge = useTurnstile(setChallengeToken);
@@ -72,7 +75,7 @@ export default function ResetPasswordPage() {
     return () => window.clearTimeout(redirectTimer);
   }, [navigate, serverState.success]);
 
-  const onSubmit = async (values) => {
+  const onSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
     setServerState({ error: '', success: '' });
 
     if (!token) {
@@ -104,7 +107,7 @@ export default function ResetPasswordPage() {
       // here because the way out differs: a new link rather than another go.
       // A refused challenge leaves the reset link itself unspent, so the way
       // out there is simply to solve it again.
-      const code = error?.response?.data?.code;
+      const code = getErrorCode(error);
       let message = "we couldn't change your password just now. try again in a moment.";
       if (isCaptchaFailure(error)) {
         message = CAPTCHA_FAILURE_MESSAGE;

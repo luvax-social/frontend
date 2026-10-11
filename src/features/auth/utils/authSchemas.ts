@@ -44,7 +44,7 @@ const HAS_UPPERCASE = /\p{Uppercase}/u;
 const HAS_DIGIT_OR_SPECIAL = /\P{L}/u;
 
 const passwordField = z.string().superRefine((value, ctx) => {
-  const addIssue = (message) => ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  const addIssue = (message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, message });
   const length = [...value].length;
 
   if (length < PASSWORD_MIN_LENGTH) {

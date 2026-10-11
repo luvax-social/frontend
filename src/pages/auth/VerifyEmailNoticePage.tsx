@@ -1,3 +1,4 @@
+import type { z } from 'zod';
 import { useCallback, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -18,7 +19,7 @@ export default function VerifyEmailNoticePage() {
   const emailFromState = location.state?.email || '';
   const [successMessage, setSuccessMessage] = useState('');
   const resendMutation = useMutation({
-    mutationFn: (data) => authService.resendVerification(data),
+    mutationFn: (data: z.infer<typeof emailSchema>) => authService.resendVerification(data),
   });
 
   const {
@@ -27,7 +28,7 @@ export default function VerifyEmailNoticePage() {
     control,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
     defaultValues: { email: emailFromState, turnstileToken: '' },
   });
@@ -35,13 +36,14 @@ export default function VerifyEmailNoticePage() {
   // Held in the form's own values so the Zod schema decides whether a
   // submission may go out, rather than a second piece of state beside it.
   const setChallengeToken = useCallback(
-    (challengeToken) => setValue('turnstileToken', challengeToken ?? '', { shouldValidate: false }),
+    (challengeToken: string | null) =>
+      setValue('turnstileToken', challengeToken ?? '', { shouldValidate: false }),
     [setValue]
   );
   const challenge = useTurnstile(setChallengeToken);
   const turnstileToken = useWatch({ control, name: 'turnstileToken' });
 
-  const onSubmit = (values) => {
+  const onSubmit = (values: z.infer<typeof emailSchema>) => {
     setSuccessMessage('');
     resendMutation.mutate(values, {
       onSuccess: () => {

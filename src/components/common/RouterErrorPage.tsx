@@ -10,7 +10,7 @@ const CHUNK_RELOAD_KEY = 'lx-chunk-reload-attempted';
 // same failure: the requested chunk's URL no longer serves anything, because
 // the deploy or dev server the page was loaded from moved on since. Neither
 // is a defect in the code that route points to.
-function isChunkLoadError(error) {
+function isChunkLoadError(error: unknown) {
   return (
     error instanceof Error &&
     /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed/i.test(
@@ -36,6 +36,10 @@ function isChunkLoadError(error) {
  */
 export default function RouterErrorPage() {
   const error = useRouteError();
+  const errorMessage =
+    error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+      ? error.message
+      : '';
   const navigate = useNavigate();
   const isDev = import.meta.env.DEV;
   const chunkLoadFailed = isChunkLoadError(error);
@@ -49,7 +53,7 @@ export default function RouterErrorPage() {
 
   let title = 'Something went wrong';
   let description = 'An unexpected error occurred. Please try again or return to the home page.';
-  let statusCode = null;
+  let statusCode: number | null = null;
 
   if (isRouteErrorResponse(error)) {
     statusCode = error.status;
@@ -84,8 +88,8 @@ export default function RouterErrorPage() {
       <h1>{title}</h1>
       <p className="router-error-page__description">{description}</p>
 
-      {isDev && error?.message ? (
-        <pre className="router-error-page__dev-detail">{error.message}</pre>
+      {isDev && errorMessage ? (
+        <pre className="router-error-page__dev-detail">{errorMessage}</pre>
       ) : null}
 
       <div className="router-error-page__actions">

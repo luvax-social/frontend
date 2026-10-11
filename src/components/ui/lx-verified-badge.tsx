@@ -1,3 +1,4 @@
+import type { CSSProperties, MouseEventHandler, ReactNode } from 'react';
 import { LxIcon } from '@/components/ui/lx-icon';
 
 /**
@@ -8,7 +9,7 @@ import { LxIcon } from '@/components/ui/lx-icon';
  * ninth category added by a migration renders a plain verified badge until this map catches up
  * rather than rendering nothing at all.
  */
-const GLYPH_BY_CATEGORY = {
+const GLYPH_BY_CATEGORY: Record<string, string> = {
   music: 'music-note',
   visual_arts: 'palette',
   writing: 'pen-nib',
@@ -46,7 +47,7 @@ const ACCENT = '#3B82F6';
 //
 // The keys alone read badly as English in an accessible name - "Verified in screen", "Verified in
 // sport" - because the key is a stable identifier rather than a noun phrase.
-const CATEGORY_LABEL = {
+const CATEGORY_LABEL: Record<string, string> = {
   business: 'Business and organisations',
   gaming: 'Gaming and streaming',
   music: 'Music',
@@ -71,10 +72,34 @@ const GLYPH_RATIO = 0.66;
  * straight through without guarding first. That is what keeps it a one-line addition on each of
  * the surfaces that show a username.
  */
-export function LxVerifiedBadge({ verified, category, categoryLabel, iconKey, size = 14, title }) {
+interface BadgeProps {
+  verified?: boolean;
+  category?: string | null;
+  categoryLabel?: string | null;
+  iconKey?: string | null;
+  size?: number;
+  title?: string;
+}
+interface VerifiedNameProps extends BadgeProps {
+  name?: ReactNode;
+  gap?: number;
+  onClick?: MouseEventHandler<HTMLSpanElement>;
+  className?: string;
+  style?: CSSProperties;
+  textStyle?: CSSProperties;
+}
+
+export function LxVerifiedBadge({
+  verified,
+  category,
+  categoryLabel,
+  iconKey,
+  size = 14,
+  title,
+}: BadgeProps) {
   if (!verified) return null;
 
-  const resolved = iconKey && GLYPH_KEYS.has(iconKey) ? iconKey : GLYPH_BY_CATEGORY[category];
+  const resolved = iconKey && GLYPH_KEYS.has(iconKey) ? iconKey : GLYPH_BY_CATEGORY[category ?? ''];
   const glyph = resolved || 'check';
 
   // The glyph is drawn in a 24-unit space and rendered at glyphSize px, so one unit is
@@ -166,7 +191,7 @@ export function LxVerifiedName({
   className,
   style,
   textStyle,
-}) {
+}: VerifiedNameProps) {
   return (
     <span
       onClick={onClick}

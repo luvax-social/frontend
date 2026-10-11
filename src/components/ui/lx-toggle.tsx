@@ -13,7 +13,15 @@ import { v } from '@/config/tokens';
  * prefers-reduced-motion rule neutralises it along with the rest of the
  * application.
  */
-export function LxToggle({ on, onChange, disabled = false, label, busy = false }) {
+interface ToggleProps {
+  on?: boolean;
+  onChange: (value: boolean) => void;
+  disabled?: boolean;
+  label?: string;
+  busy?: boolean;
+}
+
+export function LxToggle({ on, onChange, disabled = false, label, busy = false }: ToggleProps) {
   return (
     <button
       type="button"

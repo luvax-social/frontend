@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { v } from '@/config/tokens';
@@ -18,7 +19,21 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 const ARMING_DELAY_MS = 500;
 
-export function ConfirmModal({ config, onClose }) {
+export interface ConfirmConfig {
+  title?: ReactNode;
+  message?: ReactNode;
+  onConfirm?: () => void;
+  confirmDisabled?: boolean;
+  confirmLabel?: ReactNode;
+}
+
+export function ConfirmModal({
+  config,
+  onClose,
+}: {
+  config?: ConfirmConfig | null;
+  onClose: () => void;
+}) {
   const [delayed, setDelayed] = useState(true);
   const openCount = useRef(0);
 

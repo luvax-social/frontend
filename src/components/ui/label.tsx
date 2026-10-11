@@ -5,7 +5,10 @@ import { cn } from '@/utils/cn';
 /**
  * @param {React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>} props
  */
-const Label = React.forwardRef(({ className, ...props }, ref) => (
+const Label = React.forwardRef<
+  React.ComponentRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+>(({ className, ...props }, ref) => (
   <LabelPrimitive.Root
     ref={ref}
     className={cn(

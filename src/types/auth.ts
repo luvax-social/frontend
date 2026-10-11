@@ -10,8 +10,7 @@ export interface AuthenticatedUser {
 }
 
 // Persisted identities may be incomplete until the bootstrap refresh completes.
-export interface SessionUser extends Partial<Omit<AuthenticatedUser, 'id' | 'role'>> {
-  id: string;
+export interface SessionUser extends Partial<Omit<AuthenticatedUser, 'role'>> {
   role?: Role | null;
   name?: string | null;
   avatarUrl?: string | null;

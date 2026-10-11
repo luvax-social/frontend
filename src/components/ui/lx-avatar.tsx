@@ -17,6 +17,13 @@ export function LxAvatar({
   hasStory = false,
   viewed = false,
   src = null,
+}: {
+  size?: number;
+  idx?: number;
+  ring?: boolean;
+  hasStory?: boolean;
+  viewed?: boolean;
+  src?: string | null;
 }) {
   const color = AVATAR_COLORS[idx % AVATAR_COLORS.length];
   const avatarCore = src

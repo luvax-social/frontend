@@ -1,10 +1,11 @@
+import type { SeoConfig } from '@/config/seo';
 import { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { ROUTES } from '@/config/constants';
 import { createSeoConfig, getPageMetadata, metadataEntries } from '@/config/seo';
 
 const defaultConfig = createSeoConfig(import.meta.env);
-const titles = {
+const titles: Record<string, string> = {
   [ROUTES.LOGIN]: 'Log in',
   [ROUTES.REGISTER]: 'Create an account',
   [ROUTES.FORGOT_PASSWORD]: 'Reset your password',
@@ -19,7 +20,13 @@ const titles = {
   [ROUTES.SUPPORT_APPEAL_RESEND]: 'Request an appeal link',
 };
 
-export default function RouteMetadata({ config = defaultConfig, error = false }) {
+export default function RouteMetadata({
+  config = defaultConfig,
+  error = false,
+}: {
+  config?: SeoConfig;
+  error?: boolean;
+}) {
   const { pathname, search } = useLocation();
   useLayoutEffect(() => {
     const title = error

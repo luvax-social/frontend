@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Shared UI primitives, route guards, error boundaries and Turnstile lifecycle now use typed props and refs.
 - Shared utilities, browser hooks and SEO build metadata now carry strict TypeScript types without changing pagination, theme or challenge behavior.
 - Authentication state, role normalization and API refresh handling now use explicit TypeScript contracts while preserving session persistence and cookie credentials.
 - Authentication views now use shareable query URLs, a stable visible primary heading, smaller responsive images and earlier font discovery, while the moderation support queue loads on demand.

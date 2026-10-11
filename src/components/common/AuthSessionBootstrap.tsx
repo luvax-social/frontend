@@ -1,3 +1,4 @@
+import { getErrorResponse } from '@/utils/errors';
 import { useEffect, useRef } from 'react';
 
 import { authApi } from '@/api/authApi';
@@ -99,7 +100,7 @@ export default function AuthSessionBootstrap() {
           user: nextUser,
         });
       } catch (error) {
-        if (error?.response?.status === 401) {
+        if (getErrorResponse(error)?.status === 401) {
           logout();
           return;
         }
@@ -111,7 +112,10 @@ export default function AuthSessionBootstrap() {
         // load retries. Nothing is treated as signed in meanwhile: ProtectedRoute
         // gates on a live in-memory access token, which this path never sets.
         if (import.meta.env.DEV) {
-          console.error('[AuthSessionBootstrap] session restore failed', error?.message ?? error);
+          console.error(
+            '[AuthSessionBootstrap] session restore failed',
+            error instanceof Error ? error.message : error
+          );
         }
       } finally {
         setBootstrapping(false);

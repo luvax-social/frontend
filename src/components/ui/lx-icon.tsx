@@ -406,8 +406,25 @@ const ICONS_FILLED = {
   ),
 };
 
-export function LxIcon({ name, size = 20, color, filled = false, stroke = 1.5 }) {
-  const node = filled && ICONS_FILLED[name] ? ICONS_FILLED[name] : ICONS[name];
+export function LxIcon({
+  name,
+  size = 20,
+  color,
+  filled = false,
+  stroke = 1.5,
+}: {
+  name: string;
+  size?: number;
+  color?: string;
+  filled?: boolean;
+  stroke?: number;
+}) {
+  const node =
+    filled && name in ICONS_FILLED
+      ? ICONS_FILLED[name as keyof typeof ICONS_FILLED]
+      : name in ICONS
+        ? ICONS[name as keyof typeof ICONS]
+        : undefined;
   if (!node) return null;
 
   return (

@@ -1,7 +1,28 @@
+import type { ReactNode, RefObject } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
+
+export interface DropdownItem {
+  id: string;
+  label: ReactNode;
+  icon?: string;
+  readOnly?: boolean;
+  separator?: boolean;
+  tone?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}
+interface DropdownProps {
+  anchorRef: RefObject<HTMLElement | null>;
+  open: boolean;
+  onClose?: () => void;
+  items: (DropdownItem | null | undefined | false)[];
+  width?: number;
+  align?: 'left' | 'right';
+  zIndex?: number;
+}
 
 export function LxDropdownMenu({
   anchorRef,
@@ -11,8 +32,8 @@ export function LxDropdownMenu({
   width = 196,
   align = 'right',
   zIndex = 1200,
-}) {
-  const menuRef = useRef(null);
+}: DropdownProps) {
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState({ top: 0, left: 0, placement: 'bottom' });
 
   useLayoutEffect(() => {
@@ -70,16 +91,21 @@ export function LxDropdownMenu({
       return undefined;
     }
 
-    const handlePointerDown = (event) => {
+    const handlePointerDown = (event: PointerEvent) => {
       const anchor = anchorRef?.current;
       const menu = menuRef.current;
-      if (!menu || menu.contains(event.target) || anchor?.contains(event.target)) {
+      if (
+        !(event.target instanceof Node) ||
+        !menu ||
+        menu.contains(event.target) ||
+        anchor?.contains(event.target)
+      ) {
         return;
       }
       onClose?.();
     };
 
-    const handleEscape = (event) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose?.();
       }
@@ -110,41 +136,43 @@ export function LxDropdownMenu({
         zIndex,
       }}
     >
-      {items.filter(Boolean).map((item) =>
-        // A readOnly row states a fact the viewer cannot act on. It is not a
-        // disabled control: disabling implies the action becomes available
-        // later, and these states do not reverse.
-        item.readOnly ? (
-          <div
-            key={item.id}
-            className={`lx-popover-item is-readonly ${item.separator ? 'has-separator' : ''}`}
-            style={{ cursor: 'default', color: v.ink3 }}
-          >
-            {item.icon ? <LxIcon name={item.icon} size={16} color={v.ink3} /> : null}
-            <span>{item.label}</span>
-          </div>
-        ) : (
-          <button
-            key={item.id}
-            type="button"
-            className={`lx-popover-item ${item.tone === 'danger' ? 'is-danger' : ''} ${item.separator ? 'has-separator' : ''}`}
-            onClick={() => {
-              item.onClick?.();
-              onClose?.();
-            }}
-            disabled={item.disabled}
-          >
-            {item.icon ? (
-              <LxIcon
-                name={item.icon}
-                size={16}
-                color={item.tone === 'danger' ? v.error : v.ink2}
-              />
-            ) : null}
-            <span>{item.label}</span>
-          </button>
-        )
-      )}
+      {items
+        .filter((item): item is DropdownItem => Boolean(item))
+        .map((item) =>
+          // A readOnly row states a fact the viewer cannot act on. It is not a
+          // disabled control: disabling implies the action becomes available
+          // later, and these states do not reverse.
+          item.readOnly ? (
+            <div
+              key={item.id}
+              className={`lx-popover-item is-readonly ${item.separator ? 'has-separator' : ''}`}
+              style={{ cursor: 'default', color: v.ink3 }}
+            >
+              {item.icon ? <LxIcon name={item.icon} size={16} color={v.ink3} /> : null}
+              <span>{item.label}</span>
+            </div>
+          ) : (
+            <button
+              key={item.id}
+              type="button"
+              className={`lx-popover-item ${item.tone === 'danger' ? 'is-danger' : ''} ${item.separator ? 'has-separator' : ''}`}
+              onClick={() => {
+                item.onClick?.();
+                onClose?.();
+              }}
+              disabled={item.disabled}
+            >
+              {item.icon ? (
+                <LxIcon
+                  name={item.icon}
+                  size={16}
+                  color={item.tone === 'danger' ? v.error : v.ink2}
+                />
+              ) : null}
+              <span>{item.label}</span>
+            </button>
+          )
+        )}
     </div>
   );
 

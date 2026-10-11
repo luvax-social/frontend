@@ -1,3 +1,4 @@
+import type { ErrorInfo, PropsWithChildren } from 'react';
 import { Component } from 'react';
 
 /**
@@ -11,8 +12,11 @@ import { Component } from 'react';
  * - Offers a full-page reload as the recovery path
  * - Logs the error to the console (swap for a real logger/Sentry in production)
  */
-export default class GlobalErrorBoundary extends Component {
-  constructor(props) {
+export default class GlobalErrorBoundary extends Component<
+  PropsWithChildren,
+  { hasError: boolean }
+> {
+  constructor(props: PropsWithChildren) {
     super(props);
     this.state = { hasError: false };
     this.handleReset = this.handleReset.bind(this);
@@ -22,7 +26,7 @@ export default class GlobalErrorBoundary extends Component {
     return { hasError: true };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: ErrorInfo) {
     document.head.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, follow');
     document.head
       .querySelectorAll(

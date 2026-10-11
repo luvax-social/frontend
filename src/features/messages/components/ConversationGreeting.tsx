@@ -1,3 +1,11 @@
+interface Props {
+  messageCount: number;
+  pending: boolean;
+  name: string;
+  username?: string;
+  avatarUrl?: string | null;
+  userId?: string | null;
+}
 import { v } from '@/config/tokens';
 import { AvatarVisual } from './AvatarVisual';
 import { routeTo } from '@/config/constants';
@@ -16,7 +24,14 @@ import { useNavigate } from 'react-router-dom';
  * at all. "You're now friends" would be false there - the two may not even follow each other -
  * so this shows who the message will go to instead of asserting a relationship.
  */
-export function ConversationGreeting({ messageCount, pending, name, username, avatarUrl, userId }) {
+export function ConversationGreeting({
+  messageCount,
+  pending,
+  name,
+  username,
+  avatarUrl,
+  userId,
+}: Props) {
   const navigate = useNavigate();
 
   const subtitle = username ? `${username} · luvax` : 'luvax';

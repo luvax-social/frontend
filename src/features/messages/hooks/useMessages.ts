@@ -1,3 +1,11 @@
+import type { Message, MessageData } from '../types';
+import type { SendMessageRequest } from '@/types/domain';
+interface SendMessageVariables {
+  conversationId: string;
+  body: SendMessageRequest;
+  idempotencyKey?: string;
+  optimisticMessage: Message;
+}
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { messageService } from '@/services/message.service';
@@ -5,14 +13,18 @@ import { getNextCursor } from '@/utils/helpers';
 
 import { conversationsKey, unreadCountKey } from './useConversations';
 
-export const messagesKey = (conversationId) => ['conversations', conversationId, 'messages'];
+export const messagesKey = (conversationId: string | null | undefined) => [
+  'conversations',
+  conversationId,
+  'messages',
+];
 
-const messageTime = (message) => {
+const messageTime = (message: Message) => {
   const value = message?.createdAt ? new Date(message.createdAt).getTime() : 0;
   return Number.isNaN(value) ? 0 : value;
 };
 
-const isPendingMessage = (message) =>
+const isPendingMessage = (message: Message) =>
   typeof message?.id === 'string' && message.id.startsWith('pending-');
 
 /**
@@ -24,10 +36,13 @@ const isPendingMessage = (message) =>
  * by the fresh response still update, while older rows that were already in the cache remain
  * visible until the user closes or reloads the conversation.
  */
-export const mergeMessagePages = (oldData, newData) => {
+export const mergeMessagePages = (
+  oldData: MessageData | undefined,
+  newData: MessageData
+): MessageData => {
   if (!oldData?.pages?.length || !newData?.pages?.length) return newData;
 
-  const byId = new Map();
+  const byId = new Map<string, Message>();
   newData.pages.forEach((page) => {
     (page?.data?.content || []).forEach((message) => byId.set(message.id, message));
   });
@@ -61,16 +76,17 @@ export const mergeMessagePages = (oldData, newData) => {
  * Disabled until a conversation is selected, so the screen does not fire a request for a null id on
  * first render.
  */
-export const useMessages = (conversationId) => {
+export const useMessages = (conversationId: string | null | undefined) => {
   const query = useInfiniteQuery({
     queryKey: messagesKey(conversationId),
     queryFn: ({ pageParam = null, signal }) =>
-      messageService.listMessages(conversationId, { cursor: pageParam, limit: 30, signal }),
+      messageService.listMessages(conversationId!, { cursor: pageParam, limit: 30, signal }),
     enabled: Boolean(conversationId),
     staleTime: 0,
     getNextPageParam: getNextCursor,
     initialPageParam: null,
-    structuralSharing: mergeMessagePages,
+    structuralSharing: (oldData, newData) =>
+      mergeMessagePages(oldData as MessageData | undefined, newData as MessageData),
   });
 
   const messages = (query.data?.pages || []).flatMap((page) => page?.data?.content || []);
@@ -78,7 +94,10 @@ export const useMessages = (conversationId) => {
 };
 
 /** Replaces the first page's content, leaving the rest of the pagination intact. */
-const withFirstPageContent = (old, updater) => {
+const withFirstPageContent = (
+  old: MessageData | undefined,
+  updater: (content: Message[]) => Message[]
+) => {
   if (!old?.pages?.length) return old;
   const pages = [...old.pages];
   const first = pages[0];
@@ -103,14 +122,14 @@ export const useSendMessage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ conversationId, body, idempotencyKey }) =>
+    mutationFn: ({ conversationId, body, idempotencyKey }: SendMessageVariables) =>
       messageService.sendMessage(conversationId, body, idempotencyKey),
     onMutate: async ({ conversationId, optimisticMessage }) => {
       const key = messagesKey(conversationId);
       await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData(key);
+      const previous = queryClient.getQueryData<MessageData>(key);
       // History is newest first, so a new message belongs at the front.
-      queryClient.setQueryData(key, (old) =>
+      queryClient.setQueryData<MessageData>(key, (old) =>
         withFirstPageContent(old, (content) => [optimisticMessage, ...content])
       );
       return { previous, key };
@@ -125,7 +144,7 @@ export const useSendMessage = () => {
       const optimisticId = variables.optimisticMessage?.id;
       if (!createdMessage?.id || !optimisticId || !context?.key) return;
 
-      queryClient.setQueryData(context.key, (old) =>
+      queryClient.setQueryData<MessageData>(context.key, (old) =>
         withFirstPageContent(old, (content) =>
           content.map((message) => (message.id === optimisticId ? createdMessage : message))
         )
@@ -141,16 +160,16 @@ export const useSendMessage = () => {
 /**
  * Sender-only soft delete. The message stays in history as a placeholder rather than vanishing.
  */
-export const useDeleteMessage = (conversationId) => {
+export const useDeleteMessage = (conversationId: string | null | undefined) => {
   const queryClient = useQueryClient();
   const key = messagesKey(conversationId);
 
   return useMutation({
-    mutationFn: (messageId) => messageService.deleteMessage(conversationId, messageId),
+    mutationFn: (messageId: string) => messageService.deleteMessage(conversationId!, messageId),
     onMutate: async (messageId) => {
       await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData(key);
-      queryClient.setQueryData(key, (old) => {
+      const previous = queryClient.getQueryData<MessageData>(key);
+      queryClient.setQueryData<MessageData>(key, (old) => {
         if (!old?.pages?.length) return old;
         return {
           ...old,

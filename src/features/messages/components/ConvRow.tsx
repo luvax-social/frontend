@@ -1,3 +1,25 @@
+import type { ThreadSummary } from '../utils/messageViewModel';
+import type { Viewport } from '@/features/luvax/LuvaxTweaksContext';
+
+interface Props {
+  thread: ThreadSummary;
+  isActive: boolean;
+  viewport: Viewport;
+  revealedOptions?: boolean;
+  onSelect?: (() => void) | null;
+  onMarkRead?: (() => void) | null;
+  onMarkUnread?: (() => void) | null;
+  onDelete?: (() => void) | null;
+  onReport?: (() => void) | null;
+  onBlock?: (() => void) | null;
+  onPin?: (() => void) | null;
+  onUnpin?: (() => void) | null;
+  onMute?: (() => void) | null;
+  onUnmute?: (() => void) | null;
+  onRename?: (() => void) | null;
+  onRevealOptions?: (() => void) | null;
+  onHideOptions?: (() => void) | null;
+}
 import { useMemo, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
@@ -30,12 +52,12 @@ export function ConvRow({
   revealedOptions = false,
   onRevealOptions,
   onHideOptions,
-}) {
+}: Props) {
   const [hovered, setHovered] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
-  const menuButtonRef = useRef(null);
-  const dragStartRef = useRef(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipedRef = useRef(false);
   const thresholdNotifiedRef = useRef(false);
   const isMobile = viewport === 'mobile';
@@ -97,7 +119,7 @@ export function ConvRow({
         onBlock
           ? { id: 'block', icon: 'ban', label: 'Block', tone: 'danger', onClick: () => onBlock?.() }
           : null,
-      ].filter(Boolean),
+      ].filter((item) => item !== null),
     [
       isUnread,
       thread.pinned,
@@ -129,7 +151,7 @@ export function ConvRow({
               onClick: () => onReport?.(),
             }
           : null,
-      ].filter(Boolean),
+      ].filter((item) => item !== null),
     [onBlock, onReport]
   );
   const dropdownItems =
@@ -312,7 +334,7 @@ export function ConvRow({
             textOverflow: 'ellipsis',
           }}
         >
-          {[thread.preview, thread.time].filter(Boolean).join(' · ')}
+          {[thread.preview, thread.time].filter((item) => item !== null).join(' · ')}
         </div>
       </div>
       <div

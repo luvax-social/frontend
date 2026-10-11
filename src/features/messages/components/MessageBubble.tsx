@@ -1,3 +1,19 @@
+import type { Thread } from '../utils/messageViewModel';
+import type { Viewport } from '@/features/luvax/LuvaxTweaksContext';
+import type { CSSProperties } from 'react';
+import type { MessageView, MessageRun, PreviewMedia } from '../types';
+import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
+
+interface Props {
+  message: MessageView & MessageRun;
+  activeThread: Thread;
+  onPreviewMedia: (item: PreviewMedia) => void;
+  onOpenStory?: (id: string) => void;
+  onDeleteToggle: (id: string) => void;
+  onReplyMessage: (message: MessageView) => void;
+  viewport: Viewport;
+  forceShowActions?: boolean;
+}
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -27,13 +43,13 @@ export function MessageBubble({
   onReplyMessage,
   viewport,
   forceShowActions = false,
-}) {
+}: Props) {
   const navigate = useNavigate();
   const isMine = message.from === 'me';
   const isMobile = viewport === 'mobile';
   const isTouchLayout = viewport === 'mobile' || viewport === 'tablet';
   const { data: sharedPostResponse } = usePostDetail(message.sharedPostId);
-  const sharedPost = sharedPostResponse?.data || sharedPostResponse || null;
+  const sharedPost = sharedPostResponse ? unwrapApiResponse(sharedPostResponse) : null;
   const sharedPostAuthor = sharedPost ? getUserSummary(sharedPost) : null;
   const sharedPostCaption = sharedPost?.caption || message.title || message.text || 'shared post';
   const sharedPostMedia = Array.isArray(sharedPost?.media) ? sharedPost.media[0] : null;
@@ -41,13 +57,15 @@ export function MessageBubble({
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [touchRevealed, setTouchRevealed] = useState(false);
-  const menuButtonRef = useRef(null);
-  const bubbleRowRef = useRef(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const bubbleRowRef = useRef<HTMLDivElement | null>(null);
   const textForCopy =
     message.kind === 'reply'
       ? `${message.replyText}\n${message.text}`
       : message.kind === 'post'
-        ? [sharedPostHandle, sharedPostCaption, message.meta].filter(Boolean).join('\n')
+        ? [sharedPostHandle, sharedPostCaption, message.meta]
+            .filter((item) => item !== null)
+            .join('\n')
         : message.kind === 'file'
           ? message.text
           : message.text;
@@ -77,7 +95,7 @@ export function MessageBubble({
               onClick: () => onDeleteToggle(message.id),
             }
           : null,
-      ].filter(Boolean),
+      ].filter((item) => item !== null),
     [canCopyText, isMine, message, onDeleteToggle, textForCopy]
   );
   const supportsHover =
@@ -113,10 +131,13 @@ export function MessageBubble({
       return undefined;
     }
 
-    const handlePointerDown = (event) => {
+    const handlePointerDown = (event: PointerEvent) => {
       const bubbleRow = bubbleRowRef.current;
       const menuButton = menuButtonRef.current;
-      if (bubbleRow?.contains(event.target) || menuButton?.contains(event.target)) {
+      if (
+        bubbleRow?.contains(event.target instanceof Node ? event.target : null) ||
+        menuButton?.contains(event.target instanceof Node ? event.target : null)
+      ) {
         return;
       }
       setTouchRevealed(false);
@@ -140,7 +161,7 @@ export function MessageBubble({
     setMenuOpen((open) => !open);
   };
 
-  const bubbleBase = {
+  const bubbleBase: CSSProperties = {
     maxWidth:
       message.kind === 'post' || message.kind === 'file'
         ? isMobile
@@ -450,7 +471,7 @@ export function MessageBubble({
               </div>
             </div>
           )}
-          {showActions && message.kind !== 'deleted' ? (
+          {showActions ? (
             <button
               type="button"
               onPointerDown={(event) => event.stopPropagation()}
@@ -578,20 +599,18 @@ export function MessageBubble({
         </div>
         {showActions ? (
           <>
-            {message.kind !== 'deleted' ? (
-              <button
-                type="button"
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onReplyMessage?.(message);
-                }}
-                aria-label="reply to message"
-                style={replyButtonStyle}
-              >
-                <LxIcon name="reply" size={12} color={isMine ? v.ink2 : v.ink3} />
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onReplyMessage?.(message);
+              }}
+              aria-label="reply to message"
+              style={replyButtonStyle}
+            >
+              <LxIcon name="reply" size={12} color={isMine ? v.ink2 : v.ink3} />
+            </button>
             {menuItems.length > 0 ? (
               <button
                 ref={menuButtonRef}

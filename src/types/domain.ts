@@ -728,16 +728,16 @@ export interface ConversationSummaryResponse {
 export interface MessageResponse {
   id: string;
   conversationId: string;
-  senderId: string;
+  senderId: string | null;
   messageType: MessageType;
-  content: string;
-  mediaAssetId: string;
+  content: string | null;
+  mediaAssetId: string | null;
   media: MessageMediaResponse | null;
-  sharedPostId: string;
-  sharedStoryId: string;
-  replyToId: string;
+  sharedPostId: string | null;
+  sharedStoryId: string | null;
+  replyToId: string | null;
   isDeleted: boolean;
-  deletedAt: string;
+  deletedAt: string | null;
   createdAt: string;
 }
 

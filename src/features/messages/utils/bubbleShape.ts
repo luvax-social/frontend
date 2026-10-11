@@ -13,7 +13,15 @@
 const ROUNDED = 15;
 const FLAT = 4;
 
-export function bubbleCornerRadius({ isMine, isFirstInRun, isLastInRun }) {
+export function bubbleCornerRadius({
+  isMine,
+  isFirstInRun,
+  isLastInRun,
+}: {
+  isMine: boolean;
+  isFirstInRun: boolean;
+  isLastInRun: boolean;
+}) {
   const solo = isFirstInRun && isLastInRun;
   const outerTop = solo || isFirstInRun ? ROUNDED : FLAT;
   const outerBottom = solo || isLastInRun ? ROUNDED : FLAT;

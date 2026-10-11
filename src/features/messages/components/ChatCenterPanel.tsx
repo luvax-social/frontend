@@ -1,3 +1,40 @@
+import type { Thread } from '../utils/messageViewModel';
+import type { Viewport } from '@/features/luvax/LuvaxTweaksContext';
+import type {
+  ChangeEvent,
+  ClipboardEvent,
+  CSSProperties,
+  Dispatch,
+  ReactNode,
+  RefObject,
+  SetStateAction,
+} from 'react';
+import type { MessageView, PendingAttachment, PreviewMedia } from '../types';
+
+interface Props {
+  viewport: Viewport;
+  activeThread: Thread | null;
+  setActiveThreadId: (id: string | null) => void;
+  closeThread: () => void;
+  openInfo: () => void;
+  isDesktop: boolean;
+  isTablet: boolean;
+  scrollerRef: RefObject<HTMLDivElement | null>;
+  openPreview: (items: PreviewMedia[], index?: number) => void;
+  openStory: (id: string) => void;
+  handleDeleteToggle: (id: string) => void;
+  replyingTo: MessageView | null;
+  setReplyingTo: (message: MessageView | null) => void;
+  draft: string;
+  setDraft: Dispatch<SetStateAction<string>>;
+  handleSend: () => void;
+  pendingAttachments: PendingAttachment[];
+  onStageAttachments?: (files: File[]) => void;
+  onRemovePendingAttachment?: (id: string) => void;
+  isSending: boolean;
+  isBlocked?: boolean;
+  blockedHint?: string;
+}
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { CHAR_LIMITS } from '@/config/constants';
@@ -14,7 +51,7 @@ const ALBUM_AVATAR_SIZE = 21;
 
 const DRAFT_MAX_HEIGHT = 108;
 
-const autoResizeDraft = (element) => {
+const autoResizeDraft = (element: HTMLTextAreaElement | null) => {
   if (!element) return;
   element.style.height = '0px';
   element.style.height = `${Math.min(element.scrollHeight, DRAFT_MAX_HEIGHT)}px`;
@@ -139,7 +176,17 @@ const MESSAGE_ICON_GROUPS = [
 const MESSAGE_EMOJI_FONT = '"Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", sans-serif';
 const DEFAULT_RECENT_MESSAGE_ICONS = ['😀', '😂', '😍', '😭', '😘'];
 
-function MessageActionRow({ children, isMine, minHeight = 'auto', alignItems = 'stretch' }) {
+function MessageActionRow({
+  children,
+  isMine,
+  minHeight = 'auto',
+  alignItems = 'stretch',
+}: {
+  children: (hovered: boolean) => ReactNode;
+  isMine: boolean;
+  minHeight?: CSSProperties['minHeight'];
+  alignItems?: CSSProperties['alignItems'];
+}) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -182,15 +229,15 @@ export function ChatCenterPanel({
   isSending,
   isBlocked = false,
   blockedHint,
-}) {
-  const draftInputRef = useRef(null);
-  const attachmentInputRef = useRef(null);
-  const emojiGroupRefs = useRef({});
+}: Props) {
+  const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const emojiGroupRefs = useRef<Record<string, HTMLElement | null>>({});
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [emojiSearch, setEmojiSearch] = useState('');
   const [recentIcons, setRecentIcons] = useState(DEFAULT_RECENT_MESSAGE_ICONS);
 
-  const handleAttachmentChange = (event) => {
+  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (isBlocked) {
       event.target.value = '';
       return;
@@ -201,7 +248,7 @@ export function ChatCenterPanel({
     if (files.length) onStageAttachments?.(files);
   };
 
-  const handleDraftPaste = (event) => {
+  const handleDraftPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     if (isBlocked) {
       event.preventDefault();
       return;
@@ -210,7 +257,7 @@ export function ChatCenterPanel({
     const imageFiles = Array.from(event.clipboardData?.items || [])
       .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
       .map((item) => item.getAsFile())
-      .filter(Boolean)
+      .filter((file): file is File => file !== null)
       .map(
         (file, index) =>
           new File([file], file.name || `${Date.now()}-${index}-${CLIPBOARD_IMAGE_FALLBACK_NAME}`, {
@@ -245,7 +292,7 @@ export function ChatCenterPanel({
       .filter((group) => group.icons.length > 0);
   }, [normalizedEmojiSearch, recentIcons]);
 
-  const appendMessageIcon = (icon) => {
+  const appendMessageIcon = (icon: string) => {
     const nextDraft = `${draft}${icon}`;
     setDraft(nextDraft.slice(0, CHAR_LIMITS.message));
     setRecentIcons((current) => [icon, ...current.filter((item) => item !== icon)].slice(0, 10));

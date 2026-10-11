@@ -54,7 +54,7 @@ export const useUnreadMessageCount = () => {
 export const useMarkRead = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.markRead(conversationId),
+    mutationFn: (conversationId: string) => messageService.markRead(conversationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationsKey });
       queryClient.invalidateQueries({ queryKey: unreadCountKey });
@@ -66,7 +66,7 @@ export const useMarkRead = () => {
 export const useMarkUnread = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.markUnread(conversationId),
+    mutationFn: (conversationId: string) => messageService.markUnread(conversationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationsKey });
       queryClient.invalidateQueries({ queryKey: unreadCountKey });
@@ -84,7 +84,7 @@ export const useMarkUnread = () => {
 export const useLeaveConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.leaveConversation(conversationId),
+    mutationFn: (conversationId: string) => messageService.leaveConversation(conversationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: conversationsKey });
       queryClient.invalidateQueries({ queryKey: unreadCountKey });
@@ -96,7 +96,7 @@ export const useLeaveConversation = () => {
 export const usePinConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.pinConversation(conversationId),
+    mutationFn: (conversationId: string) => messageService.pinConversation(conversationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationsKey }),
   });
 };
@@ -105,7 +105,7 @@ export const usePinConversation = () => {
 export const useUnpinConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.unpinConversation(conversationId),
+    mutationFn: (conversationId: string) => messageService.unpinConversation(conversationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationsKey }),
   });
 };
@@ -114,7 +114,7 @@ export const useUnpinConversation = () => {
 export const useMuteConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.muteConversation(conversationId),
+    mutationFn: (conversationId: string) => messageService.muteConversation(conversationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationsKey }),
   });
 };
@@ -123,7 +123,7 @@ export const useMuteConversation = () => {
 export const useUnmuteConversation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (conversationId) => messageService.unmuteConversation(conversationId),
+    mutationFn: (conversationId: string) => messageService.unmuteConversation(conversationId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationsKey }),
   });
 };
@@ -132,8 +132,13 @@ export const useUnmuteConversation = () => {
 export const useSetNickname = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ conversationId, nickname }) =>
-      messageService.setNickname(conversationId, nickname),
+    mutationFn: ({
+      conversationId,
+      nickname,
+    }: {
+      conversationId: string;
+      nickname: string | null;
+    }) => messageService.setNickname(conversationId, nickname),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationsKey }),
   });
 };

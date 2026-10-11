@@ -1,3 +1,10 @@
+import type { PreviewMedia } from '../types';
+
+interface Props {
+  item?: PreviewMedia | null;
+  large?: boolean;
+  onClick?: () => void;
+}
 import { useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -15,15 +22,15 @@ const MAX_BUBBLE_HEIGHT = 340;
 const MIN_RATIO = 0.55;
 const MAX_RATIO = 1.7;
 
-const formatDuration = (seconds) => {
-  if (!Number.isFinite(seconds) || seconds < 0) return null;
+const formatDuration = (seconds: number | null | undefined) => {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return null;
   const whole = Math.round(seconds);
   const mins = Math.floor(whole / 60);
   const secs = whole % 60;
   return `${mins}:${String(secs).padStart(2, '0')}`;
 };
 
-function DurationBadge({ seconds }) {
+function DurationBadge({ seconds }: { seconds?: number | null }) {
   const label = formatDuration(seconds);
   if (!label) return null;
   return (
@@ -58,14 +65,14 @@ function DurationBadge({ seconds }) {
  * a capped box instead of force-cropping it to a square - a grid cell still crops to a square,
  * which is what makes a grid of mixed-shape photos read as a grid.
  */
-export function MediaPlaceholder({ item, large = false, onClick }) {
+export function MediaPlaceholder({ item, large = false, onClick }: Props) {
   const src = item?.cdnUrl || '';
   const [failedSrc, setFailedSrc] = useState('');
   const isVideo = isVideoMessageMedia(item);
 
   if (src && failedSrc !== src) {
     const ratio =
-      large && item.width && item.height
+      large && item?.width && item?.height
         ? Math.max(MIN_RATIO, Math.min(MAX_RATIO, item.width / item.height))
         : null;
 
@@ -127,7 +134,7 @@ export function MediaPlaceholder({ item, large = false, onClick }) {
             <LxIcon name="play" filled size={large ? 26 : 16} color="#fff" />
           </span>
         ) : null}
-        {isVideo ? <DurationBadge seconds={item.duration} /> : null}
+        {isVideo ? <DurationBadge seconds={item?.duration} /> : null}
       </button>
     );
   }

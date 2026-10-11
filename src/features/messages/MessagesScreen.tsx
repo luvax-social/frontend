@@ -1,3 +1,13 @@
+import type { CSSProperties } from 'react';
+import type { MessageView, PendingAttachment, PreviewMedia } from './types';
+import type { ThreadSummary } from './utils/messageViewModel';
+import type { ReportTarget } from '@/types/report';
+type ThreadTarget = Omit<ThreadSummary, 'id'> & { id: string | null };
+declare global {
+  interface Window {
+    __lxMessagesBack?: () => boolean;
+  }
+}
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -43,6 +53,7 @@ import { ReportModal } from '@/features/luvax/components/ReportModal';
 import { BlockConfirmDialog } from '@/features/luvax/components/BlockConfirmDialog';
 import { validateDuration, validateFile } from '@/features/luvax/utils/composerMedia';
 import { extractPageContent } from '@/utils/helpers';
+import { getErrorData, getErrorMessage } from '@/utils/errors';
 
 // A message send holds fewer items than a post carousel by design: a burst of ten photos already
 // reads as a lot in a chat thread, and the album viewer (see MessageAlbum) is tuned for that count.
@@ -57,7 +68,7 @@ const LIGHTBOX_MAX_WIDTH = 'calc(92vw / var(--lx-scale))';
 const LIGHTBOX_MAX_HEIGHT = 'calc(92vh / var(--lx-scale))';
 
 // Light frosted chips over the dark scrim, matching the post viewer's own carousel controls.
-const lightboxArrowStyle = (side) => ({
+const lightboxArrowStyle = (side: 'left' | 'right'): CSSProperties => ({
   position: 'absolute',
   top: '50%',
   [side]: 16,
@@ -76,25 +87,27 @@ const lightboxArrowStyle = (side) => ({
   zIndex: 2,
 });
 
-const messagingUnavailableStorageKey = (userId) =>
+const messagingUnavailableStorageKey = (userId: string | undefined) =>
   `luvax:messages:unavailable:${userId || 'anonymous'}`;
 
-const readMessagingUnavailableKeys = (storageKey) => {
+const readMessagingUnavailableKeys = (storageKey: string): string[] => {
   if (typeof window === 'undefined') return [];
   try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(storageKey) || '[]');
-    return Array.isArray(parsed) ? parsed.filter((key) => typeof key === 'string') : [];
+    const parsed: unknown = JSON.parse(window.sessionStorage.getItem(storageKey) || '[]');
+    return Array.isArray(parsed)
+      ? parsed.filter((key): key is string => typeof key === 'string')
+      : [];
   } catch {
     return [];
   }
 };
 
-const writeMessagingUnavailableKeys = (storageKey, keys) => {
+const writeMessagingUnavailableKeys = (storageKey: string, keys: string[]) => {
   if (typeof window === 'undefined') return;
   window.sessionStorage.setItem(storageKey, JSON.stringify(Array.from(new Set(keys))));
 };
 
-const removeMessagingUnavailableKey = (storageKey, keyToRemove) => {
+const removeMessagingUnavailableKey = (storageKey: string, keyToRemove: string) => {
   const next = readMessagingUnavailableKeys(storageKey).filter((key) => key !== keyToRemove);
   writeMessagingUnavailableKeys(storageKey, next);
   return next;
@@ -117,38 +130,41 @@ export function MessagesScreen() {
   );
   const [search, setSearch] = useState('');
   const [draft, setDraft] = useState('');
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [activeThreadId, setActiveThreadId] = useState(null);
+  const [replyingTo, setReplyingTo] = useState<MessageView | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [threadOpen, setThreadOpen] = useState(viewport !== 'mobile');
   const [infoOpen, setInfoOpen] = useState(false);
   // { items: [media, ...], index } while a lightbox is open, so a multi-photo album can step
   // through the whole set with next/prev instead of only ever showing the one tile clicked.
-  const [previewGallery, setPreviewGallery] = useState(null);
-  const [pendingAttachments, setPendingAttachments] = useState([]);
+  const [previewGallery, setPreviewGallery] = useState<{
+    items: PreviewMedia[];
+    index: number;
+  } | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState(null);
-  const [deleteThreadTarget, setDeleteThreadTarget] = useState(null);
-  const [reportTarget, setReportTarget] = useState(null);
-  const [blockTarget, setBlockTarget] = useState(null);
-  const [locallyBlockedUserIds, setLocallyBlockedUserIds] = useState([]);
+  const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<string | null>(null);
+  const [deleteThreadTarget, setDeleteThreadTarget] = useState<ThreadTarget | null>(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const [blockTarget, setBlockTarget] = useState<ThreadTarget | null>(null);
+  const [locallyBlockedUserIds, setLocallyBlockedUserIds] = useState<string[]>([]);
   const [unavailableProbeTick, setUnavailableProbeTick] = useState(0);
   const [messagingUnavailableByStorageKey, setMessagingUnavailableByStorageKey] = useState(() => ({
     [unavailableStorageKey]: readMessagingUnavailableKeys(unavailableStorageKey),
   }));
-  const [nicknameTarget, setNicknameTarget] = useState(null);
+  const [nicknameTarget, setNicknameTarget] = useState<ThreadTarget | null>(null);
   const [nicknameValue, setNicknameValue] = useState('');
   // Set only by a profile's "message" button, before any conversation exists between the two
   // people. Nothing is written to the server until the first message actually sends - see
   // handleSend - so this is the only record of that intent until then.
-  const [pendingTargetUserId, setPendingTargetUserId] = useState(null);
+  const [pendingTargetUserId, setPendingTargetUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const listOnlyMobile = viewport === 'mobile' && !threadOpen;
-  const scrollerRef = useRef(null);
-  const activeComposerKeyRef = useRef(null);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const activeComposerKeyRef = useRef<string | null>(null);
   const draftRef = useRef('');
-  const pendingAttachmentsRef = useRef([]);
-  const composerDraftsRef = useRef({});
-  const composerAttachmentsRef = useRef({});
+  const pendingAttachmentsRef = useRef<PendingAttachment[]>([]);
+  const composerDraftsRef = useRef<Record<string, string>>({});
+  const composerAttachmentsRef = useRef<Record<string, PendingAttachment[]>>({});
 
   const filteredThreads = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -190,9 +206,9 @@ export function MessagesScreen() {
   const { data: blockedResponse } = useBlockedUsers();
   const blockedRows = useMemo(() => extractPageContent(blockedResponse), [blockedResponse]);
   const serverBlockedUserIdSet = useMemo(() => {
-    const ids = new Set();
+    const ids = new Set<string>();
     blockedRows.forEach((row) => {
-      const id = row?.user?.id ?? row?.id;
+      const id = row?.user?.id ?? (row as typeof row & { id?: string }).id;
       if (id) ids.add(id);
     });
     return ids;
@@ -203,7 +219,8 @@ export function MessagesScreen() {
     return ids;
   }, [locallyBlockedUserIds, serverBlockedUserIdSet]);
   const isThreadBlocked = useCallback(
-    (thread) => Boolean(thread?.counterpartId && blockedUserIdSet.has(thread.counterpartId)),
+    (thread: ThreadTarget | null) =>
+      Boolean(thread?.counterpartId && blockedUserIdSet.has(thread.counterpartId)),
     [blockedUserIdSet]
   );
   const activeCounterpartId = activeThread?.counterpartId || null;
@@ -247,7 +264,7 @@ export function MessagesScreen() {
 
   useEffect(
     () => () => {
-      const previewUrls = new Set();
+      const previewUrls = new Set<string>();
       pendingAttachmentsRef.current.forEach((item) => {
         if (item.previewUrl) previewUrls.add(item.previewUrl);
       });
@@ -438,13 +455,13 @@ export function MessagesScreen() {
     );
   }, [threadOpen, viewport]);
 
-  const openPreview = (items, index = 0) => setPreviewGallery({ items, index });
+  const openPreview = (items: PreviewMedia[], index = 0) => setPreviewGallery({ items, index });
 
-  const openStory = (storyId) => {
+  const openStory = (storyId: string) => {
     if (storyId) navigate(routeTo.storyView(storyId), { state: { background: ROUTES.MESSAGES } });
   };
 
-  const selectThread = (threadId) => {
+  const selectThread = (threadId: string) => {
     setActiveThreadId(threadId);
     setPendingTargetUserId(null);
     if (viewport === 'mobile') {
@@ -458,7 +475,7 @@ export function MessagesScreen() {
   const nextIdempotencyKey = () =>
     globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-  const sendTextMessage = (conversationId, value) => {
+  const sendTextMessage = (conversationId: string, value: string) => {
     const idempotencyKey = nextIdempotencyKey();
     return sendMessage.mutateAsync({
       conversationId,
@@ -473,7 +490,7 @@ export function MessagesScreen() {
       optimisticMessage: {
         id: `pending-${idempotencyKey}`,
         conversationId,
-        senderId: currentUserId,
+        senderId: currentUserId ?? null,
         messageType: 'text',
         content: value,
         mediaAssetId: null,
@@ -497,7 +514,11 @@ export function MessagesScreen() {
    * immediately, so a caller looping over several attachments with only the upload awaited was
    * racing every send request over the network instead of sending them in order.
    */
-  const sendAttachmentMessage = async (conversationId, item, caption = null) => {
+  const sendAttachmentMessage = async (
+    conversationId: string,
+    item: PendingAttachment,
+    caption: string | null = null
+  ) => {
     const asset = await uploadMedia(item.file);
     const idempotencyKey = nextIdempotencyKey();
     const content = caption?.trim() || null;
@@ -514,7 +535,7 @@ export function MessagesScreen() {
       optimisticMessage: {
         id: `pending-${idempotencyKey}`,
         conversationId,
-        senderId: currentUserId,
+        senderId: currentUserId ?? null,
         messageType: item.isVideo ? 'video' : 'image',
         content,
         mediaAssetId: asset.id,
@@ -538,7 +559,7 @@ export function MessagesScreen() {
    * measured video duration against the server-published constraints) plus a per-send count cap
    * the server has no equivalent for.
    */
-  const handleStageAttachments = async (files) => {
+  const handleStageAttachments = async (files: File[]) => {
     const room = MAX_MESSAGE_ATTACHMENTS - pendingAttachments.length;
     if (room <= 0) {
       toast(`a message holds ${MAX_MESSAGE_ATTACHMENTS} attachments at most.`);
@@ -550,17 +571,21 @@ export function MessagesScreen() {
       rejection = `a message holds ${MAX_MESSAGE_ATTACHMENTS} attachments at most, so ${room} of the ${files.length} you chose were added.`;
     }
 
-    const accepted = [];
+    const accepted: PendingAttachment[] = [];
     for (const file of files.slice(0, room)) {
       const check = validateFile(file, mediaConstraints);
       if (!check.ok) {
-        rejection = check.message;
+        rejection = check.message ?? '';
         continue;
       }
       const metadata = await getMediaMetadata(file).catch(() => null);
-      const durationCheck = validateDuration(file, metadata?.duration, mediaConstraints);
+      const durationCheck = validateDuration(
+        file,
+        typeof metadata?.duration === 'number' ? metadata.duration : undefined,
+        mediaConstraints
+      );
       if (!durationCheck.ok) {
-        rejection = durationCheck.message;
+        rejection = durationCheck.message ?? '';
         continue;
       }
       accepted.push({
@@ -575,7 +600,7 @@ export function MessagesScreen() {
     if (accepted.length > 0) setPendingAttachments((current) => [...current, ...accepted]);
   };
 
-  const handleRemovePendingAttachment = (id) => {
+  const handleRemovePendingAttachment = (id: string) => {
     setPendingAttachments((current) => {
       const target = current.find((item) => item.id === id);
       if (target) URL.revokeObjectURL(target.previewUrl);
@@ -605,7 +630,7 @@ export function MessagesScreen() {
     try {
       let conversationId = activeConversation?.id;
       if (!conversationId) {
-        const response = await messageService.createDirect(pendingTargetUserId);
+        const response = await messageService.createDirect(pendingTargetUserId!);
         conversationId = response?.data?.id;
         // Awaited, not fired and forgotten: the reconciliation effects above reset the active
         // thread whenever its id is absent from the loaded list, so selecting it before the
@@ -626,10 +651,12 @@ export function MessagesScreen() {
 
       if (value && pendingAttachments.length === 0) await sendTextMessage(conversationId, value);
 
-      [sendingComposerKey, conversationId].filter(Boolean).forEach((key) => {
-        delete composerDraftsRef.current[key];
-        delete composerAttachmentsRef.current[key];
-      });
+      [sendingComposerKey, conversationId]
+        .filter((key): key is string => Boolean(key))
+        .forEach((key) => {
+          delete composerDraftsRef.current[key];
+          delete composerAttachmentsRef.current[key];
+        });
       draftRef.current = '';
       pendingAttachmentsRef.current = [];
       setDraft('');
@@ -637,7 +664,7 @@ export function MessagesScreen() {
       setActiveThreadId(conversationId);
       setPendingTargetUserId(null);
     } catch (error) {
-      const code = error?.response?.data?.code;
+      const code = getErrorData(error)?.code;
       if (sendingComposerKey && (code === 'CONVERSATION_NOT_FOUND' || code === 'NOT_FOUND')) {
         setMessagingUnavailableByStorageKey((byKey) => {
           const keys =
@@ -647,13 +674,21 @@ export function MessagesScreen() {
           return { ...byKey, [unavailableStorageKey]: next };
         });
       }
-      toast(error?.uploadMessage || error?.message || "couldn't send that. try again.");
+      const uploadMessage =
+        error && typeof error === 'object' && 'uploadMessage' in error
+          ? error.uploadMessage
+          : undefined;
+      toast(
+        typeof uploadMessage === 'string' && uploadMessage
+          ? uploadMessage
+          : getErrorMessage(error, "couldn't send that. try again.")
+      );
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleDeleteToggle = (messageId) => {
+  const handleDeleteToggle = (messageId: string) => {
     setPendingDeleteMessageId(messageId);
   };
 
@@ -665,16 +700,16 @@ export function MessagesScreen() {
 
   const handleDeleteThreadConfirm = () => {
     if (!deleteThreadTarget) return;
-    leaveConversation.mutate(deleteThreadTarget.id, {
+    leaveConversation.mutate(deleteThreadTarget.id!, {
       onError: (error) => toast(error?.message || "couldn't delete that chat. try again."),
     });
     setDeleteThreadTarget(null);
   };
 
-  const handleReportThread = (thread) => {
+  const handleReportThread = (thread: ThreadTarget) => {
     setReportTarget({
       entityType: REPORT_TYPES.USER,
-      entityId: thread.counterpartId,
+      entityId: thread.counterpartId!,
       author: thread.name,
       avatarUrl: thread.avatarUrl,
     });
@@ -688,9 +723,9 @@ export function MessagesScreen() {
       return;
     }
     setLocallyBlockedUserIds((ids) =>
-      ids.includes(target.counterpartId) ? ids : [...ids, target.counterpartId]
+      ids.includes(target.counterpartId!) ? ids : [...ids, target.counterpartId!]
     );
-    block.mutate(target.counterpartId, {
+    block.mutate(target.counterpartId!, {
       onError: (error) => {
         setLocallyBlockedUserIds((ids) => ids.filter((id) => id !== target.counterpartId));
         toast(error?.message || "couldn't block that account. try again.");
@@ -699,7 +734,7 @@ export function MessagesScreen() {
     setBlockTarget(null);
   };
 
-  const handleRenameThread = (thread) => {
+  const handleRenameThread = (thread: ThreadTarget) => {
     setNicknameTarget(thread);
     setNicknameValue(thread.nickname || '');
   };
@@ -707,7 +742,7 @@ export function MessagesScreen() {
   const handleSaveNickname = () => {
     if (!nicknameTarget) return;
     setNickname.mutate(
-      { conversationId: nicknameTarget.id, nickname: nicknameValue.trim() },
+      { conversationId: nicknameTarget.id!, nickname: nicknameValue.trim() },
       { onError: (error) => toast(error?.message || "couldn't save that nickname. try again.") }
     );
     setNicknameTarget(null);
@@ -830,8 +865,12 @@ export function MessagesScreen() {
               openPreview={openPreview}
               mobileOverlay
               onClose={() => setInfoOpen(false)}
-              onMute={() => muteConversation.mutate(activeThreadId)}
-              onUnmute={() => unmuteConversation.mutate(activeThreadId)}
+              onMute={() => {
+                if (activeThreadId) muteConversation.mutate(activeThreadId);
+              }}
+              onUnmute={() => {
+                if (activeThreadId) unmuteConversation.mutate(activeThreadId);
+              }}
               onRename={activeThread.counterpartId ? () => handleRenameThread(activeThread) : null}
               onReport={activeThread.counterpartId ? () => handleReportThread(activeThread) : null}
               onBlock={
@@ -867,7 +906,7 @@ export function MessagesScreen() {
             const current = items[index];
             const hasPrev = index > 0;
             const hasNext = index < items.length - 1;
-            const go = (nextIndex) =>
+            const go = (nextIndex: number) =>
               setPreviewGallery((gallery) => (gallery ? { ...gallery, index: nextIndex } : null));
 
             return (
@@ -1177,7 +1216,7 @@ export function MessagesScreen() {
 
       <BlockConfirmDialog
         open={Boolean(blockTarget)}
-        handle={blockTarget?.username}
+        handle={blockTarget?.username ?? ''}
         pending={block.isPending}
         onCancel={() => setBlockTarget(null)}
         onConfirm={handleBlockConfirm}

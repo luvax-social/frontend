@@ -1,3 +1,7 @@
+interface Props {
+  thread: { name?: string; avatarUrl?: string | null };
+  size?: number;
+}
 import { v } from '@/config/tokens';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 
@@ -10,14 +14,14 @@ import { LxAvatar } from '@/components/ui/lx-avatar';
  * The previous fixture carried `accent` and `idx` fields that chose a colour and a placeholder
  * image. Neither exists on the API, so both are gone rather than invented here.
  */
-export function AvatarVisual({ thread, size = 34 }) {
+export function AvatarVisual({ thread, size = 34 }: Props) {
   if (thread?.avatarUrl) {
     return <LxAvatar size={size} src={thread.avatarUrl} />;
   }
 
   const initials = (thread?.name || '')
     .split(' ')
-    .filter(Boolean)
+    .filter((item) => item !== null)
     .slice(0, 2)
     .map((part) => part[0])
     .join('')

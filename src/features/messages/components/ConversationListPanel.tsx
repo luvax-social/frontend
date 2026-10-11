@@ -1,3 +1,25 @@
+import type { ThreadSummary } from '../utils/messageViewModel';
+import type { Viewport } from '@/features/luvax/LuvaxTweaksContext';
+
+interface Props {
+  search: string;
+  setSearch: (value: string) => void;
+  filteredThreads: ThreadSummary[];
+  activeThreadId: string | null;
+  selectThread: (id: string) => void;
+  viewport: Viewport;
+  isThreadBlocked?: (thread: ThreadSummary) => boolean;
+  onMarkRead?: (id: string) => void;
+  onMarkUnread?: (id: string) => void;
+  onPinThread?: (id: string) => void;
+  onUnpinThread?: (id: string) => void;
+  onMuteThread?: (id: string) => void;
+  onUnmuteThread?: (id: string) => void;
+  onDeleteThread?: (thread: ThreadSummary) => void;
+  onReportThread?: (thread: ThreadSummary) => void;
+  onBlockThread?: (thread: ThreadSummary) => void;
+  onRenameThread?: (thread: ThreadSummary) => void;
+}
 import { useState } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
@@ -21,8 +43,8 @@ export function ConversationListPanel({
   onMuteThread,
   onUnmuteThread,
   onRenameThread,
-}) {
-  const [revealedThreadId, setRevealedThreadId] = useState(null);
+}: Props) {
+  const [revealedThreadId, setRevealedThreadId] = useState<string | null>(null);
 
   return (
     <aside

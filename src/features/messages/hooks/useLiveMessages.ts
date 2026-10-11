@@ -18,7 +18,7 @@ import { messagesKey } from './useMessages';
  * per event. Conversations arrive one message at a time, so that cost is bounded by how fast a
  * person types.
  */
-export const useLiveMessages = (conversationId) => {
+export const useLiveMessages = (conversationId: string | null | undefined) => {
   const queryClient = useQueryClient();
 
   useEffect(() => {

@@ -1,3 +1,21 @@
+import type { Thread } from '../utils/messageViewModel';
+import type { CSSProperties } from 'react';
+import type { PreviewMedia } from '../types';
+
+interface Props {
+  activeThread: Thread | null;
+  openPreview: (items: PreviewMedia[], index?: number) => void;
+  currentUserId?: string;
+  compact?: boolean;
+  mobileOverlay?: boolean;
+  onClose?: (() => void) | null;
+  onMute?: (() => void) | null;
+  onUnmute?: (() => void) | null;
+  onRename?: (() => void) | null;
+  onReport?: (() => void) | null;
+  onBlock?: (() => void) | null;
+  onDelete?: (() => void) | null;
+}
 import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { routeTo } from '@/config/constants';
@@ -6,7 +24,7 @@ import { LxToggle } from '@/components/ui/lx-toggle';
 import { AvatarVisual } from './AvatarVisual';
 import { MediaPlaceholder } from './MediaPlaceholder';
 
-const SECTION_LABEL = {
+const SECTION_LABEL: CSSProperties = {
   fontFamily: v.fontMono,
   fontSize: 10,
   color: v.ink3,
@@ -38,7 +56,7 @@ export function ConversationInfoPanel({
   onReport,
   onBlock,
   onDelete,
-}) {
+}: Props) {
   const navigate = useNavigate();
 
   if (!activeThread) return null;
@@ -47,7 +65,14 @@ export function ConversationInfoPanel({
   const media = activeThread.media || [];
   const counterpart = participants.find((participant) => participant.userId !== currentUserId);
 
-  const actions = [
+  const actions: {
+    id: string;
+    icon: string;
+    label: string;
+    onClick: () => void;
+    danger?: boolean;
+    separator?: boolean;
+  }[] = [
     onRename ? { id: 'rename', icon: 'edit', label: 'Set nickname', onClick: onRename } : null,
     onReport
       ? { id: 'report', icon: 'flag', label: 'Report', danger: true, onClick: onReport }
@@ -56,7 +81,7 @@ export function ConversationInfoPanel({
     onDelete
       ? { id: 'delete', icon: 'trash', label: 'Delete chat', danger: true, onClick: onDelete }
       : null,
-  ].filter(Boolean);
+  ].filter((item) => item !== null);
   // A single divider marks where the danger group starts, whichever action happens to be first.
   const firstDangerIndex = actions.findIndex((action) => action.danger);
   if (firstDangerIndex > 0) actions[firstDangerIndex].separator = true;
@@ -95,7 +120,7 @@ export function ConversationInfoPanel({
             />
             <button
               type="button"
-              onClick={onClose}
+              onClick={onClose ?? undefined}
               aria-label="close chat info"
               style={{
                 width: 28,

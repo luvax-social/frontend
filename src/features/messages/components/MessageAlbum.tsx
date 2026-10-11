@@ -1,3 +1,15 @@
+import type { MessageView, MessageMedia } from '../types';
+
+interface Props {
+  items: MessageView[];
+  onOpenViewer: (items: MessageView[], index: number) => void;
+  isMine: boolean;
+  isFirstInRun: boolean;
+  isLastInRun: boolean;
+  onDeleteItem?: (id: string) => void;
+  onReplyItem?: (item: MessageView) => void;
+  forceShowActions?: boolean;
+}
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { LxDropdownMenu } from '@/components/ui/lx-dropdown-menu';
@@ -12,7 +24,7 @@ import { MediaPlaceholder } from './MediaPlaceholder';
 const MAX_VISIBLE_TILES = 4;
 const ALBUM_WIDTH = 210;
 
-async function copyImageToClipboard(media) {
+async function copyImageToClipboard(media: MessageMedia | null) {
   const url = media?.cdnUrl;
   if (!url) return;
 
@@ -45,12 +57,15 @@ function AlbumTile({
   onDeleteItem,
   onReplyItem,
   forceShowActions = false,
-}) {
+}: Pick<
+  Props,
+  'items' | 'onOpenViewer' | 'isMine' | 'onDeleteItem' | 'onReplyItem' | 'forceShowActions'
+> & { item: MessageView; index: number; isLastTile: boolean; overflow: number }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [touchRevealed, setTouchRevealed] = useState(false);
-  const tileRef = useRef(null);
-  const menuButtonRef = useRef(null);
+  const tileRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const supportsHover =
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
@@ -89,7 +104,7 @@ function AlbumTile({
               onClick: () => onDeleteItem?.(item.id),
             }
           : null,
-      ].filter(Boolean),
+      ].filter((item) => item !== null),
     [canCopyImage, canDelete, item, onDeleteItem, textForCopy]
   );
 
@@ -98,10 +113,10 @@ function AlbumTile({
       return undefined;
     }
 
-    const handlePointerDown = (event) => {
+    const handlePointerDown = (event: PointerEvent) => {
       if (
-        tileRef.current?.contains(event.target) ||
-        menuButtonRef.current?.contains(event.target)
+        tileRef.current?.contains(event.target instanceof Node ? event.target : null) ||
+        menuButtonRef.current?.contains(event.target instanceof Node ? event.target : null)
       ) {
         return;
       }
@@ -249,7 +264,7 @@ export function MessageAlbum({
   onDeleteItem,
   onReplyItem,
   forceShowActions = false,
-}) {
+}: Props) {
   const visible = items.slice(0, MAX_VISIBLE_TILES);
   const overflow = items.length - MAX_VISIBLE_TILES;
   const caption = items.find((item) => item.text)?.text || '';

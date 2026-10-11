@@ -1,3 +1,5 @@
+import type { Message, MessageMedia, MessageView, ThreadRow, Conversation } from '../types';
+import type { ParticipantResponse, StoryResponse, PublicUserProfileResponse } from '@/types/domain';
 /**
  * Maps conversation API shapes onto the props the message components consume.
  *
@@ -19,44 +21,49 @@ const UNKNOWN_PARTICIPANT = 'unknown';
 const TIME_SEPARATOR_GAP_MS = 60 * 60 * 1000;
 const STORY_MEDIA_CACHE_KEY = 'luvax:message-story-media';
 
-const readStoryMediaCache = () => {
+const readStoryMediaCache = (): Record<string, MessageMedia> => {
   if (typeof window === 'undefined') return {};
   try {
-    return JSON.parse(window.localStorage.getItem(STORY_MEDIA_CACHE_KEY) || '{}');
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(STORY_MEDIA_CACHE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, MessageMedia>)
+      : {};
   } catch {
     return {};
   }
 };
 
-export const rememberSharedStoryMedia = (story) => {
+export const rememberSharedStoryMedia = (story: Pick<StoryResponse, 'id' | 'media'>) => {
   if (typeof window === 'undefined' || !story?.id || !story?.media) return;
   const cache = readStoryMediaCache();
   cache[story.id] = story.media;
   window.localStorage.setItem(STORY_MEDIA_CACHE_KEY, JSON.stringify(cache));
 };
 
-const cachedStoryMediaOf = (storyId) => {
+const cachedStoryMediaOf = (storyId: string | null | undefined) => {
   if (!storyId) return null;
   return readStoryMediaCache()[storyId] || null;
 };
 
-const participantOf = (participants, userId) =>
-  (participants || []).find((participant) => participant.userId === userId) || null;
+const participantOf = (
+  participants: ParticipantResponse[] | undefined,
+  userId: string | null | undefined
+) => (participants || []).find((participant) => participant.userId === userId) || null;
 
-const nameOf = (participant) =>
+const nameOf = (participant: ParticipantResponse | null) =>
   participant
     ? participant.displayName || participant.username || UNKNOWN_PARTICIPANT
     : UNKNOWN_PARTICIPANT;
 
 /** Short local time. The server sends UTC; a reader wants their own clock. */
-export const formatMessageTime = (isoString) => {
+export const formatMessageTime = (isoString: string | null | undefined) => {
   if (!isoString) return '';
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const isSameCalendarDay = (a, b) =>
+const isSameCalendarDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
@@ -66,7 +73,7 @@ const isSameCalendarDay = (a, b) =>
  * ...", or a full date once it is neither. Mirrors the day-boundary language most chat apps use
  * rather than a bare timestamp, which reads as a log entry instead of a point in a conversation.
  */
-export const formatSeparatorLabel = (isoString) => {
+export const formatSeparatorLabel = (isoString: string | null | undefined) => {
   if (!isoString) return '';
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return '';
@@ -89,7 +96,10 @@ export const formatSeparatorLabel = (isoString) => {
 };
 
 /** The other party in the conversation. */
-export const counterpartOf = (conversation, currentUserId) => {
+export const counterpartOf = (
+  conversation: Conversation | null | undefined,
+  currentUserId: string | undefined
+) => {
   const others = (conversation?.participants || []).filter(
     (participant) => participant.userId !== currentUserId
   );
@@ -103,11 +113,13 @@ export const counterpartOf = (conversation, currentUserId) => {
  * never another user's label for themselves. Conversations are 1-1 only, so the viewer's own row
  * unambiguously names the single other participant.
  */
-const myNicknameForCounterpart = (participants, currentUserId) =>
-  participantOf(participants, currentUserId)?.nickname || null;
+const myNicknameForCounterpart = (
+  participants: ParticipantResponse[],
+  currentUserId: string | undefined
+) => participantOf(participants, currentUserId)?.nickname || null;
 
 /** What a conversation row shows under the name when the message itself has no text. */
-const previewTextOf = (message) => {
+const previewTextOf = (message: Message | null) => {
   if (!message) return '';
   if (message.isDeleted) return DELETED_PLACEHOLDER;
   if (message.content) return message.content;
@@ -123,7 +135,7 @@ const previewTextOf = (message) => {
  * Keyed on `replyToId` rather than on whether the quote resolved: a reply is still a reply when the
  * message it answers sits outside the loaded page.
  */
-const kindOf = (message) => {
+const kindOf = (message: Message): MessageView['kind'] => {
   if (message.isDeleted) return 'deleted';
   if (message.replyToId) return 'reply';
   if (message.sharedStoryId) return 'story';
@@ -133,7 +145,7 @@ const kindOf = (message) => {
 };
 
 /** One row in the conversation list. */
-export const toThreadSummary = (conversation, currentUserId) => {
+export const toThreadSummary = (conversation: Conversation, currentUserId: string | undefined) => {
   const counterpart = counterpartOf(conversation, currentUserId);
   const nickname = myNicknameForCounterpart(conversation.participants, currentUserId);
 
@@ -145,13 +157,13 @@ export const toThreadSummary = (conversation, currentUserId) => {
     isVerified: Boolean(counterpart?.isVerified),
     verifiedCategory: counterpart?.verifiedCategory ?? null,
     avatarUrl: counterpart?.avatarUrl || null,
-    preview: previewTextOf(conversation.lastMessage),
+    preview: previewTextOf('lastMessage' in conversation ? conversation.lastMessage : null),
     time: formatMessageTime(conversation.lastMessageAt),
-    unread: conversation.unreadCount || 0,
+    unread: ('unreadCount' in conversation ? conversation.unreadCount : 0) || 0,
     // A caller-set flag independent of unreadCount: clearing the read marker only changes the
     // count when the other participant has newer messages to count, so this is what "mark
     // unread" actually toggles when the viewer sent the conversation's own newest messages.
-    manuallyUnread: Boolean(conversation.manuallyUnread),
+    manuallyUnread: Boolean('manuallyUnread' in conversation && conversation.manuallyUnread),
     counterpartId: counterpart?.userId || null,
     pinned: conversation.pinned || false,
     muted: conversation.muted || false,
@@ -160,12 +172,19 @@ export const toThreadSummary = (conversation, currentUserId) => {
 };
 
 /** One bubble in the thread. */
-export const toMessageView = (message, { participants, currentUserId, loadedMessages = [] }) => {
+export const toMessageView = (
+  message: Message,
+  {
+    participants,
+    currentUserId,
+    loadedMessages = [],
+  }: { participants: ParticipantResponse[]; currentUserId?: string; loadedMessages?: Message[] }
+): MessageView => {
   const sender = participantOf(participants, message.senderId);
   const nickname = myNicknameForCounterpart(participants, currentUserId);
   // A nickname is the viewer's label for the counterpart only; it never applies to the viewer's
   // own name on their own bubbles.
-  const displayNameOf = (participant) =>
+  const displayNameOf = (participant: ParticipantResponse | null) =>
     participant && participant.userId !== currentUserId
       ? nickname || nameOf(participant)
       : nameOf(participant);
@@ -208,15 +227,15 @@ const GROUP_GAP_MS = 10 * 60 * 1000;
  * more than ten minutes apart. Shared by the avatar-collapsing run below and by album grouping,
  * which is the same "close enough to read as one exchange" test applied to plain-media messages.
  */
-const inSameRun = (a, b) =>
-  Boolean(a) &&
-  Boolean(b) &&
+const inSameRun = (a: MessageView | undefined, b: MessageView | undefined) =>
+  a !== undefined &&
+  b !== undefined &&
   a.from === b.from &&
   a.atMs !== null &&
   b.atMs !== null &&
   b.atMs - a.atMs <= GROUP_GAP_MS;
 
-const needsTimeSeparator = (previous, current) =>
+const needsTimeSeparator = (previous: MessageView | undefined, current: MessageView) =>
   !previous ||
   previous.atMs === null ||
   current.atMs === null ||
@@ -239,8 +258,8 @@ const needsTimeSeparator = (previous, current) =>
  * lands well inside the ten-minute window, so the existing rule is what "one send" looks like from
  * the data available.
  */
-const toRows = (messages) => {
-  const rows = [];
+const toRows = (messages: MessageView[]) => {
+  const rows: ThreadRow[] = [];
   let index = 0;
 
   while (index < messages.length) {
@@ -310,13 +329,20 @@ const toRows = (messages) => {
  * The alternative considered was leaving the grid on fixture data, which would have shown every
  * conversation the same invented six images.
  */
-const mediaOf = (messages) =>
+const mediaOf = (messages: Message[]) =>
   (messages || [])
-    .filter((message) => !message.isDeleted && message.media)
+    .filter(
+      (message): message is Message & { media: MessageMedia } =>
+        !message.isDeleted && Boolean(message.media)
+    )
     .map((message) => ({ id: message.id, ...message.media }));
 
 /** A conversation plus its loaded history, oldest first, in the shape the thread panel renders. */
-export const toThread = (conversation, messages, currentUserId) => {
+export const toThread = (
+  conversation: Conversation,
+  messages: Message[],
+  currentUserId: string | undefined
+) => {
   const loaded = messages || [];
   // The API returns newest first because that is what paging backwards through history needs.
   // Reading wants the opposite, so the flip happens once here rather than in every component that
@@ -349,7 +375,7 @@ export const toThread = (conversation, messages, currentUserId) => {
  * from. `id: null` is what the rest of the screen uses to tell this apart from a real,
  * possibly-empty conversation: the first message sent into it is what creates the real row.
  */
-export const toPendingThread = (targetUser) => ({
+export const toPendingThread = (targetUser: PublicUserProfileResponse) => ({
   id: null,
   name: targetUser.displayName || targetUser.username || UNKNOWN_PARTICIPANT,
   profileName: targetUser.displayName || targetUser.username || UNKNOWN_PARTICIPANT,
@@ -365,8 +391,14 @@ export const toPendingThread = (targetUser) => ({
   muted: false,
   nickname: null,
   counterpartId: targetUser.id,
-  participants: [],
-  media: [],
-  messages: [],
-  rows: [],
+  participants: [] as ParticipantResponse[],
+  media: [] as (MessageMedia & { id: string })[],
+  messages: [] as MessageView[],
+  rows: [] as ThreadRow[],
 });
+
+export type ThreadSummary = ReturnType<typeof toThreadSummary>;
+export type Thread = Omit<ReturnType<typeof toThread>, 'id'> & {
+  id: string | null;
+  accent?: string;
+};

@@ -45,6 +45,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
       # Unit tests only. The live suite talks to a real API, database, and mail sink, none of
       # which exist here, so it stays a local and pre-release check.
       - name: Unit tests

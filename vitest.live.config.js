@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    include: ['tests/live/**/*.live.test.js'],
+    include: ['tests/live/**/*.live.test.{js,ts}'],
     // Serial execution keeps per-endpoint rate-limit buckets and Mailpit state predictable.
     // Parallel files would race each other into a 429 and fail for the wrong reason.
     fileParallelism: false,

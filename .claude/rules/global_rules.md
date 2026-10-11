@@ -70,18 +70,16 @@ Rules:
 
 ## 5. Type Safety
 
-The project uses plain JavaScript. TypeScript is not configured.
+TypeScript is the target language for application code and tests.
 
-- `jsconfig.json` is present for IDE path resolution and basic inference — it is not a TypeScript
-  build step.
-- Prop types and data shapes are validated at runtime via Zod schemas (see
-  `src/features/auth/utils/authSchemas.js` as the canonical example).
-- Prefer explicit Zod schemas for all form data and API request payloads.
-- Do not add TypeScript files (`.ts`, `.tsx`) without first aligning with the team — this is a
-  deliberate language choice.
+- Run `npm run typecheck` before committing. Production builds and CI enforce it.
+- Converted modules use strict checking; JavaScript is allowed only while migration is in progress.
+- Retain runtime Zod validation. Derive form input/output types from schemas.
+- Network responses follow backend DTOs and the OpenAPI contract; IDs remain opaque strings.
+- Do not bypass checking with blanket `any`, unchecked module declarations, or file-wide suppressions.
+- Shared contract types belong in `src/types/`; feature-specific props and view models stay in their feature.
 
 ---
-
 ## 6. Routing Rules
 
 - Routing is config-based. `src/routes/index.jsx` is the root router; `src/routes/appScreens.jsx`
@@ -122,3 +120,4 @@ The project uses plain JavaScript. TypeScript is not configured.
 - Never log tokens, user PII, or sensitive headers to the console in production code.
 - All user-facing error messages must be normalized (the `axiosClient` interceptor handles this).
   Never surface raw BE error bodies, SQL details, or Java stack traces in the UI.
+

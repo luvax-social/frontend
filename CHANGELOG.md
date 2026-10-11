@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Strict TypeScript checking for converted frontend modules, with build and CI gates and support for TypeScript test discovery.
 - An opt-in public homepage indexing policy with canonical metadata, a factual brand graph, robots discovery and a sitemap, plus deployment and HTTP verification guidance.
 - Suggestion cards in the feed: trending hashtags with post previews, and suggested accounts showing avatar, banner and follower count. A card appears after every fifth post, alternating between the two kinds, and each kind can be dismissed for the session.
 - An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
@@ -179,3 +180,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Coverage for the notification cache reducers, the rolling time-section buckets, and the per-type sentence builder.
 - Coverage for the notifications screen's seen flow: one call on the first page load and none on any other chip, and mark-all-read bound to the most recently fetched page rather than the moment of the click.
 - A Playwright suite for the notifications screen at 390, 768, 1024, 1440 and 1920 pixels, covering the seen flow, chip filtering, the read/unread/delete menu with rollback, and an unavailable target.
+

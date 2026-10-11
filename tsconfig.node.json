@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "erasableSyntaxOnly": true
+  },
+  "include": [
+    "*.config.*",
+    "scripts/**/*.ts",
+    "scripts/**/*.mts",
+    "scripts/**/*.js",
+    "scripts/**/*.mjs"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

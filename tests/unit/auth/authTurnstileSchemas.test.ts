@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ZodType } from 'zod';
 
 import {
   authPageRegisterSchema,
@@ -32,7 +33,7 @@ const VALID = {
   reset: { password: PASSWORD, confirmPassword: PASSWORD, turnstileToken: TOKEN },
 };
 
-const SCHEMAS = [
+const SCHEMAS: [string, ZodType, Record<string, string>][] = [
   ['loginSchema', loginSchema, VALID.login],
   ['authPageRegisterSchema', authPageRegisterSchema, VALID.register],
   ['emailSchema', emailSchema, VALID.email],
@@ -65,8 +66,9 @@ describe('auth schemas carrying a Turnstile challenge', () => {
   it('names the challenge rather than the field when the token is missing', () => {
     const result = loginSchema.safeParse({ ...VALID.login, turnstileToken: '' });
     expect(result.success).toBe(false);
+    if (result.success) throw new Error('Expected the missing challenge to be rejected.');
     const issue = result.error.issues.find((i) => i.path[0] === 'turnstileToken');
-    expect(issue.message).toBe('Complete the challenge to continue.');
+    expect(issue?.message).toBe('Complete the challenge to continue.');
   });
 
   it('still enforces every rule it enforced before the token was added', () => {

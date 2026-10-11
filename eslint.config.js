@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
+import tseslint from 'typescript-eslint';
 
 export default [
   // .vite-cache is where vite.config.js relocates Vite's cacheDir. Without it here, `eslint .`
@@ -11,7 +12,7 @@ export default [
   // react-router-dom at 398 kB, and the rest - and reported formatting violations on every line of
   // generated vendor code: 54,518 findings on top of the 1,278 real ones, and over five minutes to
   // run. That made the lint script unusable as a gate, which is why it was never wired into CI.
-  { ignores: ['dist', 'node_modules', 'build', '.vite-cache', 'coverage'] },
+  { ignores: ['dist', 'node_modules', 'build', '.vite-cache', 'coverage', '.workspace/**'] },
 
   // Base JS rules
   {
@@ -19,9 +20,14 @@ export default [
     ...js.configs.recommended,
   },
 
+  ...tseslint.configs.recommended.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx,mts}'],
+  })),
+
   // React & App rules
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,ts,tsx,mts}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -56,6 +62,18 @@ export default [
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
+    },
+  },
+
+  {
+    files: ['**/*.{ts,tsx,mts}'],
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
 

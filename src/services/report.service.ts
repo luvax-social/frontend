@@ -1,3 +1,5 @@
+import type { ApiResponse } from '@/types/api';
+import type { CreateReportRequest, ReportResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const REPORT_API_PATH = '/reports';
@@ -108,13 +110,13 @@ export const submitReport = async ({
   entityId,
   description,
   turnstileToken,
-}) => {
-  const payload = { reportType, reportReason, entityId, turnstileToken };
+}: CreateReportRequest) => {
+  const payload: CreateReportRequest = { reportType, reportReason, entityId, turnstileToken };
   const trimmed = typeof description === 'string' ? description.trim() : '';
   if (trimmed) {
     payload.description = trimmed;
   }
 
-  const response = await axiosInstance.post(REPORT_API_PATH, payload);
+  const response = await axiosInstance.post<ApiResponse<ReportResponse>>(REPORT_API_PATH, payload);
   return response.data;
 };

@@ -1,3 +1,5 @@
+import type { ApiResponse, CursorParams, CursorPage } from '@/types/api';
+import type { FeedPostResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const RECOMMENDATIONS_API_PATH = '/recommendations';
@@ -16,15 +18,23 @@ const RECOMMENDATIONS_API_PATH = '/recommendations';
  * @param {AbortSignal} [params.signal] - Cancels the request when the query is superseded.
  * @returns {Promise<Object>} ApiResponse<CursorPageResponse<FeedPostResponse>>.
  */
-export const getRecommendedFeed = async ({ cursor, limit, excludeFollowed, signal } = {}) => {
-  const params = { limit };
+export const getRecommendedFeed = async ({
+  cursor,
+  limit,
+  excludeFollowed,
+  signal,
+}: CursorParams & { excludeFollowed?: boolean } = {}) => {
+  const params: CursorParams & { excludeFollowed?: boolean } = { limit };
   if (cursor) params.cursor = cursor;
   if (excludeFollowed) params.excludeFollowed = true;
 
-  const response = await axiosInstance.get(`${RECOMMENDATIONS_API_PATH}/feed`, {
-    params,
-    signal,
-  });
+  const response = await axiosInstance.get<ApiResponse<CursorPage<FeedPostResponse>>>(
+    `${RECOMMENDATIONS_API_PATH}/feed`,
+    {
+      params,
+      signal,
+    }
+  );
   return response.data;
 };
 

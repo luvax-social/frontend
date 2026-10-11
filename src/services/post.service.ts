@@ -1,3 +1,16 @@
+import type { ApiResponse, CursorParams, CursorPage } from '@/types/api';
+import type {
+  CreatePostRequest,
+  PostResponse,
+  FeedPostResponse,
+  UpdatePostCaptionRequest,
+  PostStatus,
+  LikeActionResponse,
+  SavedPostResponse,
+  LikedPostResponse,
+  CommentResponse,
+  CommentDeletionScopeResponse,
+} from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const POST_API_PATH = '/posts';
@@ -7,8 +20,8 @@ const POST_API_PATH = '/posts';
  * @param {Object} data - The post data (e.g., content, mediaUrls).
  * @returns {Promise<Object>} The created post.
  */
-export const createPost = async (data) => {
-  const response = await axiosInstance.post(POST_API_PATH, data);
+export const createPost = async (data: CreatePostRequest) => {
+  const response = await axiosInstance.post<ApiResponse<PostResponse>>(POST_API_PATH, data);
   return response.data;
 };
 
@@ -17,18 +30,27 @@ export const createPost = async (data) => {
  * @param {Object} params - Query parameters (e.g., cursor, limit) plus an optional AbortSignal.
  * @returns {Promise<Object>} The paginated posts response.
  */
-export const getFeed = async ({ signal, ...params } = {}) => {
-  const response = await axiosInstance.get(`${POST_API_PATH}/feed`, { params, signal });
+export const getFeed = async ({ signal, ...params }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<FeedPostResponse>>>(
+    `${POST_API_PATH}/feed`,
+    { params, signal }
+  );
   return response.data;
 };
 
 /**
  * Retrieves a paginated list of explore posts via search.
  */
-export const getExplorePosts = async ({ signal, ...params } = {}) => {
+export const getExplorePosts = async ({
+  signal,
+  ...params
+}: CursorParams & { q?: string } = {}) => {
   // Backend requires 'q', fallback to a space or wildcard if empty to avoid 400
   if (!params.q) params.q = 'a';
-  const response = await axiosInstance.get(`${POST_API_PATH}/search`, { params, signal });
+  const response = await axiosInstance.get<ApiResponse<CursorPage<PostResponse>>>(
+    `${POST_API_PATH}/search`,
+    { params, signal }
+  );
   return response.data;
 };
 
@@ -51,7 +73,10 @@ export const getExplorePosts = async ({ signal, ...params } = {}) => {
  * @param {Object} params - Query parameters (cursor, limit, type) plus an optional AbortSignal.
  * @returns {Promise<Object>} The paginated posts response.
  */
-export const getUserPosts = async (userId, { signal, type, ...params } = {}) => {
+export const getUserPosts = async (
+  userId: string,
+  { signal, type, ...params }: CursorParams & { type?: string | string[] } = {}
+) => {
   // Axios serialises an array as `type[]=image`, and the backend rejects
   // `type[]` as an unrecognised parameter with 400. Verified against the
   // running server. Joining here means an array can never reach the wire in
@@ -59,10 +84,13 @@ export const getUserPosts = async (userId, { signal, type, ...params } = {}) => 
   const typeValues = Array.isArray(type) ? type : type ? [type] : [];
   const query = typeValues.length > 0 ? { ...params, type: typeValues.join(',') } : params;
 
-  const response = await axiosInstance.get(`${POST_API_PATH}/user/${userId}`, {
-    params: query,
-    signal,
-  });
+  const response = await axiosInstance.get<ApiResponse<CursorPage<PostResponse>>>(
+    `${POST_API_PATH}/user/${userId}`,
+    {
+      params: query,
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -71,8 +99,8 @@ export const getUserPosts = async (userId, { signal, type, ...params } = {}) => 
  * @param {string|number} postId - The ID of the post.
  * @returns {Promise<Object>} The post details.
  */
-export const getPostById = async (postId) => {
-  const response = await axiosInstance.get(`${POST_API_PATH}/${postId}`);
+export const getPostById = async (postId: string) => {
+  const response = await axiosInstance.get<ApiResponse<PostResponse>>(`${POST_API_PATH}/${postId}`);
   return response.data;
 };
 
@@ -82,8 +110,11 @@ export const getPostById = async (postId) => {
  * @param {Object} data - The updated post data.
  * @returns {Promise<Object>} The updated post.
  */
-export const updatePost = async (postId, data) => {
-  const response = await axiosInstance.patch(`${POST_API_PATH}/${postId}`, data);
+export const updatePost = async (postId: string, data: UpdatePostCaptionRequest) => {
+  const response = await axiosInstance.patch<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}`,
+    data
+  );
   return response.data;
 };
 
@@ -92,8 +123,8 @@ export const updatePost = async (postId, data) => {
  * @param {string|number} postId - The ID of the post.
  * @returns {Promise<Object>} A success message or empty response.
  */
-export const deletePost = async (postId) => {
-  const response = await axiosInstance.delete(`${POST_API_PATH}/${postId}`);
+export const deletePost = async (postId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(`${POST_API_PATH}/${postId}`);
   return response.data;
 };
 
@@ -103,10 +134,13 @@ export const deletePost = async (postId) => {
  * @param {string} status - The target status: 'draft', 'published', 'archived' or 'removed'.
  * @returns {Promise<Object>} The updated post.
  */
-export const updatePostStatus = async (postId, status) => {
-  const response = await axiosInstance.patch(`${POST_API_PATH}/${postId}/status`, {
-    targetStatus: status,
-  });
+export const updatePostStatus = async (postId: string, status: PostStatus) => {
+  const response = await axiosInstance.patch<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}/status`,
+    {
+      targetStatus: status,
+    }
+  );
   return response.data;
 };
 
@@ -115,8 +149,10 @@ export const updatePostStatus = async (postId, status) => {
  * @param {string} postId - The ID of the post.
  * @returns {Promise<Object>} ApiResponse<{ postId, liked, likeCount }>.
  */
-export const likePost = async (postId) => {
-  const response = await axiosInstance.post(`${POST_API_PATH}/${postId}/like`);
+export const likePost = async (postId: string) => {
+  const response = await axiosInstance.post<ApiResponse<LikeActionResponse>>(
+    `${POST_API_PATH}/${postId}/like`
+  );
   return response.data;
 };
 
@@ -125,8 +161,10 @@ export const likePost = async (postId) => {
  * @param {string} postId - The ID of the post.
  * @returns {Promise<Object>} ApiResponse<{ postId, liked, likeCount }>.
  */
-export const unlikePost = async (postId) => {
-  const response = await axiosInstance.delete(`${POST_API_PATH}/${postId}/like`);
+export const unlikePost = async (postId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<LikeActionResponse>>(
+    `${POST_API_PATH}/${postId}/like`
+  );
   return response.data;
 };
 
@@ -135,8 +173,8 @@ export const unlikePost = async (postId) => {
  * @param {string} postId - The ID of the post.
  * @returns {Promise<Object>} ApiResponse<Void>.
  */
-export const savePost = async (postId) => {
-  const response = await axiosInstance.post(`${POST_API_PATH}/${postId}/save`);
+export const savePost = async (postId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(`${POST_API_PATH}/${postId}/save`);
   return response.data;
 };
 
@@ -145,8 +183,8 @@ export const savePost = async (postId) => {
  * @param {string} postId - The ID of the post.
  * @returns {Promise<Object>} No content.
  */
-export const unsavePost = async (postId) => {
-  const response = await axiosInstance.delete(`${POST_API_PATH}/${postId}/save`);
+export const unsavePost = async (postId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(`${POST_API_PATH}/${postId}/save`);
   return response.data;
 };
 
@@ -158,8 +196,11 @@ export const unsavePost = async (postId) => {
  * @param {Object} params - Query parameters (e.g., cursor, limit) plus an optional AbortSignal.
  * @returns {Promise<Object>} ApiResponse<CursorPageResponse<SavedPostResponse>>.
  */
-export const getSavedPosts = async ({ signal, ...params } = {}) => {
-  const response = await axiosInstance.get(`${POST_API_PATH}/saved`, { params, signal });
+export const getSavedPosts = async ({ signal, ...params }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<SavedPostResponse>>>(
+    `${POST_API_PATH}/saved`,
+    { params, signal }
+  );
   return response.data;
 };
 
@@ -181,8 +222,11 @@ export const getSavedPosts = async ({ signal, ...params } = {}) => {
  * @param {Object} params - Query parameters (e.g., cursor, limit) plus an optional AbortSignal.
  * @returns {Promise<Object>} ApiResponse<CursorPageResponse<LikedPostResponse>>.
  */
-export const getLikedPosts = async ({ signal, ...params } = {}) => {
-  const response = await axiosInstance.get(`${POST_API_PATH}/liked`, { params, signal });
+export const getLikedPosts = async ({ signal, ...params }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<LikedPostResponse>>>(
+    `${POST_API_PATH}/liked`,
+    { params, signal }
+  );
   return response.data;
 };
 
@@ -192,8 +236,11 @@ export const getLikedPosts = async ({ signal, ...params } = {}) => {
  * @param {Object} params - Query parameters (e.g., cursor, limit).
  * @returns {Promise<Object>} ApiResponse<CursorPageResponse<Comment>>.
  */
-export const getComments = async (postId, params = {}) => {
-  const response = await axiosInstance.get(`${POST_API_PATH}/${postId}/comments`, { params });
+export const getComments = async (postId: string, params: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<CommentResponse>>>(
+    `${POST_API_PATH}/${postId}/comments`,
+    { params }
+  );
   return response.data;
 };
 
@@ -203,8 +250,11 @@ export const getComments = async (postId, params = {}) => {
  * @param {Object} params - Query parameters (e.g., cursor, limit).
  * @returns {Promise<Object>} ApiResponse<CursorPageResponse<Comment>>.
  */
-export const getCommentReplies = async (commentId, params = {}) => {
-  const response = await axiosInstance.get(`/comments/${commentId}/replies`, { params });
+export const getCommentReplies = async (commentId: string, params: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<CommentResponse>>>(
+    `/comments/${commentId}/replies`,
+    { params }
+  );
   return response.data;
 };
 
@@ -218,8 +268,11 @@ export const getCommentReplies = async (commentId, params = {}) => {
  * @param {{ parentId?: string|null, content: string, idempotencyKey?: string }} data - Comment payload.
  * @returns {Promise<Object>} ApiResponse<Comment>.
  */
-export const createComment = async (postId, data) => {
-  const response = await axiosInstance.post(
+export const createComment = async (
+  postId: string,
+  data: { parentId?: string | null; content: string; idempotencyKey?: string }
+) => {
+  const response = await axiosInstance.post<ApiResponse<CommentResponse>>(
     `${POST_API_PATH}/${postId}/comments`,
     {
       postId,
@@ -239,8 +292,8 @@ export const createComment = async (postId, data) => {
  * @param {string} commentId - The ID of the comment.
  * @returns {Promise<Object>} ApiResponse<void>.
  */
-export const likeComment = async (commentId) => {
-  const response = await axiosInstance.post(`/comments/${commentId}/like`);
+export const likeComment = async (commentId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(`/comments/${commentId}/like`);
   return response.data;
 };
 
@@ -249,8 +302,8 @@ export const likeComment = async (commentId) => {
  * @param {string} commentId - The ID of the comment.
  * @returns {Promise<Object>} ApiResponse<void>.
  */
-export const unlikeComment = async (commentId) => {
-  const response = await axiosInstance.delete(`/comments/${commentId}/like`);
+export const unlikeComment = async (commentId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(`/comments/${commentId}/like`);
   return response.data;
 };
 
@@ -260,8 +313,11 @@ export const unlikeComment = async (commentId) => {
  * @param {string} content - The new body; the backend requires it non-blank and at most 2200 characters.
  * @returns {Promise<Object>} ApiResponse<Comment>.
  */
-export const editComment = async (commentId, content) => {
-  const response = await axiosInstance.patch(`/comments/${commentId}`, { content });
+export const editComment = async (commentId: string, content: string) => {
+  const response = await axiosInstance.patch<ApiResponse<CommentResponse>>(
+    `/comments/${commentId}`,
+    { content }
+  );
   return response.data;
 };
 
@@ -276,8 +332,10 @@ export const editComment = async (commentId, content) => {
  * @param {string} commentId - The ID of the comment.
  * @returns {Promise<Object>} ApiResponse<CommentDeletionScopeResponse>.
  */
-export const getCommentDeletionScope = async (commentId) => {
-  const response = await axiosInstance.get(`/comments/${commentId}/deletion-scope`);
+export const getCommentDeletionScope = async (commentId: string) => {
+  const response = await axiosInstance.get<ApiResponse<CommentDeletionScopeResponse>>(
+    `/comments/${commentId}/deletion-scope`
+  );
   return response.data;
 };
 
@@ -287,8 +345,10 @@ export const getCommentDeletionScope = async (commentId) => {
  * @returns {Promise<Object>} ApiResponse<CommentDeletionScopeResponse>, carrying
  *   the authoritative number of comments removed.
  */
-export const deleteComment = async (commentId) => {
-  const response = await axiosInstance.delete(`/comments/${commentId}`);
+export const deleteComment = async (commentId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<CommentDeletionScopeResponse>>(
+    `/comments/${commentId}`
+  );
   return response.data;
 };
 

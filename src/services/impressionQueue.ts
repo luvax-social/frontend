@@ -22,8 +22,14 @@ const FLUSH_INTERVAL_MS = 40_000;
 // matching the same 60s fallback src/hooks/useRateLimitCooldown.js uses.
 const DEFAULT_RETRY_AFTER_SECONDS = 60;
 
-const reported = new Set();
-const pending = new Map();
+interface Impression {
+  impressionId: string;
+  postId: string;
+  dwellSeconds: number;
+  surface: 'feed' | 'explore' | 'search';
+}
+const reported = new Set<string>();
+const pending = new Map<string, Impression>();
 let retryAfterUntil = 0;
 let initialized = false;
 
@@ -34,7 +40,11 @@ let initialized = false;
  * overwrites feedback value, so reporting the same post twice inflates its
  * dwell total on the backend.
  */
-export function reportImpression(postId, dwellSeconds, surface) {
+export function reportImpression(
+  postId: string | undefined,
+  dwellSeconds: number,
+  surface: Impression['surface'] | undefined
+) {
   if (!postId || !surface) return;
   if (!useAuthStore.getState().isAuthenticated) return;
   if (reported.has(postId)) return;
@@ -48,7 +58,7 @@ export function reportImpression(postId, dwellSeconds, surface) {
   });
 }
 
-async function sendBatch(chunk, accessToken) {
+async function sendBatch(chunk: Impression[], accessToken: string) {
   try {
     const response = await fetch(`${API_BASE_URL}${IMPRESSIONS_PATH}`, {
       method: 'POST',

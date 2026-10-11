@@ -1,3 +1,5 @@
+import type { ApiResponse } from '@/types/api';
+import type { VocabularyResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 /**
@@ -9,7 +11,10 @@ import axiosInstance from './axiosInstance';
  * like `hate_speech` is a database value, and inventing a phrase for it in the
  * frontend would put words in the moderator's mouth that the server never said.
  */
-export const getVocabularies = async (signal) => {
-  const response = await axiosInstance.get('/config/vocabularies', { signal });
+export const getVocabularies = async (signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<VocabularyResponse>>(
+    '/config/vocabularies',
+    { signal }
+  );
   return response.data;
 };

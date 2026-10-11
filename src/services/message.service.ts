@@ -1,3 +1,11 @@
+import type { ApiResponse, CursorParams, CursorPage } from '@/types/api';
+import type {
+  ConversationSummaryResponse,
+  ConversationResponse,
+  MessageResponse,
+  SendMessageRequest,
+  UnreadCountResponse,
+} from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const CONVERSATION_API_PATH = '/conversations';
@@ -11,11 +19,14 @@ const CONVERSATION_API_PATH = '/conversations';
  * @param {{cursor?: string, limit?: number, signal?: AbortSignal}} params
  * @returns {Promise<Object>} ApiResponse envelope wrapping a cursor page of conversation summaries.
  */
-export const listConversations = async ({ cursor, limit = 20, signal } = {}) => {
-  const response = await axiosInstance.get(CONVERSATION_API_PATH, {
-    params: { cursor, limit },
-    signal,
-  });
+export const listConversations = async ({ cursor, limit = 20, signal }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<ConversationSummaryResponse>>>(
+    CONVERSATION_API_PATH,
+    {
+      params: { cursor, limit },
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -24,8 +35,10 @@ export const listConversations = async ({ cursor, limit = 20, signal } = {}) => 
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope wrapping the conversation.
  */
-export const getConversation = async (conversationId) => {
-  const response = await axiosInstance.get(`${CONVERSATION_API_PATH}/${conversationId}`);
+export const getConversation = async (conversationId: string) => {
+  const response = await axiosInstance.get<ApiResponse<ConversationResponse>>(
+    `${CONVERSATION_API_PATH}/${conversationId}`
+  );
   return response.data;
 };
 
@@ -38,8 +51,11 @@ export const getConversation = async (conversationId) => {
  * @param {string} targetUserId
  * @returns {Promise<Object>} ApiResponse envelope wrapping the conversation.
  */
-export const createDirect = async (targetUserId) => {
-  const response = await axiosInstance.post(CONVERSATION_API_PATH, { targetUserId });
+export const createDirect = async (targetUserId: string) => {
+  const response = await axiosInstance.post<ApiResponse<ConversationResponse>>(
+    CONVERSATION_API_PATH,
+    { targetUserId }
+  );
   return response.data;
 };
 
@@ -49,11 +65,17 @@ export const createDirect = async (targetUserId) => {
  * @param {{cursor?: string, limit?: number, signal?: AbortSignal}} params
  * @returns {Promise<Object>} ApiResponse envelope wrapping a cursor page of messages.
  */
-export const listMessages = async (conversationId, { cursor, limit = 30, signal } = {}) => {
-  const response = await axiosInstance.get(`${CONVERSATION_API_PATH}/${conversationId}/messages`, {
-    params: { cursor, limit },
-    signal,
-  });
+export const listMessages = async (
+  conversationId: string,
+  { cursor, limit = 30, signal }: CursorParams = {}
+) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<MessageResponse>>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/messages`,
+    {
+      params: { cursor, limit },
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -69,8 +91,12 @@ export const listMessages = async (conversationId, { cursor, limit = 30, signal 
  * @param {string} [idempotencyKey]
  * @returns {Promise<Object>} ApiResponse envelope wrapping the created message.
  */
-export const sendMessage = async (conversationId, body, idempotencyKey) => {
-  const response = await axiosInstance.post(
+export const sendMessage = async (
+  conversationId: string,
+  body: SendMessageRequest,
+  idempotencyKey?: string
+) => {
+  const response = await axiosInstance.post<ApiResponse<MessageResponse>>(
     `${CONVERSATION_API_PATH}/${conversationId}/messages`,
     body,
     idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : undefined
@@ -84,8 +110,8 @@ export const sendMessage = async (conversationId, body, idempotencyKey) => {
  * @param {string} messageId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const deleteMessage = async (conversationId, messageId) => {
-  const response = await axiosInstance.delete(
+export const deleteMessage = async (conversationId: string, messageId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(
     `${CONVERSATION_API_PATH}/${conversationId}/messages/${messageId}`
   );
   return response.data;
@@ -96,8 +122,10 @@ export const deleteMessage = async (conversationId, messageId) => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const markRead = async (conversationId) => {
-  const response = await axiosInstance.post(`${CONVERSATION_API_PATH}/${conversationId}/read`);
+export const markRead = async (conversationId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/read`
+  );
   return response.data;
 };
 
@@ -107,8 +135,10 @@ export const markRead = async (conversationId) => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const markUnread = async (conversationId) => {
-  const response = await axiosInstance.post(`${CONVERSATION_API_PATH}/${conversationId}/unread`);
+export const markUnread = async (conversationId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/unread`
+  );
   return response.data;
 };
 
@@ -118,8 +148,10 @@ export const markUnread = async (conversationId) => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const leaveConversation = async (conversationId) => {
-  const response = await axiosInstance.delete(`${CONVERSATION_API_PATH}/${conversationId}`);
+export const leaveConversation = async (conversationId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}`
+  );
   return response.data;
 };
 
@@ -128,7 +160,9 @@ export const leaveConversation = async (conversationId) => {
  * @returns {Promise<Object>} ApiResponse envelope wrapping the count.
  */
 export const getUnreadCount = async () => {
-  const response = await axiosInstance.get(`${CONVERSATION_API_PATH}/unread-count`);
+  const response = await axiosInstance.get<ApiResponse<UnreadCountResponse>>(
+    `${CONVERSATION_API_PATH}/unread-count`
+  );
   return response.data;
 };
 
@@ -137,8 +171,10 @@ export const getUnreadCount = async () => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const pinConversation = async (conversationId) => {
-  const response = await axiosInstance.post(`${CONVERSATION_API_PATH}/${conversationId}/pin`);
+export const pinConversation = async (conversationId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/pin`
+  );
   return response.data;
 };
 
@@ -147,8 +183,10 @@ export const pinConversation = async (conversationId) => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const unpinConversation = async (conversationId) => {
-  const response = await axiosInstance.delete(`${CONVERSATION_API_PATH}/${conversationId}/pin`);
+export const unpinConversation = async (conversationId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/pin`
+  );
   return response.data;
 };
 
@@ -157,8 +195,10 @@ export const unpinConversation = async (conversationId) => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const muteConversation = async (conversationId) => {
-  const response = await axiosInstance.post(`${CONVERSATION_API_PATH}/${conversationId}/mute`);
+export const muteConversation = async (conversationId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/mute`
+  );
   return response.data;
 };
 
@@ -167,8 +207,10 @@ export const muteConversation = async (conversationId) => {
  * @param {string} conversationId
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const unmuteConversation = async (conversationId) => {
-  const response = await axiosInstance.delete(`${CONVERSATION_API_PATH}/${conversationId}/mute`);
+export const unmuteConversation = async (conversationId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/mute`
+  );
   return response.data;
 };
 
@@ -178,10 +220,13 @@ export const unmuteConversation = async (conversationId) => {
  * @param {string|null} nickname Pass null or blank to clear.
  * @returns {Promise<Object>} ApiResponse envelope.
  */
-export const setNickname = async (conversationId, nickname) => {
-  const response = await axiosInstance.put(`${CONVERSATION_API_PATH}/${conversationId}/nickname`, {
-    nickname,
-  });
+export const setNickname = async (conversationId: string, nickname: string | null) => {
+  const response = await axiosInstance.put<ApiResponse<null>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/nickname`,
+    {
+      nickname,
+    }
+  );
   return response.data;
 };
 

@@ -1,3 +1,12 @@
+import type { ApiResponse, CursorParams } from '@/types/api';
+import type {
+  NotificationPageResponse,
+  NotificationStateResponse,
+  NotificationKeyResponse,
+  NotificationReadStateResponse,
+  ReadAllResponse,
+  CommentContextResponse,
+} from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const NOTIF_API_PATH = '/notifications';
@@ -8,8 +17,14 @@ const NOTIF_API_PATH = '/notifications';
  * @param {{filter?: string, cursor?: string, limit?: number, signal?: AbortSignal}} params
  * @returns {Promise<object>}
  */
-export const getNotifications = async ({ signal, ...params } = {}) => {
-  const response = await axiosInstance.get(NOTIF_API_PATH, { params, signal });
+export const getNotifications = async ({
+  signal,
+  ...params
+}: CursorParams & { filter?: string } = {}) => {
+  const response = await axiosInstance.get<ApiResponse<NotificationPageResponse>>(NOTIF_API_PATH, {
+    params,
+    signal,
+  });
   return response.data.data;
 };
 
@@ -18,8 +33,11 @@ export const getNotifications = async ({ signal, ...params } = {}) => {
  * @param {AbortSignal} [signal]
  * @returns {Promise<{unseen: object, seen: ?object, previous: ?object, followRequests: object}>}
  */
-export const getState = async (signal) => {
-  const response = await axiosInstance.get(`${NOTIF_API_PATH}/state`, { signal });
+export const getState = async (signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<NotificationStateResponse>>(
+    `${NOTIF_API_PATH}/state`,
+    { signal }
+  );
   return response.data.data;
 };
 
@@ -29,8 +47,11 @@ export const getState = async (signal) => {
  * @param {{activityAt: string, id: string}} tuple
  * @returns {Promise<object>}
  */
-export const advanceSeen = async (tuple) => {
-  const response = await axiosInstance.post(`${NOTIF_API_PATH}/seen`, tuple);
+export const advanceSeen = async (tuple: NotificationKeyResponse) => {
+  const response = await axiosInstance.post<ApiResponse<NotificationStateResponse>>(
+    `${NOTIF_API_PATH}/seen`,
+    tuple
+  );
   return response.data.data;
 };
 
@@ -39,8 +60,10 @@ export const advanceSeen = async (tuple) => {
  * @param {string} id
  * @returns {Promise<{id: string, readAt: string}>}
  */
-export const markRead = async (id) => {
-  const response = await axiosInstance.put(`${NOTIF_API_PATH}/${id}/read`);
+export const markRead = async (id: string) => {
+  const response = await axiosInstance.put<ApiResponse<NotificationReadStateResponse>>(
+    `${NOTIF_API_PATH}/${id}/read`
+  );
   return response.data.data;
 };
 
@@ -49,8 +72,10 @@ export const markRead = async (id) => {
  * @param {string} id
  * @returns {Promise<{id: string, readAt: null}>}
  */
-export const markUnread = async (id) => {
-  const response = await axiosInstance.delete(`${NOTIF_API_PATH}/${id}/read`);
+export const markUnread = async (id: string) => {
+  const response = await axiosInstance.delete<ApiResponse<NotificationReadStateResponse>>(
+    `${NOTIF_API_PATH}/${id}/read`
+  );
   return response.data.data;
 };
 
@@ -60,8 +85,11 @@ export const markUnread = async (id) => {
  * @param {{activityAt: string, id: string}} upTo
  * @returns {Promise<{updated: number}>}
  */
-export const markAllRead = async (upTo) => {
-  const response = await axiosInstance.patch(`${NOTIF_API_PATH}/read-all`, { upTo });
+export const markAllRead = async (upTo: NotificationKeyResponse) => {
+  const response = await axiosInstance.patch<ApiResponse<ReadAllResponse>>(
+    `${NOTIF_API_PATH}/read-all`,
+    { upTo }
+  );
   return response.data.data;
 };
 
@@ -71,8 +99,8 @@ export const markAllRead = async (upTo) => {
  * @param {string} id
  * @returns {Promise<void>}
  */
-export const deleteNotification = async (id) => {
-  await axiosInstance.delete(`${NOTIF_API_PATH}/${id}`);
+export const deleteNotification = async (id: string) => {
+  await axiosInstance.delete<ApiResponse<null>>(`${NOTIF_API_PATH}/${id}`);
 };
 
 /**
@@ -83,7 +111,10 @@ export const deleteNotification = async (id) => {
  * @param {AbortSignal} [signal]
  * @returns {Promise<{postId: string, thread: Array<object>}>}
  */
-export const getCommentContext = async (commentId, signal) => {
-  const response = await axiosInstance.get(`/comments/${commentId}/context`, { signal });
+export const getCommentContext = async (commentId: string, signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<CommentContextResponse>>(
+    `/comments/${commentId}/context`,
+    { signal }
+  );
   return response.data.data;
 };

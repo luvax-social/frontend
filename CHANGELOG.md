@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Shared domain services, media upload, impression batching and realtime subscriptions now use explicit API contracts.
 - Authentication forms and outcome pages now infer TypeScript values from their existing Zod schemas.
 - Shared UI primitives, route guards, error boundaries and Turnstile lifecycle now use typed props and refs.
 - Shared utilities, browser hooks and SEO build metadata now carry strict TypeScript types without changing pagination, theme or challenge behavior.

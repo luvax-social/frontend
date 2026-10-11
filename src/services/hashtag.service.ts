@@ -1,3 +1,10 @@
+import type { ApiResponse, CursorPage, OffsetPage } from '@/types/api';
+import type {
+  HashtagDetailResponse,
+  PostResponse,
+  HashtagTrendingResponse,
+  TrendingPreviewResponse,
+} from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 /**
@@ -24,10 +31,13 @@ import axiosInstance from './axiosInstance';
  * @param {AbortSignal} [signal] - Cancels the request when the route changes.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a hashtag detail record.
  */
-export const getHashtagByName = async (name, signal) => {
-  const response = await axiosInstance.get(`/hashtags/name/${encodeURIComponent(name)}`, {
-    signal,
-  });
+export const getHashtagByName = async (name: string, signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<HashtagDetailResponse>>(
+    `/hashtags/name/${encodeURIComponent(name)}`,
+    {
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -42,11 +52,19 @@ export const getHashtagByName = async (name, signal) => {
  * @param {AbortSignal} [signal] - Cancels the request when the query is superseded.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a cursor page of PostResponse.
  */
-export const getPostsByHashtag = async (hashtagId, cursor, limit, signal) => {
-  const params = {};
+export const getPostsByHashtag = async (
+  hashtagId: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal
+) => {
+  const params: Record<string, string | number> = {};
   if (cursor) params.cursor = cursor;
   if (limit) params.limit = limit;
-  const response = await axiosInstance.get(`/hashtags/${hashtagId}/posts`, { params, signal });
+  const response = await axiosInstance.get<ApiResponse<CursorPage<PostResponse>>>(
+    `/hashtags/${hashtagId}/posts`,
+    { params, signal }
+  );
   return response.data;
 };
 
@@ -56,11 +74,14 @@ export const getPostsByHashtag = async (hashtagId, cursor, limit, signal) => {
  * @param {AbortSignal} [signal] - Cancels the request.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a page of trending entries.
  */
-export const getTrending = async (size, signal) => {
-  const response = await axiosInstance.get('/hashtags/trending', {
-    params: size ? { size } : {},
-    signal,
-  });
+export const getTrending = async (size?: number, signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<OffsetPage<HashtagTrendingResponse>>>(
+    '/hashtags/trending',
+    {
+      params: size ? { size } : {},
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -74,11 +95,14 @@ export const getTrending = async (size, signal) => {
  * @param {AbortSignal} [signal] - Cancels the request.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a page of trending entries.
  */
-export const getTrendingForYou = async (size, signal) => {
-  const response = await axiosInstance.get('/hashtags/trending/for-you', {
-    params: size ? { size } : {},
-    signal,
-  });
+export const getTrendingForYou = async (size?: number, signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<OffsetPage<HashtagTrendingResponse>>>(
+    '/hashtags/trending/for-you',
+    {
+      params: size ? { size } : {},
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -103,10 +127,13 @@ export default hashtagService;
  * @param {AbortSignal} [signal] - Cancels the request when the screen unmounts.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a list of trending previews.
  */
-export const getTrendingPreviews = async (size, scope, signal) => {
-  const params = {};
+export const getTrendingPreviews = async (size?: number, scope?: string, signal?: AbortSignal) => {
+  const params: Record<string, string | number> = {};
   if (size) params.size = size;
   if (scope) params.scope = scope;
-  const response = await axiosInstance.get('/hashtags/trending/previews', { params, signal });
+  const response = await axiosInstance.get<ApiResponse<TrendingPreviewResponse[]>>(
+    '/hashtags/trending/previews',
+    { params, signal }
+  );
   return response.data;
 };

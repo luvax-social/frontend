@@ -1,3 +1,5 @@
+import type { StompSubscription } from '@stomp/stompjs';
+import type { ApiResponse } from '@/types/api';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
@@ -38,7 +40,7 @@ const TICKET_PATH = '/auth/ws-ticket';
  */
 const fetchTicket = async () => {
   try {
-    const response = await axiosClient.post(TICKET_PATH);
+    const response = await axiosClient.post<ApiResponse<{ ticket: string }>>(TICKET_PATH);
     return response?.data?.data?.ticket ?? null;
   } catch {
     return null;
@@ -56,9 +58,18 @@ const MAX_RECONNECT_DELAY_MS = 30000;
  * would silently stop messages. Each endpoint therefore owns its client, its handler registry, and
  * its own backoff.
  */
-const connections = new Map();
+interface Connection {
+  endpointPath: string;
+  client: Client | null;
+  handlers: Map<string, Set<(payload: unknown) => void>>;
+  subscriptions: Map<string, StompSubscription>;
+  reconnectDelay: number;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  consecutiveHandshakeFailures: number;
+}
+const connections = new Map<string, Connection>();
 
-const connectionFor = (endpointPath) => {
+const connectionFor = (endpointPath: string) => {
   if (!connections.has(endpointPath)) {
     connections.set(endpointPath, {
       endpointPath,
@@ -72,7 +83,7 @@ const connectionFor = (endpointPath) => {
       consecutiveHandshakeFailures: 0,
     });
   }
-  return connections.get(endpointPath);
+  return connections.get(endpointPath)!;
 };
 
 // Failures here stay silent by design, which is right for a flaky network and wrong for an endpoint
@@ -82,7 +93,7 @@ const connectionFor = (endpointPath) => {
 // the silent contract that shipped code relies on.
 const HANDSHAKE_WARN_THRESHOLD = 3;
 
-const noteHandshakeFailure = (conn) => {
+const noteHandshakeFailure = (conn: Connection) => {
   conn.consecutiveHandshakeFailures += 1;
   if (import.meta.env.DEV && conn.consecutiveHandshakeFailures === HANDSHAKE_WARN_THRESHOLD) {
     console.warn(
@@ -92,7 +103,7 @@ const noteHandshakeFailure = (conn) => {
   }
 };
 
-const noteHandshakeSuccess = (conn) => {
+const noteHandshakeSuccess = (conn: Connection) => {
   conn.consecutiveHandshakeFailures = 0;
 };
 
@@ -104,7 +115,7 @@ const noteHandshakeSuccess = (conn) => {
  * The origin is never hardcoded; it comes from VITE_API_URL like every other
  * server address in the application.
  */
-const resolveEndpoint = (endpointPath) => {
+const resolveEndpoint = (endpointPath: string) => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
   try {
     return new URL(endpointPath, new URL(apiUrl).origin).toString();
@@ -115,19 +126,19 @@ const resolveEndpoint = (endpointPath) => {
 
 const currentToken = () => useAuthStore.getState().accessToken;
 
-const cancelReconnect = (conn) => {
+const cancelReconnect = (conn: Connection) => {
   if (conn.reconnectTimer) {
     clearTimeout(conn.reconnectTimer);
     conn.reconnectTimer = null;
   }
 };
 
-const bindSubscription = (conn, destination) => {
+const bindSubscription = (conn: Connection, destination: string) => {
   if (!conn.client?.connected || conn.subscriptions.has(destination)) {
     return;
   }
   const subscription = conn.client.subscribe(destination, (message) => {
-    let payload;
+    let payload: unknown;
     try {
       payload = JSON.parse(message.body);
     } catch {
@@ -147,7 +158,7 @@ const bindSubscription = (conn, destination) => {
 };
 
 /** Drops the current client without touching the handler registry. */
-const teardownClient = (conn) => {
+const teardownClient = (conn: Connection) => {
   conn.subscriptions.clear();
   if (!conn.client) {
     return;
@@ -173,7 +184,7 @@ const teardownClient = (conn) => {
  * considers itself active ignores activate(), so reusing the instance retries
  * once and then silently stops.
  */
-const scheduleReconnect = (conn) => {
+const scheduleReconnect = (conn: Connection) => {
   cancelReconnect(conn);
   // Nothing to reconnect for once the last subscriber has gone, and nothing to
   // reconnect with once the session has ended.
@@ -192,7 +203,7 @@ const scheduleReconnect = (conn) => {
   }, delay);
 };
 
-const openClient = async (conn) => {
+const openClient = async (conn: Connection) => {
   if (conn.client) {
     return conn.client;
   }
@@ -265,17 +276,23 @@ const openClient = async (conn) => {
  * @param {{endpoint?: string}} [options] SockJS endpoint path; defaults to the comment tier
  * @returns {() => void} unsubscribe; releases the connection when it was the last subscriber
  */
-export const subscribeTopic = (destination, handler, { endpoint = COMMENT_ENDPOINT } = {}) => {
+export const subscribeTopic = <T = unknown>(
+  destination: string,
+  handler: (payload: T) => void,
+  { endpoint = COMMENT_ENDPOINT }: { endpoint?: string } = {}
+) => {
   if (!destination || typeof handler !== 'function' || !currentToken()) {
     return () => {};
   }
 
+  // The subscriber supplies the DTO type for its destination; malformed frames still fall back to REST.
+  const dispatch = (payload: unknown) => handler(payload as T);
   const conn = connectionFor(endpoint);
 
   if (!conn.handlers.has(destination)) {
     conn.handlers.set(destination, new Set());
   }
-  conn.handlers.get(destination).add(handler);
+  conn.handlers.get(destination)!.add(dispatch);
 
   void openClient(conn);
   bindSubscription(conn, destination);
@@ -288,7 +305,7 @@ export const subscribeTopic = (destination, handler, { endpoint = COMMENT_ENDPOI
     released = true;
 
     const set = conn.handlers.get(destination);
-    set?.delete(handler);
+    set?.delete(dispatch);
     if (set && set.size === 0) {
       conn.handlers.delete(destination);
       try {
@@ -313,9 +330,9 @@ export const subscribeTopic = (destination, handler, { endpoint = COMMENT_ENDPOI
  *
  * @param {string} [endpoint] close only this endpoint; omit to close all
  */
-export const closeConnection = (endpoint) => {
+export const closeConnection = (endpoint?: string) => {
   const targets = endpoint
-    ? [connections.get(endpoint)].filter(Boolean)
+    ? [connections.get(endpoint)].filter((conn): conn is Connection => Boolean(conn))
     : [...connections.values()];
 
   for (const conn of targets) {

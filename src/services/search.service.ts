@@ -1,3 +1,5 @@
+import type { ApiResponse, CursorPage } from '@/types/api';
+import type { PostResponse, UserListItemResponse, HashtagResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 /**
@@ -16,8 +18,8 @@ import axiosInstance from './axiosInstance';
  * @param {number} [limit] - Page size; the backend defaults to 20 when omitted.
  * @returns {Object} The axios params object.
  */
-const buildParams = (q, cursor, limit) => {
-  const params = { q };
+const buildParams = (q: string, cursor?: string | null, limit?: number) => {
+  const params: { q: string; cursor?: string; limit?: number } = { q };
   if (cursor) params.cursor = cursor;
   if (limit) params.limit = limit;
   return params;
@@ -36,8 +38,13 @@ const buildParams = (q, cursor, limit) => {
  * @param {AbortSignal} [signal] - Cancels the request when the query is superseded.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a cursor page of PostResponse.
  */
-export const searchPosts = async (q, cursor, limit, signal) => {
-  const response = await axiosInstance.get('/posts/search', {
+export const searchPosts = async (
+  q: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal
+) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<PostResponse>>>('/posts/search', {
     params: buildParams(q, cursor, limit),
     signal,
   });
@@ -56,11 +63,19 @@ export const searchPosts = async (q, cursor, limit, signal) => {
  * @param {AbortSignal} [signal] - Cancels the request when the query is superseded.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a cursor page of UserListItemResponse.
  */
-export const searchUsers = async (q, cursor, limit, signal) => {
-  const response = await axiosInstance.get('/users/search', {
-    params: buildParams(q, cursor, limit),
-    signal,
-  });
+export const searchUsers = async (
+  q: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal
+) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<UserListItemResponse>>>(
+    '/users/search',
+    {
+      params: buildParams(q, cursor, limit),
+      signal,
+    }
+  );
   return response.data;
 };
 
@@ -75,11 +90,19 @@ export const searchUsers = async (q, cursor, limit, signal) => {
  * @param {AbortSignal} [signal] - Cancels the request when the query is superseded.
  * @returns {Promise<Object>} The ApiResponse envelope wrapping a cursor page of hashtag rows.
  */
-export const searchHashtags = async (q, cursor, limit, signal) => {
-  const response = await axiosInstance.get('/hashtags/search', {
-    params: buildParams(q, cursor, limit),
-    signal,
-  });
+export const searchHashtags = async (
+  q: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal
+) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<HashtagResponse>>>(
+    '/hashtags/search',
+    {
+      params: buildParams(q, cursor, limit),
+      signal,
+    }
+  );
   return response.data;
 };
 

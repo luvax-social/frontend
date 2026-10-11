@@ -19,6 +19,11 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+export interface CursorParams extends RequestOptions {
+  cursor?: string | null;
+  limit?: number;
+}
+
 export interface PageInfo {
   hasNextPage: boolean;
   hasPreviousPage: boolean;

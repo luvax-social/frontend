@@ -340,7 +340,7 @@ const mediaOf = (messages: Message[]) =>
 /** A conversation plus its loaded history, oldest first, in the shape the thread panel renders. */
 export const toThread = (
   conversation: Conversation,
-  messages: Message[],
+  messages: Message[] | null | undefined,
   currentUserId: string | undefined
 ) => {
   const loaded = messages || [];

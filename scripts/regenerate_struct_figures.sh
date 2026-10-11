@@ -97,7 +97,7 @@ section_tree() {
 }
 
 section_routes() {
-    local constants='src/config/constants.js'
+    local constants='src/config/constants.ts'
 
     echo "## Routes"
     echo
@@ -118,17 +118,17 @@ section_routes() {
     git grep -l "path: ROUTES\.\|path: '" -- src | sed 's#^#- `#; s#$#`#'
     echo
 
-    echo "### Screens registered in \`src/routes/appScreens.jsx\`"
+    echo "### Screens registered in \`src/routes/appScreens.tsx\`"
     echo
     echo "Screen identifiers, deduplicated; a screen may be registered at more than one path."
     echo
-    grep -oE "screen: '[^']+'" src/routes/appScreens.jsx |
+    grep -oE "screen: '[^']+'" src/routes/appScreens.tsx |
         sed "s/screen: '//; s/'$//" | sort -u | sed 's#^#- `#; s#$#`#'
     echo
 
-    echo "### Route constants used by \`src/features/admin/adminRoutes.jsx\`"
+    echo "### Route constants used by \`src/features/admin/adminRoutes.tsx\`"
     echo
-    grep -oE 'ROUTES\.[A-Z_]+' src/features/admin/adminRoutes.jsx |
+    grep -oE 'ROUTES\.[A-Z_]+' src/features/admin/adminRoutes.tsx |
         sort -u | sed 's#^#- `#; s#$#`#'
     echo
 }

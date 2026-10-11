@@ -21,7 +21,7 @@ import { routeTo } from '@/config/constants';
 /**
  * One post tile in the discovery grid.
  *
- * Moved out of ExploreScreen.jsx so Explore and Search's pre-query state
+ * Moved out of ExploreScreen.tsx so Explore and Search's pre-query state
  * render the identical markup rather than two copies of the same JSX.
  *
  * `surface` is omitted by ExploreScreen's own inline caption/people search

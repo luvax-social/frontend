@@ -1,6 +1,6 @@
 import type { UserListItem } from '@/types/social';
 import type { ApiResponse, CursorPage } from '@/types/api';
-import type { PostResponse, UserListItemResponse, HashtagResponse } from '@/types/domain';
+import type { PostResponse, HashtagResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 /**

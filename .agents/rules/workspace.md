@@ -20,7 +20,7 @@ There is no `.workspace/README.md` in this repository; the folder guide below is
 
 Do not write plans, reports, or intermediate files to the project root or to any project-owned directory (`src/`, `docs/`, `public/`, etc.) unless the file genuinely belongs to the project — source code, tests, or official documentation.
 
-A script that a future session must be able to run is not scratch work and does not belong here: `.workspace/` is untracked by rule (`.workspace/.gitignore` allows only `.gitignore` and `.gitkeep` through), so anything left in it is gone for the next session and for every other machine. Such a script goes in the tracked `scripts/` directory at the repository root, alongside `dev-server.mjs` and `regenerate_struct_figures.sh`.
+A script that a future session must be able to run is not scratch work and does not belong here: `.workspace/` is untracked by rule (`.workspace/.gitignore` allows only `.gitignore` and `.gitkeep` through), so anything left in it is gone for the next session and for every other machine. Such a script goes in the tracked `scripts/` directory at the repository root, alongside `dev-server.mts` and `regenerate_struct_figures.sh`.
 
 ## Default subdirectories
 

@@ -135,7 +135,7 @@ Reserved for floating-over-content surfaces only — never for static cards.
 
 ### Icons
 - Lucide-style, 24×24 grid, `currentColor` stroke, **1.5px default weight**.
-- Use `<LxIcon name="…" />` from `src/components/ui/lx-icon.jsx`. Never hand-roll inline SVG paths. There is no design-system global on `window`; an earlier revision of this file named one.
+- Use `<LxIcon name="…" />` from `src/components/ui/lx-icon.tsx`. Never hand-roll inline SVG paths. There is no design-system global on `window`; an earlier revision of this file named one.
 - Active states: bump stroke to 1.8–2px; `heart` and `bookmark` switch to filled variant.
 - Active nav item: gold accent color + thin underline. **Never** a filled pill highlight.
 
@@ -204,7 +204,7 @@ Reserved for floating-over-content surfaces only — never for static cards.
 
 5. **Don't use a color not in the palette for borders.** All hairlines must use `--lx-border` (#DDD7CF), `--lx-border-strong` (#C4BCB2), or `--lx-border-subtle` (#ECEAE5). Never invent new border colors.
 
-6. **Don't import external icon libraries.** All icons come from `<LxIcon name="…" />`. If a glyph is missing, add it to the `ICONS` map in `src/components/ui/lx-icon.jsx` in the same 24×24 / 1.5-stroke Lucide style rather than importing a second icon set. "Lucide style" is a drawing convention here, not a dependency: the 38 declared packages contain no icon library.
+6. **Don't import external icon libraries.** All icons come from `<LxIcon name="…" />`. If a glyph is missing, add it to the `ICONS` map in `src/components/ui/lx-icon.tsx` in the same 24×24 / 1.5-stroke Lucide style rather than importing a second icon set. "Lucide style" is a drawing convention here, not a dependency: the declared packages contain no icon library.
 
 7. **Don't use Title Case or ALL CAPS in UI text.** The mono eyebrow exception (`DM Mono`, `text-transform: uppercase`, `--tracking-caps`) exists only for metadata labels, timestamps, and section dividers — applied via the `.t-mono-sm` utility class, never hand-rolled.
 

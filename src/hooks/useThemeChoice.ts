@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
  *
  * `lxDarkManual` records only that a person made a choice; `lxDark` carries the
  * chosen value. While no choice has been made the system preference wins and
- * keeps winning as it changes. `main.jsx` reads the same two keys before React
+ * keeps winning as it changes. `main.tsx` reads the same two keys before React
  * mounts, so first paint never shows the wrong theme.
  *
  * This exists because the panel renders outside the user-facing application

@@ -289,7 +289,7 @@ export default function AuthPage() {
     setRegServerError('');
     try {
       window.location.href = authApi.getGoogleLoginUrl();
-    } catch (error) {
+    } catch {
       const message =
         'We could not open Google sign-in just now. Try again, or use your email and password.';
       if (view === 'register') {

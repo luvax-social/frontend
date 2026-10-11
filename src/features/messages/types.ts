@@ -32,7 +32,9 @@ export type Message = Omit<MessageResponse, 'media'> & {
   media: MessageMedia | null;
   sharedStory?: { media: StoryMediaResponse };
 };
-export type Conversation = ConversationResponse | ConversationSummaryResponse;
+export type Conversation =
+  | ConversationResponse
+  | (Omit<ConversationSummaryResponse, 'lastMessage'> & { lastMessage: Message | null });
 export type MessageData = InfiniteData<ApiResponse<CursorPage<Message>>, string | null>;
 export interface MessageView {
   id: string;

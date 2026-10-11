@@ -7,12 +7,23 @@ import prettierPlugin from 'eslint-plugin-prettier';
 import tseslint from 'typescript-eslint';
 
 export default [
-  // .vite-cache is where vite.config.js relocates Vite's cacheDir. Without it here, `eslint .`
+  // .vite-cache is where vite.config.ts relocates Vite's cacheDir. Without it here, `eslint .`
   // walked the 18 pre-bundled dependency files under .vite-cache/deps - react-dom at 820 kB,
   // react-router-dom at 398 kB, and the rest - and reported formatting violations on every line of
   // generated vendor code: 54,518 findings on top of the 1,278 real ones, and over five minutes to
   // run. That made the lint script unusable as a gate, which is why it was never wired into CI.
-  { ignores: ['dist', 'node_modules', 'build', '.vite-cache', 'coverage', '.workspace/**'] },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'build',
+      '.vite-cache',
+      'coverage',
+      '.workspace/**',
+      'playwright-report/**',
+      'test-results/**',
+    ],
+  },
 
   // Base JS rules
   {
@@ -75,6 +86,12 @@ export default [
       ],
       '@typescript-eslint/consistent-type-imports': 'error',
     },
+  },
+
+  // CLI lifecycle messages are part of the dev runner's terminal interface.
+  {
+    files: ['scripts/dev-server.mts'],
+    rules: { 'no-console': ['warn', { allow: ['log', 'warn', 'error'] }] },
   },
 
   // Prettier disables conflicting rules last

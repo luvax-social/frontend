@@ -60,10 +60,10 @@ import { getErrorData, getErrorMessage } from '@/utils/errors';
 const MAX_MESSAGE_ATTACHMENTS = 10;
 
 // `vw`/`vh` are computed against the true browser viewport, not adjusted for the root's `zoom`
-// scale (see APP_SCALE in LuvaxApp.jsx) applied to an ancestor - so a raw `92vw` here rendered
+// scale (see APP_SCALE in LuvaxApp.tsx) applied to an ancestor - so a raw `92vw` here rendered
 // `zoom` times too large and could push most of the image off-screen. Dividing by --lx-scale
 // cancels the zoom multiplication back out, the same fix already used for this element's own
-// on-screen position elsewhere (see lx-dropdown-menu.jsx).
+// on-screen position elsewhere (see lx-dropdown-menu.tsx).
 const LIGHTBOX_MAX_WIDTH = 'calc(92vw / var(--lx-scale))';
 const LIGHTBOX_MAX_HEIGHT = 'calc(92vh / var(--lx-scale))';
 

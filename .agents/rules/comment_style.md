@@ -6,7 +6,7 @@ description: Load when writing or reviewing frontend code. Defines comment and J
 # Comment Style — Frontend
 
 **Scope**: All source files under `src/`
-**Language**: JavaScript (React 19, JSX). There is no TypeScript in this repository.
+**Language**: TypeScript (React 19, TSX). Types belong in signatures; comments explain contracts and invariants.
 **Comment language**: English only.
 
 Until this revision, this file was a copy of the backend's: it declared its scope as

@@ -1,6 +1,6 @@
 import type { NotificationItemResponse } from '@/types/domain';
 /**
- * Whether {@link NotificationActions} (NotificationActions.jsx) renders anything for this
+ * Whether {@link NotificationActions} (NotificationActions.tsx) renders anything for this
  * item. A pure function in its own module, not exported alongside NotificationActions itself,
  * so this file stays Fast-Refresh friendly (a file mixing component and non-component exports
  * loses Fast Refresh for that component).

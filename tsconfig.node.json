@@ -7,12 +7,6 @@
     "types": ["node"],
     "erasableSyntaxOnly": true
   },
-  "include": [
-    "*.config.*",
-    "scripts/**/*.ts",
-    "scripts/**/*.mts",
-    "scripts/**/*.js",
-    "scripts/**/*.mjs"
-  ],
+  "include": ["*.config.ts", "scripts/**/*.ts", "scripts/**/*.mts"],
   "exclude": ["node_modules", "dist"]
 }

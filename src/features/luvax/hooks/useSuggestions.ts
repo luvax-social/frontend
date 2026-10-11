@@ -1,6 +1,6 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import type { ApiResponse } from '@/types/api';
-import type { SuggestedUserResponse, UserSummaryResponse } from '@/types/domain';
+import type { SuggestedUserResponse } from '@/types/domain';
 import type { Relationship } from '@/types/social';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 

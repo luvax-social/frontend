@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Strict TypeScript coverage for every unit/live/E2E test and typed domain fixtures, preserving test discovery and existing assertions.
 - TypeScript entry points, route factories, Vite/Vitest/Playwright configurations and native Node scripts.
 - TypeScript contracts across all admin tables, confirmations, account moderation, report/support queues, audit/activity logs and statistics screens.
 - Typed admin API contracts, role-scoped pagination, moderation mutations, staff support actions and statistics helpers.
@@ -49,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Frontend source and tests now use TypeScript throughout; removed migration-only JS allowance and updated documentation, structural tooling and supported configuration/script paths.
 - Post interactions, realtime cache updates, media rendering and composer utilities now use typed query data and browser events.
 - Shared domain services, media upload, impression batching and realtime subscriptions now use explicit API contracts.
 - Authentication forms and outcome pages now infer TypeScript values from their existing Zod schemas.

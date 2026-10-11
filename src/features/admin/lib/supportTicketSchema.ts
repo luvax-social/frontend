@@ -1,7 +1,7 @@
 type TicketGate = {
   adminActionId?: string | null;
   category?: string;
-  status?: string;
+  status?: string | null;
   assignedTo?: string | null;
 };
 import { ROLES } from '@/config/roles';
@@ -103,7 +103,7 @@ export const isTerminalTicket = (ticket: TicketGate | null | undefined) =>
  */
 export const ticketCapabilities = (
   ticket: TicketGate | null | undefined,
-  viewer: { id?: string; role?: string | null } | null | undefined
+  viewer: { id?: string | null; role?: string | null } | null | undefined
 ) => {
   const none = {
     canClaim: false,

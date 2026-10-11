@@ -1,7 +1,6 @@
 import type { ChangeEvent } from 'react';
 import type { ComposerAttachment } from '@/types/composer';
 import type { HashtagResponse } from '@/types/domain';
-import { getErrorMessage } from '@/utils/errors';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES, CHAR_LIMITS } from '@/config/constants';

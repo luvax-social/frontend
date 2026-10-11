@@ -1,6 +1,6 @@
 import type { UserListItem } from '@/types/social';
 import type { ApiResponse, CursorPage } from '@/types/api';
-import type { FollowResponse, UserListItemResponse, FollowRequestResponse } from '@/types/domain';
+import type { FollowResponse, FollowRequestResponse } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
 const SOCIAL_API_PATH = '/social';

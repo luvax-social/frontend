@@ -115,7 +115,7 @@ If your change affects API integration, verify the relevant flow against the con
 
 - Follow the existing feature-based structure under `src/`.
 - Reuse shared UI primitives from `src/components/ui/` before adding new component patterns.
-- Keep route definitions in the three tables that hold them: `src/routes/index.jsx` for the root router, `src/routes/appScreens.jsx` for the authenticated screens, and `src/features/admin/adminRoutes.jsx` for the panel. Do not add an ad-hoc `<Routes>` tree elsewhere.
+- Keep route definitions in the three tables that hold them: `src/routes/index.tsx` for the root router, `src/routes/appScreens.tsx` for the authenticated screens, and `src/features/admin/adminRoutes.tsx` for the panel. Do not add an ad-hoc `<Routes>` tree elsewhere.
 - Put API calls behind service modules instead of scattering `axios` calls in components.
 - Keep environment-specific values behind `import.meta.env`.
 

@@ -233,8 +233,8 @@ export interface UpdateSettingsRequest {
   showActivityStatus?: boolean | null;
   allowStoryReplies?: boolean | null;
   messagePermission?: MessagePermission | null;
-  suggestible?: boolean | null | null;
-  hiddenWordsSystemEnabled?: boolean | null | null;
+  suggestible?: boolean | null;
+  hiddenWordsSystemEnabled?: boolean | null;
 }
 
 // common/response/UserListItemResponse.java

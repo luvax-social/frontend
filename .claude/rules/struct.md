@@ -16,20 +16,20 @@ Run it and paste the section back rather than editing a number by hand.
 | Framework | React 19 |
 | Build Tool | Vite 8 |
 | Package Manager | npm |
-| Node.js Requirement | LTS (see `.nvmrc` if present; Vite 8 requires Node 20+) |
+| Node.js Requirement | Node 24 LTS (CI and native TypeScript scripts) |
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite` plugin) |
 | UI Components | shadcn/ui + Radix primitives (`components.json` configures aliases and paths) |
-| Server State | TanStack Query v5 (`QueryClientProvider` in `src/main.jsx`) |
+| Server State | TanStack Query v5 (`QueryClientProvider` in `src/main.tsx`) |
 | Global Client State | Zustand v5 (with `persist` middleware for auth session) |
-| HTTP Client | Axios v1 — `src/api/axiosClient.js` exports `axiosClient` (auth) and `publicClient` (no-auth) |
-| Realtime | STOMP over SockJS (`@stomp/stompjs`, `sockjs-client`) via `src/services/realtime/stompConnection.js` |
+| HTTP Client | Axios v1 — `src/api/axiosClient.ts` exports `axiosClient` (auth) and `publicClient` (no-auth) |
+| Realtime | STOMP over SockJS (`@stomp/stompjs`, `sockjs-client`) via `src/services/realtime/stompConnection.ts` |
 | Routing | React Router DOM v7 — config router (`createBrowserRouter`) |
 | Forms | React Hook Form v7 + Zod v4 |
 | Testing | Vitest 3 + Testing Library, jsdom |
-| Language | JavaScript (no TypeScript; `jsconfig.json` provides IDE path resolution) |
+| Language | TypeScript 6 with strict checking; `tsconfig.json` provides path resolution |
 
-There is no icon-set dependency. The 38 declared packages contain no `lucide-react`, no
-`react-icons` and no `@heroicons`; icons are the local `src/components/ui/lx-icon.jsx`.
+There is no icon-set dependency. The declared packages contain no `lucide-react`, no
+`react-icons` and no `@heroicons`; icons are the local `src/components/ui/lx-icon.tsx`.
 
 ---
 
@@ -38,38 +38,38 @@ There is no icon-set dependency. The 38 declared packages contain no `lucide-rea
 ```text
 src/
 ├── api/
-│   ├── authApi.js             # Auth endpoints; uses publicClient. Login sends `identifier`
-│   ├── axiosClient.js         # Axios instances + interceptors; exports axiosClient, publicClient
-│   └── media.service.js       # Pre-signed upload URL flow
+│   ├── authApi.ts             # Auth endpoints; uses publicClient. Login sends `identifier`
+│   ├── axiosClient.ts         # Axios instances + interceptors; exports axiosClient, publicClient
+│   └── media.service.ts       # Pre-signed upload URL flow
 ├── assets/                    # Static assets imported from application code
 ├── components/
 │   ├── common/                # App-level reusable pieces
-│   │   ├── AuthSessionBootstrap.jsx   # Bootstraps auth state on app mount
-│   │   ├── ConfirmModal.jsx           # Shared confirmation dialog
-│   │   ├── ErrorBoundary.jsx          # React error boundary
-│   │   ├── GuestRoute.jsx             # Sends an authenticated visitor to their role's landing route
-│   │   ├── NotFoundPage.jsx           # 404 page
-│   │   ├── PageLoader.jsx             # Full-page loading spinner
-│   │   ├── ProtectedRoute.jsx         # Redirects unauthenticated users to /login
-│   │   └── RouterErrorPage.jsx        # Error fallback for router-level errors
+│   │   ├── AuthSessionBootstrap.tsx   # Bootstraps auth state on app mount
+│   │   ├── ConfirmModal.tsx           # Shared confirmation dialog
+│   │   ├── ErrorBoundary.tsx          # React error boundary
+│   │   ├── GuestRoute.tsx             # Sends an authenticated visitor to their role's landing route
+│   │   ├── NotFoundPage.tsx           # 404 page
+│   │   ├── PageLoader.tsx             # Full-page loading spinner
+│   │   ├── ProtectedRoute.tsx         # Redirects unauthenticated users to /login
+│   │   └── RouterErrorPage.tsx        # Error fallback for router-level errors
 │   └── ui/                    # shadcn/ui primitives plus Luvax-specific shared UI
-│       ├── button.jsx
-│       ├── card.jsx
-│       ├── input.jsx
-│       ├── label.jsx
-│       ├── lx-avatar.jsx
-│       ├── lx-dropdown-menu.jsx
-│       ├── lx-icon.jsx
-│       ├── lx-toggle.jsx
-│       └── lx-verified-badge.jsx
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── input.tsx
+│       ├── label.tsx
+│       ├── lx-avatar.tsx
+│       ├── lx-dropdown-menu.tsx
+│       ├── lx-icon.tsx
+│       ├── lx-toggle.tsx
+│       └── lx-verified-badge.tsx
 ├── config/
-│   ├── constants.js           # ROUTES, API_URL, STALE_TIME, HTTP_STATUS, CHAR_LIMITS, APP_NAME
-│   ├── roles.js               # ROLES, normalizeRole, isPanelRole, isAdminRole, landingPathForRole
-│   └── tokens.js              # `v` design-token object consumed by the luvax screens
+│   ├── constants.ts           # ROUTES, API_URL, STALE_TIME, HTTP_STATUS, CHAR_LIMITS, APP_NAME
+│   ├── roles.ts               # ROLES, normalizeRole, isPanelRole, isAdminRole, landingPathForRole
+│   └── tokens.ts              # `v` design-token object consumed by the luvax screens
 ├── context/                   # Reserved - empty
 ├── features/                  # Six slices; sizes are measured, not estimated
 │   ├── admin/                 # Moderation panel
-│   │   ├── adminRoutes.jsx    # The /admin route subtree
+│   │   ├── adminRoutes.tsx    # The /admin route subtree
 │   │   ├── api/               # Panel-specific API modules
 │   │   ├── components/
 │   │   ├── guards/            # Role gates for the panel
@@ -77,24 +77,24 @@ src/
 │   │   ├── lib/
 │   │   └── screens/           # One file per panel screen
 │   ├── auth/
-│   │   ├── components/        # AuthField.jsx, AuthPage.jsx/.css
-│   │   ├── services/          # authService.js
+│   │   ├── components/        # AuthField.tsx, AuthPage.tsx/.css
+│   │   ├── services/          # authService.ts
 │   │   ├── store/             # Reserved - empty
-│   │   └── utils/             # authSchemas.js — Zod schemas mirroring backend validation
+│   │   └── utils/             # authSchemas.ts — Zod schemas mirroring backend validation
 │   ├── luvax/                 # Authenticated application shell and screens
-│   │   ├── components/        # shell.jsx, primitives.jsx, and one file per screen
+│   │   ├── components/        # shell.tsx, primitives.tsx, and one file per screen
 │   │   ├── constants/
 │   │   ├── hooks/
 │   │   ├── notifications/     # The notifications screen and its per-type sentence, section
 │   │   │                      # and cache-reducer modules
 │   │   ├── utils/
-│   │   ├── LuvaxApp.jsx       # Feature root; renders the shell around the routed screen
-│   │   └── LuvaxTweaksContext.jsx
+│   │   ├── LuvaxApp.tsx       # Feature root; renders the shell around the routed screen
+│   │   └── LuvaxTweaksContext.tsx
 │   ├── messages/
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   ├── utils/
-│   │   └── MessagesScreen.jsx
+│   │   └── MessagesScreen.tsx
 │   ├── search/
 │   │   ├── components/
 │   │   └── hooks/
@@ -107,43 +107,44 @@ src/
 │                              # useImpressionTracking, useRateLimitCooldown, useThemeChoice
 ├── pages/
 │   ├── auth/
-│   │   ├── EmailVerificationPage.jsx
-│   │   ├── OAuthCallbackPage.jsx
-│   │   ├── ResetPasswordPage.jsx
-│   │   └── VerifyEmailNoticePage.jsx
+│   │   ├── EmailVerificationPage.tsx
+│   │   ├── OAuthCallbackPage.tsx
+│   │   ├── ResetPasswordPage.tsx
+│   │   └── VerifyEmailNoticePage.tsx
 │   ├── dashboard/
-│   │   └── DashboardPage.jsx
-│   └── LuvaxPage.jsx
+│   │   └── DashboardPage.tsx
+│   └── LuvaxPage.tsx
 ├── routes/
-│   ├── appScreens.jsx         # The authenticated screen table the router and shell both read
-│   └── index.jsx              # createBrowserRouter - central route tree
+│   ├── appScreens.tsx         # The authenticated screen table the router and shell both read
+│   └── index.tsx              # createBrowserRouter - central route tree
 ├── services/                  # Shared API modules used across slices
-│   ├── axiosInstance.js       # Re-exports axiosClient
-│   ├── config.service.js
-│   ├── hashtag.service.js
-│   ├── impressionQueue.js
-│   ├── message.service.js
-│   ├── notification.service.js
-│   ├── post.service.js
-│   ├── realtime/stompConnection.js
-│   ├── recommendation.service.js
-│   ├── report.service.js
-│   ├── search.service.js
-│   ├── social.service.js
-│   ├── story.service.js
-│   ├── suggestion.service.js
-│   └── user.service.js
+│   ├── axiosInstance.ts       # Re-exports axiosClient
+│   ├── config.service.ts
+│   ├── hashtag.service.ts
+│   ├── impressionQueue.ts
+│   ├── message.service.ts
+│   ├── notification.service.ts
+│   ├── post.service.ts
+│   ├── realtime/stompConnection.ts
+│   ├── recommendation.service.ts
+│   ├── report.service.ts
+│   ├── search.service.ts
+│   ├── social.service.ts
+│   ├── story.service.ts
+│   ├── suggestion.service.ts
+│   └── user.service.ts
 ├── store/
-│   └── useAuthStore.js        # Zustand; persists user + isAuthenticated only, never tokens
+│   └── useAuthStore.ts        # Zustand; persists user + isAuthenticated only, never tokens
 ├── utils/
-│   ├── cn.js
-│   ├── helpers.js
-│   ├── requestContract.js
-│   └── validationFields.js
-├── App.jsx
+│   ├── cn.ts
+│   ├── helpers.ts
+│   ├── requestContract.ts
+│   └── validationFields.ts
+├── types/                     # Shared API/domain/auth contracts and runtime declarations
+├── App.tsx
 ├── App.css
 ├── index.css                  # Tailwind v4 import + CSS custom properties
-└── main.jsx                   # RouterProvider + QueryClientProvider + global error handling
+└── main.tsx                   # RouterProvider + QueryClientProvider + global error handling
 ```
 
 ### Slice sizes
@@ -152,14 +153,14 @@ Generated by `./scripts/regenerate_struct_figures.sh slices`; tracked files only
 
 | Slice | Files | Lines |
 |-------|-------|-------|
-| `admin` | 80 | 13913 |
-| `auth` | 8 | 1738 |
-| `luvax` | 73 | 18557 |
-| `messages` | 16 | 4911 |
-| `search` | 4 | 991 |
-| `support` | 14 | 3437 |
+| `admin` | 80 | 14811 |
+| `auth` | 8 | 1791 |
+| `luvax` | 74 | 19361 |
+| `messages` | 17 | 5266 |
+| `search` | 4 | 1050 |
+| `support` | 14 | 3607 |
 
-Total tracked lines under `src/`: 51767.
+Total tracked lines under `src/`: 56713.
 
 ---
 
@@ -180,18 +181,18 @@ src/features/<feature>/
 └── utils/           # Zod schemas, helpers specific to this feature
 ```
 
-The `admin` slice adds `screens/`, `guards/`, `lib/` and its own `adminRoutes.jsx`, because the
+The `admin` slice adds `screens/`, `guards/`, `lib/` and its own `adminRoutes.tsx`, because the
 panel is a separate route tree with its own role gate rather than a screen inside the app shell.
 
 ---
 
 ## Routing Setup
 
-- Config-based routing using `createBrowserRouter` in `src/routes/index.jsx`
-- `src/routes/appScreens.jsx` holds the authenticated screen table; the router builds its child
+- Config-based routing using `createBrowserRouter` in `src/routes/index.tsx`
+- `src/routes/appScreens.tsx` holds the authenticated screen table; the router builds its child
   routes from it and the app shell reads the same list back, so the two cannot disagree about
   which address renders which screen
-- `src/features/admin/adminRoutes.jsx` holds the `/admin` subtree
+- `src/features/admin/adminRoutes.tsx` holds the `/admin` subtree
 - `ProtectedRoute` (in `src/components/common/`) guards authenticated routes
 - `GuestRoute` (in `src/components/common/`) sends an already-authenticated visitor to
   `landingPathForRole(role)`, so a moderator or administrator lands in the panel rather than in
@@ -205,7 +206,7 @@ evidence.
 
 ### Declared routes
 
-`ROUTES` in `src/config/constants.js` is the single declaration of every path; the router and
+`ROUTES` in `src/config/constants.ts` is the single declaration of every path; the router and
 every `navigate()` call read it back. Regenerate with
 `./scripts/regenerate_struct_figures.sh routes`.
 
@@ -292,8 +293,8 @@ sent, so their shapes are fixed by messages already in inboxes.
 
 ## API Client Setup
 
-All BE API calls must go through `src/api/axiosClient.js`. Never call `fetch` or `axios.create`
-directly in components or hooks. `src/services/axiosInstance.js` is a re-export of `axiosClient`,
+All BE API calls must go through `src/api/axiosClient.ts`. Never call `fetch` or `axios.create`
+directly in components or hooks. `src/services/axiosInstance.ts` is a re-export of `axiosClient`,
 kept so the shared service modules can import a default; it is the same instance, not a second one.
 
 | Client | When to use |
@@ -335,15 +336,17 @@ Reference: `.env.example` at the repository root.
 ## Key Scripts
 
 ```bash
-npm run dev          # Vite dev server with proxy (scripts/dev-server.mjs)
+npm run dev          # Vite dev server with proxy (scripts/dev-server.mts)
 npm run dev:reset    # Dev server with state reset
-npm run build        # Vite production build
+npm run build        # Strict typecheck and Vite production build
+npm run typecheck    # App, tests and native Node tooling
 npm run lint         # ESLint
 npm run preview      # Preview production build locally
-npm run test         # Vitest, vitest.config.js
+npm run test         # Vitest, vitest.config.ts
 npm run test:watch   # Vitest in watch mode
-npm run test:live    # Vitest against a running backend, vitest.live.config.js
+npm run test:live    # Vitest against a running backend, vitest.live.config.ts
 npm run test:all     # test then test:live
+npm run test:e2e     # Playwright Chromium (API stubs; real Turnstile test key)
 ```
 
 `./scripts/regenerate_struct_figures.sh` regenerates the slice table, the route table, the

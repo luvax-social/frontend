@@ -128,12 +128,12 @@ export function LuvaxApp() {
     if (localStorage.getItem(DARK_MANUAL_KEY) === null) {
       // Synchronises with the OS colour-scheme media query and the stored manual override.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTweak('dark', media.matches);
+      setTweakState((previous) => ({ ...previous, dark: media.matches }));
     }
 
     const handleChange = (event: MediaQueryListEvent) => {
       if (localStorage.getItem(DARK_MANUAL_KEY) === null) {
-        setTweak('dark', event.matches);
+        setTweakState((previous) => ({ ...previous, dark: event.matches }));
       }
     };
 

@@ -95,7 +95,7 @@ Build with the production opt-in, serve `dist/` through the repository's Nginx c
 then run:
 
 ```sh
-node scripts/check-seo-http.mjs http://127.0.0.1:4183 https://luvax.online
+node scripts/check-seo-http.mts http://127.0.0.1:4183 https://luvax.online
 ```
 
 The HTTP check covers public/private HTML, query credentials, discovery content types,

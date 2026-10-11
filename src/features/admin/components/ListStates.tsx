@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxBtn } from '@/features/luvax/components/primitives';
@@ -12,7 +13,7 @@ import { LxBtn } from '@/features/luvax/components/primitives';
  * rather than as a failure.
  */
 
-const Centered = ({ children }) => (
+const Centered = ({ children }: { children?: ReactNode }) => (
   <div
     style={{
       display: 'flex',
@@ -28,7 +29,15 @@ const Centered = ({ children }) => (
   </div>
 );
 
-export function EmptyState({ icon = 'check', title, hint }) {
+export function EmptyState({
+  icon = 'check',
+  title,
+  hint,
+}: {
+  icon?: string;
+  title?: ReactNode;
+  hint?: ReactNode;
+}) {
   return (
     <Centered>
       <div
@@ -56,7 +65,7 @@ export function EmptyState({ icon = 'check', title, hint }) {
   );
 }
 
-export function LoadingState({ rows = 6 }) {
+export function LoadingState({ rows = 6 }: { rows?: number }) {
   return (
     <div role="status" aria-label="loading" style={{ padding: '8px 0' }}>
       {Array.from({ length: rows }).map((_, index) => (
@@ -88,7 +97,13 @@ export function LoadingState({ rows = 6 }) {
   );
 }
 
-export function FailedState({ message, onRetry }) {
+export function FailedState({
+  message,
+  onRetry,
+}: {
+  message?: ReactNode;
+  onRetry?: () => unknown;
+}) {
   return (
     <Centered>
       <div

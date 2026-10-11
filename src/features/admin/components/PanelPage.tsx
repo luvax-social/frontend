@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { v } from '@/config/tokens';
 
 /**
@@ -6,7 +7,7 @@ import { v } from '@/config/tokens';
  * control. Kept small and consistent so a reviewer moving between screens sees
  * the same heading shape everywhere.
  */
-export function PageHeader({ title, right }) {
+export function PageHeader({ title, right }: { title: ReactNode; right?: ReactNode }) {
   return (
     <div
       style={{
@@ -37,7 +38,17 @@ export function PageHeader({ title, right }) {
 }
 
 /** A framed card used to group a region on a detail screen. */
-export function PanelCard({ title, right, children, padded = true }) {
+export function PanelCard({
+  title,
+  right,
+  children,
+  padded = true,
+}: {
+  title?: ReactNode;
+  right?: ReactNode;
+  children?: ReactNode;
+  padded?: boolean;
+}) {
   return (
     <section className="lx-admin-panel-card" style={{ marginBottom: 20 }}>
       {title ? (

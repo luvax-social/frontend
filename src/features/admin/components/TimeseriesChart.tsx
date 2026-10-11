@@ -1,3 +1,12 @@
+import type { StatPointResponse } from '@/types/admin';
+import type { metricFor, granularityFor } from '../lib/statistics';
+type Metric = ReturnType<typeof metricFor>;
+type Granularity = ReturnType<typeof granularityFor>;
+interface Gap {
+  fromMs: number;
+  toMs: number;
+  missing: number;
+}
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -47,7 +56,7 @@ const MAX_SERIES = SERIES_COLORS.length;
 
 /** Tracks a container's width so the drawing is sized by its container, not by a constant. */
 function useMeasuredWidth() {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
@@ -70,10 +79,22 @@ function useMeasuredWidth() {
     return () => observer.disconnect();
   }, []);
 
-  return [ref, width];
+  return [ref, width] as const;
 }
 
-export function TimeseriesChart({ points, metric, granularity, fromMs, toMs }) {
+export function TimeseriesChart({
+  points,
+  metric,
+  granularity,
+  fromMs,
+  toMs,
+}: {
+  points: StatPointResponse[];
+  metric: Metric;
+  granularity: Granularity;
+  fromMs: number;
+  toMs: number;
+}) {
   const [ref, width] = useMeasuredWidth();
 
   const model = useMemo(() => {
@@ -94,7 +115,7 @@ export function TimeseriesChart({ points, metric, granularity, fromMs, toMs }) {
     const bucketTimes = [...new Set(all.flatMap((s) => s.points.map((p) => p.t)))].sort(
       (a, b) => a - b
     );
-    const gaps = [];
+    const gaps: Gap[] = [];
     for (let i = 1; i < bucketTimes.length; i += 1) {
       const missing = missingBucketCount(bucketTimes[i - 1], bucketTimes[i], granularity.stepMs);
       if (missing > 0) {
@@ -128,8 +149,8 @@ export function TimeseriesChart({ points, metric, granularity, fromMs, toMs }) {
   const plotHeight = Math.max(0, height - pad.top - pad.bottom);
 
   const span = Math.max(1, toMs - fromMs);
-  const x = (t) => pad.left + ((t - fromMs) / span) * plotWidth;
-  const y = (value) => pad.top + plotHeight - (value / model.axis.max) * plotHeight;
+  const x = (t: number) => pad.left + ((t - fromMs) / span) * plotWidth;
+  const y = (value: number) => pad.top + plotHeight - (value / model.axis.max) * plotHeight;
 
   const timeTicks = useMemo(() => {
     const count = Math.max(2, Math.floor(plotWidth / (narrow ? 78 : 104)));
@@ -296,7 +317,19 @@ export function TimeseriesChart({ points, metric, granularity, fromMs, toMs }) {
   );
 }
 
-function ChartLegend({ series, metric, omitted, gaps, granularity }) {
+function ChartLegend({
+  series,
+  metric,
+  omitted,
+  gaps,
+  granularity,
+}: {
+  series: ReturnType<typeof groupByDimension>;
+  metric: Metric;
+  omitted: string[];
+  gaps: Gap[];
+  granularity: Granularity;
+}) {
   const showKeys = series.length > 1 || series[0]?.dimension !== '';
   return (
     <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -1,3 +1,5 @@
+import type { CSSProperties, ChangeEvent, SubmitEvent } from 'react';
+import type { TimeRange } from '../lib/statistics';
 import { useEffect, useMemo, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -42,10 +44,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // and because a discrete track cannot land on a value the endpoint refuses.
 const WINDOW_STEPS = [0.25, 0.5, 1, 2, 3, 7, 14, 30, 60, 90, 180, 365];
 
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (n: number) => String(n).padStart(2, '0');
 
 /** A millisecond instant as the local wall-clock string a datetime-local input takes. */
-const toLocalInput = (ms) => {
+const toLocalInput = (ms: number) => {
   const d = new Date(ms);
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(
     d.getMinutes()
@@ -53,12 +55,12 @@ const toLocalInput = (ms) => {
 };
 
 /** The reverse. Returns null for an incomplete or unparseable entry. */
-const fromLocalInput = (text) => {
+const fromLocalInput = (text: string) => {
   const ms = new Date(text).getTime();
   return Number.isFinite(ms) ? ms : null;
 };
 
-const describeSpan = (days) => {
+const describeSpan = (days: number) => {
   if (days < 1) {
     return `${Math.round(days * 24)} hours`;
   }
@@ -67,7 +69,7 @@ const describeSpan = (days) => {
 
 // The panel's one control shape, so a date input sits in the same row as the
 // apply button without reading as a different kind of thing.
-const fieldStyle = {
+const fieldStyle: CSSProperties = {
   fontFamily: v.fontMono,
   fontSize: 12,
   color: v.ink,
@@ -79,7 +81,7 @@ const fieldStyle = {
   minWidth: 0,
 };
 
-const labelStyle = {
+const labelStyle: CSSProperties = {
   fontFamily: v.fontMono,
   fontSize: 11,
   textTransform: 'uppercase',
@@ -94,6 +96,13 @@ export function DateRangeControl({
   disabled = false,
   disabledReason = null,
   unsetHint = 'nothing has been requested yet — set both ends and apply.',
+}: {
+  value: TimeRange | null;
+  maxDays: number;
+  onCommit: (range: TimeRange) => void;
+  disabled?: boolean;
+  disabledReason?: string | null;
+  unsetHint?: string;
 }) {
   const steps = useMemo(() => WINDOW_STEPS.filter((d) => d <= maxDays), [maxDays]);
 
@@ -103,7 +112,7 @@ export function DateRangeControl({
   // nothing.
   const [draftFrom, setDraftFrom] = useState(() => (value ? toLocalInput(value.fromMs) : ''));
   const [draftTo, setDraftTo] = useState(() => (value ? toLocalInput(value.toMs) : ''));
-  const [note, setNote] = useState(null);
+  const [note, setNote] = useState<string | null>(null);
 
   const committedFrom = value?.fromMs ?? null;
   const committedTo = value?.toMs ?? null;
@@ -157,7 +166,7 @@ export function DateRangeControl({
     draftFrom !== toLocalInput(committedFrom) ||
     draftTo !== toLocalInput(committedTo);
 
-  const handleSlider = (event) => {
+  const handleSlider = (event: ChangeEvent<HTMLInputElement>) => {
     const days = steps[Number(event.target.value)] ?? steps[steps.length - 1];
     // With no end entered yet the slider anchors on now, so dragging it composes
     // a whole range rather than doing nothing.
@@ -169,7 +178,7 @@ export function DateRangeControl({
     setNote(null);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (disabled) {
       return;
@@ -187,7 +196,7 @@ export function DateRangeControl({
     onCommit({ fromMs: clamped.fromMs, toMs: clamped.toMs });
   };
 
-  const applyPreset = (days) => {
+  const applyPreset = (days: number) => {
     if (disabled) {
       return;
     }
@@ -211,7 +220,7 @@ export function DateRangeControl({
           <input
             type="datetime-local"
             value={draftFrom}
-            onChange={(event) => {
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
               setDraftFrom(event.target.value);
               setNote(null);
             }}
@@ -224,7 +233,7 @@ export function DateRangeControl({
           <input
             type="datetime-local"
             value={draftTo}
-            onChange={(event) => {
+            onChange={(event: ChangeEvent<HTMLInputElement>) => {
               setDraftTo(event.target.value);
               setNote(null);
             }}

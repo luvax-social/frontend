@@ -1,3 +1,5 @@
+import type { ReportReasonVocabularyResponse } from '@/types/domain';
+import type { AdminWarnUserRequest } from '@/types/admin';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -55,11 +57,19 @@ export function WarnDialog({
   serverFieldErrors = null,
   onConfirm,
   onClose,
+}: {
+  open: boolean;
+  reasons?: ReportReasonVocabularyResponse[];
+  activeWarningCount?: number | null;
+  busy?: boolean;
+  serverFieldErrors?: Partial<Record<string, string>> | null;
+  onConfirm: (values: AdminWarnUserRequest) => void;
+  onClose: () => void;
 }) {
   const [reasonKey, setReasonKey] = useState('');
   const [note, setNote] = useState('');
   const [armed, setArmed] = useState(false);
-  const [localErrors, setLocalErrors] = useState({});
+  const [localErrors, setLocalErrors] = useState<Partial<Record<string, string>>>({});
   const openCount = useRef(0);
 
   useEffect(() => {
@@ -100,7 +110,7 @@ export function WarnDialog({
     if (!armed || busy) {
       return;
     }
-    const next = {};
+    const next: Record<string, string> = {};
     if (!reasonKey) {
       next.reasonKey = 'select a reason';
     }
@@ -314,7 +324,7 @@ export function WarnDialog({
  * - The count is not readable, which is every moderator: that is said plainly,
  *   with the rule.
  */
-function WarningConsequence({ activeWarningCount }) {
+function WarningConsequence({ activeWarningCount }: { activeWarningCount?: number | null }) {
   const known = typeof activeWarningCount === 'number';
   const isThird = known && activeWarningCount >= 2;
 

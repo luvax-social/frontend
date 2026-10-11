@@ -1,3 +1,27 @@
+import type { CSSProperties, Key, ReactNode } from 'react';
+export interface Column<T> {
+  key: string;
+  header: ReactNode;
+  width?: CSSProperties['width'];
+  align?: CSSProperties['textAlign'];
+  nowrap?: boolean;
+  render?: (row: T) => ReactNode;
+}
+interface TableProps<T> {
+  columns: Column<T>[];
+  rows?: T[];
+  keyField?: keyof T;
+  onRowClick?: (row: T) => void;
+  selectedKey?: string | null;
+  isLoading?: boolean;
+  isError?: boolean;
+  errorMessage?: string;
+  onRetry?: () => unknown;
+  emptyIcon?: string;
+  emptyTitle?: string;
+  emptyHint?: ReactNode;
+  footer?: ReactNode;
+}
 import { v } from '@/config/tokens';
 
 import { EmptyState, FailedState, LoadingState } from './ListStates';
@@ -16,7 +40,7 @@ import { EmptyState, FailedState, LoadingState } from './ListStates';
  * @param {Object[]} columns each `{ key, header, width, align, render }`
  * @param {Object[]} rows
  */
-export function RecordTable({
+export function RecordTable<T extends { id: string }>({
   columns,
   rows = [],
   keyField = 'id',
@@ -30,7 +54,7 @@ export function RecordTable({
   emptyTitle = 'nothing here yet',
   emptyHint,
   footer = null,
-}) {
+}: TableProps<T>) {
   const hasRows = rows.length > 0;
 
   if (isLoading && !hasRows) {
@@ -82,7 +106,7 @@ export function RecordTable({
             const isSelected = selectedKey !== null && row[keyField] === selectedKey;
             return (
               <tr
-                key={row[keyField]}
+                key={row[keyField] as Key}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 // The row is the control, so it takes focus and answers Enter and
                 // Space the way a button would. Without this the selection in a
@@ -119,7 +143,7 @@ export function RecordTable({
                       whiteSpace: col.nowrap ? 'nowrap' : 'normal',
                     }}
                   >
-                    {col.render ? col.render(row) : row[col.key]}
+                    {col.render ? col.render(row) : (row[col.key as keyof T] as ReactNode)}
                   </td>
                 ))}
               </tr>

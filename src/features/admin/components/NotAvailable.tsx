@@ -13,6 +13,9 @@ import { LxIcon } from '@/components/ui/lx-icon';
 export function NotAvailable({
   title = 'not available',
   message = 'this area is not part of your panel.',
+}: {
+  title?: string;
+  message?: string;
 }) {
   return (
     <div

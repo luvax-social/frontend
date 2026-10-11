@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -38,6 +39,16 @@ export function ReasonConfirmDialog({
   serverError = null,
   onConfirm,
   onClose,
+}: {
+  open: boolean;
+  title: string;
+  description?: ReactNode;
+  confirmLabel?: string;
+  tone?: string;
+  busy?: boolean;
+  serverError?: string | null;
+  onConfirm: (reason: string) => void;
+  onClose: () => void;
 }) {
   const [reason, setReason] = useState('');
   const [armed, setArmed] = useState(false);

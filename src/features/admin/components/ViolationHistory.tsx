@@ -1,3 +1,5 @@
+import { getErrorMessage } from '@/utils/errors';
+import type { AdminViolationResponse } from '@/types/admin';
 import { useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -39,7 +41,7 @@ const KIND_TONES = {
   strike: { bg: v.errorDim, color: v.errorText, icon: 'ban', label: 'strike' },
 };
 
-function KindBadge({ kind }) {
+function KindBadge({ kind }: { kind: 'warning' | 'strike' }) {
   const tone = KIND_TONES[kind] ?? { bg: v.surface, color: v.ink2, icon: 'flag', label: kind };
   return (
     <span
@@ -75,7 +77,7 @@ function KindBadge({ kind }) {
  * otherwise until the person complains. The current status is named when it is
  * one the revocation will not change.
  */
-const revokeDescription = (kind, status) => {
+const revokeDescription = (kind: string, status: string | null | undefined) => {
   const base = `this ${kind} will be revoked and removed from the account's history. the reason is recorded in the action log.`;
   if (status === 'suspended') {
     return `${base} the account stays suspended — revoking the record does not lift the suspension, which must be lifted separately.`;
@@ -86,7 +88,7 @@ const revokeDescription = (kind, status) => {
   return base;
 };
 
-export function ViolationHistory({ userId }) {
+export function ViolationHistory({ userId }: { userId?: string | null }) {
   const role = useAuthStore((state) => state.role);
   const isAdmin = isAdminRole(role);
   const { reasonLabel } = useVocabularies();
@@ -111,30 +113,27 @@ export function ViolationHistory({ userId }) {
   // moderator never fires a request that would answer 403.
   const { detail } = useAccountDetail(userId, { enabled: isAdmin });
 
-  const [revoking, setRevoking] = useState(null);
-  const [serverError, setServerError] = useState(null);
+  const [revoking, setRevoking] = useState<Pick<AdminViolationResponse, 'id' | 'kind'> | null>(
+    null
+  );
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const closeRevoke = () => {
     setRevoking(null);
     setServerError(null);
   };
 
-  const runRevoke = (reason) => {
+  const runRevoke = (reason: string) => {
     if (!revoking) {
       return;
     }
-    const mutation =
-      revoking.kind === 'strike' ? discipline.revokeStrike : discipline.revokeWarning;
-    const payload =
-      revoking.kind === 'strike'
-        ? { strikeId: revoking.id, reason }
-        : { warningId: revoking.id, reason };
-    mutation.mutate(payload, {
+
+    const options = {
       onSuccess: () => {
         toast(`${revoking.kind} revoked`);
         closeRevoke();
       },
-      onError: (err) => {
+      onError: (err: unknown) => {
         const described = describeError(err);
         if (described.kind === 'field') {
           setServerError(described.fields?.reason || described.message);
@@ -145,7 +144,10 @@ export function ViolationHistory({ userId }) {
         }
         closeRevoke();
       },
-    });
+    };
+    if (revoking.kind === 'strike')
+      discipline.revokeStrike.mutate({ strikeId: revoking.id, reason }, options);
+    else discipline.revokeWarning.mutate({ warningId: revoking.id, reason }, options);
   };
 
   // The toggle is rendered in every state, including the empty one. If it were
@@ -168,7 +170,7 @@ export function ViolationHistory({ userId }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {toggle}
-        <FailedState message={error?.message} onRetry={refetch} />
+        <FailedState message={getErrorMessage(error, 'Something went wrong.')} onRetry={refetch} />
       </div>
     );
   }
@@ -350,7 +352,15 @@ export function ViolationHistory({ userId }) {
  * on this flag and the server rejects one issued under the other setting, so
  * carrying a cursor across would produce INVALID_CURSOR rather than a page.
  */
-function RevokedToggle({ checked, disabled, onChange }) {
+function RevokedToggle({
+  checked,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
   return (
     <label
       style={{

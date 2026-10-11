@@ -31,7 +31,17 @@ import { PANEL_CSS } from './panelStyles';
 
 // One declaration; the tree is derived by filtering on role. Adding a section
 // later is one entry here and one route, with no restructuring.
-const NAV_SECTIONS = [
+const NAV_SECTIONS: {
+  heading: string;
+  items: {
+    key: string;
+    label: string;
+    icon: string;
+    to: string;
+    roles: string[];
+    badge?: string;
+  }[];
+}[] = [
   {
     heading: 'moderation',
     items: [
@@ -170,7 +180,8 @@ export default function AdminShell() {
     }
   };
 
-  const badgeValue = (key) => (key === 'escalated' && escalatedCount > 0 ? escalatedCount : null);
+  const badgeValue = (key: string | undefined) =>
+    key === 'escalated' && escalatedCount > 0 ? escalatedCount : null;
 
   return (
     <div className="lx-admin-shell">
@@ -184,7 +195,9 @@ export default function AdminShell() {
 
         <nav className="lx-admin-nav" aria-label="panel navigation">
           {NAV_SECTIONS.map((section) => {
-            const visible = section.items.filter((item) => item.roles.includes(role));
+            const visible = section.items.filter((item) =>
+              item.roles.some((allowed) => allowed === role)
+            );
             if (visible.length === 0) {
               return null;
             }

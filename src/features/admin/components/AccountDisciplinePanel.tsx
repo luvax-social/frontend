@@ -1,3 +1,4 @@
+import type { AdminWarnUserRequest } from '@/types/admin';
 import { useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -40,7 +41,7 @@ import { describeError } from '../lib/errors';
  *
  * @param {string} userId the account this panel acts on
  */
-export function AccountDisciplinePanel({ userId }) {
+export function AccountDisciplinePanel({ userId }: { userId?: string | null }) {
   const role = useAuthStore((state) => state.role);
   const isAdmin = isAdminRole(role);
   const { reportReasons } = useVocabularies();
@@ -54,7 +55,7 @@ export function AccountDisciplinePanel({ userId }) {
   const canWarn = isAdmin ? detail?.role === 'user' : true;
 
   const [warnOpen, setWarnOpen] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>> | null>(null);
 
   const openWarn = () => {
     setFieldErrors(null);
@@ -65,7 +66,7 @@ export function AccountDisciplinePanel({ userId }) {
     setFieldErrors(null);
   };
 
-  const submitWarn = ({ reasonKey, note }) => {
+  const submitWarn = ({ reasonKey, note }: AdminWarnUserRequest) => {
     setFieldErrors(null);
     discipline.warn.mutate(
       { reasonKey, note },

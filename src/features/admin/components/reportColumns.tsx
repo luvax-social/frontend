@@ -1,3 +1,5 @@
+import type { Column } from './RecordTable';
+import type { ReportResponse } from '@/types/domain';
 import { v } from '@/config/tokens';
 
 import { REPORT_TYPE_LABELS } from '../lib/reportSchema';
@@ -13,7 +15,9 @@ import { ReporterName } from './ReporterName';
  *
  * @param {(key:string)=>string} reasonLabel from the vocabulary hook
  */
-export const buildReportColumns = (reasonLabel) => [
+export const buildReportColumns = (
+  reasonLabel: (key: string) => string
+): Column<ReportResponse>[] => [
   {
     key: 'type',
     header: 'type',

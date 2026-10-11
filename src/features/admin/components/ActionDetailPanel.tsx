@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 
+import { getErrorMessage } from '@/utils/errors';
 import { v } from '@/config/tokens';
 import { routeTo } from '@/config/constants';
 import { LxIcon } from '@/components/ui/lx-icon';
@@ -31,7 +32,7 @@ import { NotAvailable } from './NotAvailable';
  * metadata renders as an explicit "no additional detail" rather than an empty
  * region.
  */
-const FIELD_LABEL = {
+const FIELD_LABEL: Record<string, string> = {
   reasonKey: 'reason',
   strikeNumber: 'strike number',
   resultingStatus: 'resulting status',
@@ -44,22 +45,30 @@ const FIELD_LABEL = {
   triggeredByModeratorId: 'triggered by',
 };
 
-const humanize = (key) =>
+const humanize = (key: string) =>
   key
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[_-]+/g, ' ')
     .toLowerCase();
 
 /** Renders one metadata value, recognising the enumerated shapes' keys. */
-function MetaValue({ fieldKey, value, reasonLabel }) {
+function MetaValue({
+  fieldKey,
+  value,
+  reasonLabel,
+}: {
+  fieldKey: string;
+  value: unknown;
+  reasonLabel: (key: string) => string;
+}) {
   if (fieldKey === 'reasonKey') {
-    return <>{reasonLabel(value)}</>;
+    return <>{reasonLabel(String(value))}</>;
   }
   if (fieldKey === 'consequenceApplied') {
     return <>{value ? 'yes' : 'no'}</>;
   }
   if (fieldKey === 'triggeredByModeratorId') {
-    return <ReporterName userId={value} prefix="@" />;
+    return <ReporterName userId={typeof value === 'string' ? value : null} prefix="@" />;
   }
   if (fieldKey === 'remainingBannedHashtags' || fieldKey === 'warningIds') {
     if (!Array.isArray(value) || value.length === 0) {
@@ -87,7 +96,13 @@ function MetaValue({ fieldKey, value, reasonLabel }) {
   return <>{String(value)}</>;
 }
 
-function ActionMetadata({ metadata, reasonLabel }) {
+function ActionMetadata({
+  metadata,
+  reasonLabel,
+}: {
+  metadata: Record<string, unknown> | null;
+  reasonLabel: (key: string) => string;
+}) {
   if (
     metadata === null ||
     metadata === undefined ||
@@ -115,7 +130,7 @@ function ActionMetadata({ metadata, reasonLabel }) {
   );
 }
 
-export function ActionDetailPanel({ actionId }) {
+export function ActionDetailPanel({ actionId }: { actionId?: string | null }) {
   const { action, isLoading, isError, error } = useActionDetail(actionId);
   const { actionLabel, actionKnown, reasonLabel } = useVocabularies();
 
@@ -147,7 +162,7 @@ export function ActionDetailPanel({ actionId }) {
       <div>
         <PageHeader title="action" />
         <PanelCard>
-          <FailedState message={error?.message} />
+          <FailedState message={getErrorMessage(error, 'Something went wrong.')} />
         </PanelCard>
       </div>
     );

@@ -1,3 +1,7 @@
+import type { ReactNode } from 'react';
+
+import type { AdminUserSessionResponse, AdminUserReportResponse } from '@/types/admin';
+import type { Column } from './RecordTable';
 import { Link } from 'react-router-dom';
 
 import { v } from '@/config/tokens';
@@ -51,10 +55,17 @@ export function SessionList({
   onRevokeSession,
   currentSessionId,
   currentSessionKnown,
+}: {
+  sessions?: AdminUserSessionResponse[];
+  isSelf: boolean;
+  onRevokeAll?: () => void;
+  onRevokeSession?: (row: AdminUserSessionResponse) => void;
+  currentSessionId?: string | null;
+  currentSessionKnown?: boolean;
 }) {
   const rows = sessions ?? [];
 
-  const columns = [
+  const columns: Column<AdminUserSessionResponse>[] = [
     {
       key: 'createdAt',
       header: 'signed in',
@@ -241,10 +252,10 @@ export function SessionList({
  * and the panel says so instead of implying completeness. Each entry carries a
  * report id, so each row opens the report it names.
  */
-export function ReportsAgainstList({ reports }) {
+export function ReportsAgainstList({ reports }: { reports?: AdminUserReportResponse[] }) {
   const rows = reports ?? [];
 
-  const columns = [
+  const columns: Column<AdminUserReportResponse>[] = [
     {
       key: 'createdAt',
       header: 'filed',
@@ -320,7 +331,7 @@ export function ReportsAgainstList({ reports }) {
   );
 }
 
-function SubHeading({ icon, title, note }) {
+function SubHeading({ icon, title, note }: { icon: string; title: string; note?: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span
@@ -343,6 +354,6 @@ function SubHeading({ icon, title, note }) {
   );
 }
 
-const Muted = ({ children }) => (
+const Muted = ({ children }: { label?: ReactNode; children?: ReactNode }) => (
   <span style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink2 }}>{children}</span>
 );

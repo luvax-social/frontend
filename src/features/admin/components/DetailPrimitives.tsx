@@ -1,3 +1,4 @@
+import type { ReactNode, CSSProperties } from 'react';
 import { v } from '@/config/tokens';
 
 /**
@@ -7,7 +8,7 @@ import { v } from '@/config/tokens';
  */
 
 /** The small uppercase label above a fact or a field. */
-export const detailLabel = {
+export const detailLabel: CSSProperties = {
   fontFamily: v.fontMono,
   fontSize: 11,
   textTransform: 'uppercase',
@@ -16,7 +17,7 @@ export const detailLabel = {
 };
 
 /** One labelled fact: a short value that reads as data rather than prose. */
-export function Field({ label, children }) {
+export function Field({ label, children }: { label: ReactNode; children?: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
       <span style={detailLabel}>{label}</span>
@@ -30,7 +31,7 @@ export function Field({ label, children }) {
 }
 
 /** The grid a card's facts sit in; it reflows to one column in a narrow pane. */
-export function FieldGrid({ children, min = 160 }) {
+export function FieldGrid({ children, min = 160 }: { children?: ReactNode; min?: number }) {
   return (
     <div
       style={{
@@ -53,7 +54,15 @@ export function FieldGrid({ children, min = 160 }) {
  * the labels around it, and it is the one thing on the card a reviewer has to
  * read rather than scan.
  */
-export function NoteBlock({ label, children, tone = 'default' }) {
+export function NoteBlock({
+  label,
+  children,
+  tone = 'default',
+}: {
+  label?: ReactNode;
+  children?: ReactNode;
+  tone?: string;
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
       {label ? <span style={detailLabel}>{label}</span> : null}

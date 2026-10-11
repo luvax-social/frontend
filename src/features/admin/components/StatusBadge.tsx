@@ -28,7 +28,7 @@ const TONES = {
   neutral: { bg: v.surface, color: v.ink, border: v.border },
 };
 
-const STATUS_TONE = {
+const STATUS_TONE: Record<string, keyof typeof TONES> = {
   // Healthy live states.
   active: 'positive',
   published: 'positive',
@@ -69,7 +69,13 @@ const STATUS_TONE = {
   appeal: 'attention',
 };
 
-export function StatusBadge({ status, size = 'md' }) {
+export function StatusBadge({
+  status,
+  size = 'md',
+}: {
+  status?: string | null;
+  size?: 'sm' | 'md';
+}) {
   if (!status) {
     return null;
   }

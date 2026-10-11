@@ -1,3 +1,5 @@
+import type { HashtagStatus } from '@/types/domain';
+import type { AdminCreateHashtagRequest } from '@/types/admin';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -26,17 +28,29 @@ import { LxIcon } from '@/components/ui/lx-icon';
 const ARMING_DELAY_MS = 500;
 const NAME_MAX = 101;
 const NOTE_MAX = CHAR_LIMITS.reportDescription;
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: HashtagStatus; label: string; hint: string }[] = [
   { value: 'active', label: 'active', hint: 'usable in posts and search' },
   { value: 'banned', label: 'banned', hint: 'blocked from posts on creation' },
 ];
 
-export function HashtagCreateDialog({ open, busy = false, nameError = '', onConfirm, onClose }) {
+export function HashtagCreateDialog({
+  open,
+  busy = false,
+  nameError = '',
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  busy?: boolean;
+  nameError?: string;
+  onConfirm: (values: AdminCreateHashtagRequest) => void;
+  onClose: () => void;
+}) {
   const [name, setName] = useState('');
-  const [status, setStatus] = useState('active');
+  const [status, setStatus] = useState<HashtagStatus>('active');
   const [note, setNote] = useState('');
   const [armed, setArmed] = useState(false);
-  const [localErrors, setLocalErrors] = useState({});
+  const [localErrors, setLocalErrors] = useState<Partial<Record<string, string>>>({});
   const openCount = useRef(0);
 
   useEffect(() => {
@@ -80,7 +94,7 @@ export function HashtagCreateDialog({ open, busy = false, nameError = '', onConf
     if (!armed || busy) {
       return;
     }
-    const next = {};
+    const next: Record<string, string> = {};
     if (!name.trim()) {
       next.name = 'a name is required';
     }

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -27,11 +28,11 @@ import { LxIcon } from '@/components/ui/lx-icon';
  * theme surface because it sits on the media, not on the page.
  */
 
-function isVideo(url) {
+function isVideo(url: string) {
   return /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(String(url));
 }
 
-const CHIP = {
+const CHIP: CSSProperties = {
   width: 34,
   height: 34,
   borderRadius: 999,
@@ -46,9 +47,21 @@ const CHIP = {
   padding: 0,
 };
 
-function MediaViewerOverlay({ urls, index, onIndex, onClose, label }) {
+function MediaViewerOverlay({
+  urls,
+  index,
+  onIndex,
+  onClose,
+  label,
+}: {
+  urls: string[];
+  index: number;
+  onIndex: (index: number) => void;
+  onClose: () => void;
+  label: string;
+}) {
   const count = urls.length;
-  const closeRef = useRef(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEscapeKey(true, onClose);
 
@@ -59,7 +72,7 @@ function MediaViewerOverlay({ urls, index, onIndex, onClose, label }) {
   }, []);
 
   useEffect(() => {
-    const onKey = (event) => {
+    const onKey = (event: KeyboardEvent) => {
       if (event.key === 'ArrowRight' && index < count - 1) {
         event.preventDefault();
         onIndex(index + 1);
@@ -213,9 +226,15 @@ function MediaViewerOverlay({ urls, index, onIndex, onClose, label }) {
  * @param {string[]} urls the media attached to the record
  * @param {string} label what the media belongs to, for the viewer's label
  */
-export function AdminMediaGrid({ urls = [], label = 'media' }) {
-  const [openIndex, setOpenIndex] = useState(null);
-  const originRef = useRef(null);
+export function AdminMediaGrid({
+  urls = [],
+  label = 'media',
+}: {
+  urls?: string[];
+  label?: string;
+}) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const originRef = useRef<HTMLButtonElement>(null);
   const safeUrls = urls.filter(Boolean);
 
   const close = useCallback(() => {

@@ -1,3 +1,4 @@
+import type { AdminRoleChangeRequest, UserRole } from '@/types/admin';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -27,7 +28,7 @@ import { LxIcon } from '@/components/ui/lx-icon';
 const ARMING_DELAY_MS = 500;
 const REASON_MAX = CHAR_LIMITS.reportDescription;
 
-const transitionLabel = (currentRole, target) => {
+const transitionLabel = (currentRole: string | undefined, target: string) => {
   if (target === 'admin') {
     return 'promote to administrator';
   }
@@ -45,11 +46,19 @@ export function RoleChangeDialog({
   serverError = null,
   onConfirm,
   onClose,
+}: {
+  open: boolean;
+  currentRole?: string;
+  assignableRoles?: UserRole[];
+  busy?: boolean;
+  serverError?: string | null;
+  onConfirm: (values: AdminRoleChangeRequest) => void;
+  onClose: () => void;
 }) {
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState<UserRole | ''>('');
   const [reason, setReason] = useState('');
   const [armed, setArmed] = useState(false);
-  const [localErrors, setLocalErrors] = useState({});
+  const [localErrors, setLocalErrors] = useState<Partial<Record<string, string>>>({});
   const openCount = useRef(0);
 
   useEffect(() => {
@@ -91,7 +100,7 @@ export function RoleChangeDialog({
     if (!armed || busy) {
       return;
     }
-    const next = {};
+    const next: Record<string, string> = {};
     if (!role) {
       next.role = 'select a role';
     }
@@ -105,7 +114,7 @@ export function RoleChangeDialog({
     if (overLimit) {
       return;
     }
-    onConfirm({ role, reason: reason.trim() });
+    onConfirm({ role: role as UserRole, reason: reason.trim() });
   };
 
   const confirmInert = !armed || busy;

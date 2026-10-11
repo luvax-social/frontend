@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { isValidElement, useEffect, useRef } from 'react';
 
 import { LxIcon } from '@/components/ui/lx-icon';
 import { v } from '@/config/tokens';
@@ -29,19 +30,29 @@ export function SplitView({
   emptyTitle = 'nothing selected',
   emptyHint = 'pick a record from the list to see it here.',
   emptyIcon = 'explore',
+}: {
+  list: ReactNode;
+  detail: ReactNode;
+  hasSelection: boolean;
+  onClose: () => void;
+  backLabel?: string;
+  emptyTitle?: string;
+  emptyHint?: string;
+  emptyIcon?: string;
 }) {
-  const detailRef = useRef(null);
-  const headingRef = useRef(null);
+  const detailRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLDivElement>(null);
 
   // When the open record changes, focus moves to the detail region and it is
   // scrolled back to its own top. Without this, opening a second record from
   // the list would leave focus on the row and the detail scrolled to wherever
   // the previous one was left.
+  const detailKey = isValidElement(detail) ? detail.key : undefined;
   useEffect(() => {
     if (!hasSelection) return;
     if (detailRef.current) detailRef.current.scrollTop = 0;
     if (headingRef.current) headingRef.current.focus();
-  }, [hasSelection, detail?.key]);
+  }, [hasSelection, detailKey]);
 
   return (
     <div className={`lx-admin-split${hasSelection ? ' has-selection' : ''}`}>

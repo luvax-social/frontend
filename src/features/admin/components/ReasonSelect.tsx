@@ -1,3 +1,4 @@
+import type { ReportReasonVocabularyResponse } from '@/types/domain';
 import { useEffect, useRef, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -31,16 +32,27 @@ export function ReasonSelect({
   error,
   disabled = false,
   id = 'reason-select',
+}: {
+  reasons?: ReportReasonVocabularyResponse[];
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  disabled?: boolean;
+  id?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
       return undefined;
     }
-    const onClickAway = (event) => {
-      if (rootRef.current && !rootRef.current.contains(event.target)) {
+    const onClickAway = (event: MouseEvent) => {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        !rootRef.current.contains(event.target)
+      ) {
         setOpen(false);
       }
     };

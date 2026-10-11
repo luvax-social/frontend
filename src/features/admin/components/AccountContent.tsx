@@ -1,3 +1,7 @@
+import { getErrorMessage } from '@/utils/errors';
+import type { AdminPostSummaryResponse, AdminCommentSummaryResponse } from '@/types/admin';
+type ContentRecord = AdminPostSummaryResponse | AdminCommentSummaryResponse;
+type ContentKind = 'posts' | 'comments';
 import { useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -32,13 +36,25 @@ import { ReasonConfirmDialog } from './ReasonConfirmDialog';
  *
  * @param {string} userId the account whose content to show
  */
-function ContentRow({ row, kind, onRemove, onRestore, busy }) {
-  const text = kind === 'posts' ? row.caption : row.content;
+function ContentRow({
+  row,
+  kind,
+  onRemove,
+  onRestore,
+  busy,
+}: {
+  row: ContentRecord;
+  kind: ContentKind;
+  onRemove: (row: ContentRecord) => void;
+  onRestore: (row: ContentRecord) => void;
+  busy: boolean;
+}) {
+  const text = 'caption' in row ? row.caption : row.content;
   const isRemoved = row.removed === true;
-  const status = kind === 'posts' ? row.status : null;
+  const status = 'status' in row ? row.status : null;
   // Posts only. `mediaUrls` exists on a post row and not on a comment row, and
   // a text post carries an empty array rather than a missing field.
-  const media = kind === 'posts' && Array.isArray(row.mediaUrls) ? row.mediaUrls : [];
+  const media = 'mediaUrls' in row && Array.isArray(row.mediaUrls) ? row.mediaUrls : [];
 
   return (
     <div
@@ -91,7 +107,7 @@ function ContentRow({ row, kind, onRemove, onRestore, busy }) {
           {kind === 'posts' ? (
             <>
               <span aria-hidden="true">·</span>
-              <span>{row.commentCount ?? 0} comments</span>
+              <span>{('commentCount' in row ? row.commentCount : 0) ?? 0} comments</span>
             </>
           ) : null}
         </div>
@@ -112,7 +128,7 @@ function ContentRow({ row, kind, onRemove, onRestore, busy }) {
   );
 }
 
-function ContentList({ userId, kind }) {
+function ContentList({ userId, kind }: { userId?: string | null; kind: ContentKind }) {
   const singular = kind === 'posts' ? 'post' : 'comment';
   const {
     rows,
@@ -126,8 +142,10 @@ function ContentList({ userId, kind }) {
   } = useUserContent(userId, kind);
   const moderation = useContentModeration(userId);
 
-  const [active, setActive] = useState(null);
-  const [serverError, setServerError] = useState(null);
+  const [active, setActive] = useState<{ row: ContentRecord; mode: 'remove' | 'restore' } | null>(
+    null
+  );
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const close = () => {
     setActive(null);
@@ -140,7 +158,7 @@ function ContentList({ userId, kind }) {
     moderation.removeComment.isPending ||
     moderation.restoreComment.isPending;
 
-  const handleError = (err) => {
+  const handleError = (err: unknown) => {
     const described = describeError(err);
     if (described.kind === 'field') {
       setServerError(described.fields?.reason || described.message);
@@ -158,7 +176,8 @@ function ContentList({ userId, kind }) {
     close();
   };
 
-  const runRemove = (reason) => {
+  const runRemove = (reason: string) => {
+    if (!active) return;
     const mutation = kind === 'posts' ? moderation.removePost : moderation.removeComment;
     mutation.mutate(
       { entityId: active.row.id, reason },
@@ -172,7 +191,8 @@ function ContentList({ userId, kind }) {
     );
   };
 
-  const runRestore = (reason) => {
+  const runRestore = (reason: string) => {
+    if (!active) return;
     const mutation = kind === 'posts' ? moderation.restorePost : moderation.restoreComment;
     mutation.mutate(
       { entityId: active.row.id, reason },
@@ -190,7 +210,9 @@ function ContentList({ userId, kind }) {
     return <LoadingState rows={4} />;
   }
   if (isError && rows.length === 0) {
-    return <FailedState message={error?.message} onRetry={refetch} />;
+    return (
+      <FailedState message={getErrorMessage(error, 'Something went wrong.')} onRetry={refetch} />
+    );
   }
   if (rows.length === 0) {
     return (
@@ -248,8 +270,8 @@ function ContentList({ userId, kind }) {
   );
 }
 
-export function AccountContent({ userId }) {
-  const [tab, setTab] = useState('posts');
+export function AccountContent({ userId }: { userId?: string | null }) {
+  const [tab, setTab] = useState<ContentKind>('posts');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

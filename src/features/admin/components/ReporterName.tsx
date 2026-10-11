@@ -8,7 +8,7 @@ import { shortId, useResolveUsername } from '../hooks/useResolveUsername';
  * the reviewer would otherwise see, never a placeholder name. Resolution is
  * cached by id, so repeated ids across a list cost one request each.
  */
-export function ReporterName({ userId, prefix = '' }) {
+export function ReporterName({ userId, prefix = '' }: { userId?: string | null; prefix?: string }) {
   const { username, isLoading } = useResolveUsername(userId);
 
   if (username) {
@@ -21,7 +21,10 @@ export function ReporterName({ userId, prefix = '' }) {
   }
 
   return (
-    <span style={{ fontFamily: v.fontMono, color: v.ink2, fontSize: '0.92em' }} title={userId}>
+    <span
+      style={{ fontFamily: v.fontMono, color: v.ink2, fontSize: '0.92em' }}
+      title={userId ?? undefined}
+    >
       {isLoading ? shortId(userId) + '...' : shortId(userId)}
     </span>
   );

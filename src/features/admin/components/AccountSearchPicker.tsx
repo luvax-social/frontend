@@ -1,3 +1,8 @@
+import type { ReactNode } from 'react';
+export interface AccountSelection {
+  id: string;
+  username?: string;
+}
 import { useEffect, useRef, useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -29,12 +34,17 @@ export function AccountSearchPicker({
   onSelect,
   placeholder = 'search accounts…',
   id = 'account-picker',
+}: {
+  value: AccountSelection | null;
+  onSelect: (account: AccountSelection | null) => void;
+  placeholder?: string;
+  id?: string;
 }) {
   const { text, setText, term, cooling, cooldownRemaining, startCooldown, tooShort, reset } =
     useDebouncedSearch({ minLength: 2 });
   const { rows, isLoading, isError, error, active } = useAccountSearch(term);
   const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const described = isError ? describeError(error) : null;
@@ -49,8 +59,12 @@ export function AccountSearchPicker({
     if (!open) {
       return undefined;
     }
-    const onClickAway = (event) => {
-      if (rootRef.current && !rootRef.current.contains(event.target)) {
+    const onClickAway = (event: MouseEvent) => {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        !rootRef.current.contains(event.target)
+      ) {
         setOpen(false);
       }
     };
@@ -225,7 +239,7 @@ export function AccountSearchPicker({
   );
 }
 
-const Hint = ({ children }) => (
+const Hint = ({ children }: { children?: ReactNode }) => (
   <div style={{ padding: '10px 12px', fontFamily: v.fontBody, fontSize: 13, color: v.ink2 }}>
     {children}
   </div>

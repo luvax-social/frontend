@@ -1,3 +1,8 @@
+import type { ReactNode } from 'react';
+import { getErrorMessage } from '@/utils/errors';
+import type { AdminUserDetailResponse, AdminUserSessionResponse } from '@/types/admin';
+import type { UseMutationResult } from '@tanstack/react-query';
+import type { AppError } from '@/api/axiosClient';
 import { useState } from 'react';
 
 import { v } from '@/config/tokens';
@@ -43,23 +48,23 @@ import { describeError, getErrorCode } from '../lib/errors';
 // The status transitions offered per current status, each gated by
 // canChangeStatus. Verified against the backend state machine in
 // accounts-contract-verification.md 3.3 so a rendered control does not 409.
-const STATUS_ACTIONS = {
+const STATUS_ACTIONS: Record<string, string[]> = {
   active: ['suspend', 'ban'],
   suspended: ['unsuspend', 'ban'],
   banned: ['unban'],
   deactivated: ['ban'],
 };
 
-export function AccountLifecyclePanel({ userId }) {
+export function AccountLifecyclePanel({ userId }: { userId?: string | null }) {
   const signedInUserId = useAuthStore((state) => state.user?.id);
   const { detail, capabilities, isLoading, isError, error, refetch } = useAccountDetail(userId);
   const actions = useAccountActions(userId);
 
-  const [dialog, setDialog] = useState(null);
+  const [dialog, setDialog] = useState<string | null>(null);
   const [serverError, setServerError] = useState('');
   // The row a per-session revoke confirmation is about, held while the dialog is
   // open so the confirmation can name what it is ending.
-  const [sessionToRevoke, setSessionToRevoke] = useState(null);
+  const [sessionToRevoke, setSessionToRevoke] = useState<AdminUserSessionResponse | null>(null);
   const currentSession = useCurrentSession();
 
   const isSelf = Boolean(signedInUserId) && signedInUserId === userId;
@@ -70,7 +75,7 @@ export function AccountLifecyclePanel({ userId }) {
   const isOwnSessionRow =
     currentSession.isKnown &&
     Boolean(sessionToRevoke?.id) &&
-    sessionToRevoke.id === currentSession.sessionId;
+    sessionToRevoke?.id === currentSession.sessionId;
 
   if (isLoading) {
     return <LoadingState rows={3} />;
@@ -83,14 +88,16 @@ export function AccountLifecyclePanel({ userId }) {
     if (getErrorCode(error) === 'FORBIDDEN') {
       return null;
     }
-    return <FailedState message={error?.message} onRetry={refetch} />;
+    return (
+      <FailedState message={getErrorMessage(error, 'Something went wrong.')} onRetry={refetch} />
+    );
   }
 
   if (!capabilities || !detail) {
     return null;
   }
 
-  const openDialog = (type) => {
+  const openDialog = (type: string) => {
     setServerError('');
     setDialog(type);
   };
@@ -100,7 +107,11 @@ export function AccountLifecyclePanel({ userId }) {
     setSessionToRevoke(null);
   };
 
-  const run = (mutation, payload, successMessage) => {
+  const run = <T, V>(
+    mutation: Pick<UseMutationResult<T, AppError, V>, 'mutate'>,
+    payload: V,
+    successMessage: string
+  ) => {
     setServerError('');
     mutation.mutate(payload, {
       onSuccess: () => {
@@ -287,7 +298,7 @@ export function AccountLifecyclePanel({ userId }) {
         busy={actions.revokeSession.isPending}
         serverError={serverError || null}
         onConfirm={(reason) =>
-          run(actions.revokeSession, { sessionId: sessionToRevoke?.id, reason }, 'session ended')
+          run(actions.revokeSession, { sessionId: sessionToRevoke!.id, reason }, 'session ended')
         }
         onClose={closeDialog}
       />
@@ -319,7 +330,7 @@ export function AccountLifecyclePanel({ userId }) {
   );
 }
 
-const Field = ({ label, children }) => (
+const Field = ({ label, children }: { label?: ReactNode; children?: ReactNode }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
     <span
       style={{
@@ -338,7 +349,7 @@ const Field = ({ label, children }) => (
   </div>
 );
 
-function StateSummary({ detail, isSelf }) {
+function StateSummary({ detail, isSelf }: { detail: AdminUserDetailResponse; isSelf: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

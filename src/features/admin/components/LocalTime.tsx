@@ -14,7 +14,13 @@ const localZone = () => {
   }
 };
 
-export function LocalTime({ value, showZone = true }) {
+export function LocalTime({
+  value,
+  showZone = true,
+}: {
+  value?: string | number | null;
+  showZone?: boolean;
+}) {
   if (!value) {
     return <span style={{ color: v.ink2 }}>-</span>;
   }

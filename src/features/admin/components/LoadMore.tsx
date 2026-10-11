@@ -11,7 +11,15 @@ import { LxBtn } from '@/features/luvax/components/primitives';
  * Renders nothing once `hasNextPage` is false, which is the only correct
  * termination signal.
  */
-export function LoadMore({ hasNextPage, isFetchingNextPage, onLoadMore }) {
+export function LoadMore({
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: {
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore: () => unknown;
+}) {
   if (!hasNextPage) {
     return null;
   }

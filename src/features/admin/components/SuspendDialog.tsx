@@ -1,3 +1,4 @@
+import type { AdminSuspendUserRequest } from '@/types/admin';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -39,7 +40,19 @@ const REASON_MAX = CHAR_LIMITS.reportDescription;
 const MIN_DAYS = 1;
 const MAX_DAYS = 3650;
 
-export function SuspendDialog({ open, busy = false, serverError = null, onConfirm, onClose }) {
+export function SuspendDialog({
+  open,
+  busy = false,
+  serverError = null,
+  onConfirm,
+  onClose,
+}: {
+  open: boolean;
+  busy?: boolean;
+  serverError?: string | null;
+  onConfirm: (values: AdminSuspendUserRequest) => void;
+  onClose: () => void;
+}) {
   const [reason, setReason] = useState('');
   // 'dated' | 'indefinite'. Dated is the default because it is the ordinary
   // case; indefinite is a deliberate escalation and is chosen, never defaulted
@@ -47,7 +60,7 @@ export function SuspendDialog({ open, busy = false, serverError = null, onConfir
   const [mode, setMode] = useState('dated');
   const [days, setDays] = useState('7');
   const [armed, setArmed] = useState(false);
-  const [localErrors, setLocalErrors] = useState({});
+  const [localErrors, setLocalErrors] = useState<Partial<Record<string, string>>>({});
   const [nowMs] = useState(() => Date.now());
   const openCount = useRef(0);
 
@@ -98,7 +111,7 @@ export function SuspendDialog({ open, busy = false, serverError = null, onConfir
     if (!armed || busy) {
       return;
     }
-    const next = {};
+    const next: Record<string, string> = {};
     if (!reason.trim()) {
       next.reason = 'a reason is required';
     }

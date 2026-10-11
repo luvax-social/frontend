@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { v } from '@/config/tokens';
 
 /**
@@ -20,7 +21,7 @@ import { v } from '@/config/tokens';
  * outline is deliberately not suppressed: the panel's focus ring is what says
  * which field has the caret.
  */
-export const textarea = (invalid = false) => ({
+export const textarea = (invalid = false): CSSProperties => ({
   width: '100%',
   minHeight: 84,
   resize: 'vertical',
@@ -36,7 +37,7 @@ export const textarea = (invalid = false) => ({
 });
 
 /** A calm inline notice: an explanation, not an alarm. */
-export const notice = (tone = 'neutral') => {
+export const notice = (tone: 'neutral' | 'bad' | 'warn' = 'neutral'): CSSProperties => {
   const palette = {
     neutral: { bg: v.surface, border: v.border, color: v.ink2 },
     bad: { bg: v.errorDim, border: v.error, color: v.errorText },
@@ -56,4 +57,4 @@ export const notice = (tone = 'neutral') => {
 };
 
 /** The row of actions at the foot of a section. */
-export const actionRow = { display: 'flex', gap: 8, flexWrap: 'wrap' };
+export const actionRow: CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap' };

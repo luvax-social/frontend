@@ -1,3 +1,10 @@
+import type { ReactNode } from 'react';
+export interface FilterGroup {
+  key: string;
+  label: ReactNode;
+  value?: string;
+  options: { value: string; label: ReactNode; disabled?: boolean }[];
+}
 import { v } from '@/config/tokens';
 import { LxTag } from '@/features/luvax/components/primitives';
 import { LxIcon } from '@/components/ui/lx-icon';
@@ -24,7 +31,17 @@ import { LxIcon } from '@/components/ui/lx-icon';
  * @param {()=>void} onClear
  * @param {boolean} isDirty whether any filter is set away from "all"
  */
-export function FilterBar({ groups, onChange, onClear, isDirty }) {
+export function FilterBar({
+  groups,
+  onChange,
+  onClear,
+  isDirty,
+}: {
+  groups: FilterGroup[];
+  onChange: (key: string, value: string) => void;
+  onClear: () => void;
+  isDirty?: boolean;
+}) {
   return (
     <div className="lx-admin-filterbar">
       {groups.map((group) => (

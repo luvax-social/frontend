@@ -124,6 +124,7 @@ export interface AdminPostSummaryResponse {
   commentCount: number;
   createdAt: string;
   mediaUrls: string[];
+  restorable: boolean;
 }
 
 // modules/admin/dto/response/AdminReportTargetResponse.java

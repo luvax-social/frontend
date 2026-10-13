@@ -51,6 +51,7 @@ function ContentRow({
 }) {
   const text = 'caption' in row ? row.caption : row.content;
   const isRemoved = row.removed === true;
+  const canRestore = kind !== 'posts' || ('restorable' in row && row.restorable === true);
   const status = 'status' in row ? row.status : null;
   // Posts only. `mediaUrls` exists on a post row and not on a comment row, and
   // a text post carries an empty array rather than a missing field.
@@ -115,7 +116,17 @@ function ContentRow({
 
       <div style={{ flexShrink: 0 }}>
         {isRemoved ? (
-          <LxBtn variant="secondary" size="sm" disabled={busy} onClick={() => onRestore(row)}>
+          <LxBtn
+            variant="secondary"
+            size="sm"
+            disabled={busy || !canRestore}
+            onClick={() => onRestore(row)}
+            title={
+              !canRestore
+                ? 'Owner-deleted or legacy content cannot be restored by moderation.'
+                : undefined
+            }
+          >
             restore
           </LxBtn>
         ) : (

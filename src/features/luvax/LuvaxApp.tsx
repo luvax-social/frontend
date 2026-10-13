@@ -156,12 +156,9 @@ export function LuvaxApp() {
       `color-mix(in srgb, ${tweaks.accent} ${tweaks.dark ? '22%' : '28%'}, var(--lx-base))`
     );
     root.style.setProperty('--lx-accent-dark', `color-mix(in srgb, ${tweaks.accent} 78%, #000)`);
-    root.style.setProperty(
-      '--lx-accent-text',
-      tweaks.dark
-        ? `color-mix(in srgb, ${tweaks.accent} 60%, #fff)`
-        : `color-mix(in srgb, ${tweaks.accent} 60%, #000)`
-    );
+    // Theme changes also come from settings/panel controls. Let the stylesheet
+    // resolve text contrast from data-theme rather than freezing it inline.
+    root.style.removeProperty('--lx-accent-text');
     root.style.setProperty('--font-display', FONT_MAP[tweaks.font] || FONT_MAP.syne);
   }, [tweaks.dark, tweaks.accent, tweaks.font, tweaks.density]);
 

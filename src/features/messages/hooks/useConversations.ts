@@ -19,6 +19,10 @@ export const useConversations = () => {
     queryFn: ({ pageParam = null, signal }) =>
       messageService.listConversations({ cursor: pageParam, limit: 20, signal }),
     staleTime: STALE_TIME.SHORT,
+    // New and restored conversations have no subscribed thread topic yet.
+    // REST polling recovers those inbox changes and missed socket frames.
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
     getNextPageParam: getNextCursor,
     initialPageParam: null,
   });

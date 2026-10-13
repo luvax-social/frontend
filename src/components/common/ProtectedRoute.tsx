@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import PageLoader from '@/components/common/PageLoader';
+import SessionRestoreError from '@/components/common/SessionRestoreError';
 import { ROUTES } from '@/config/constants';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -28,10 +29,13 @@ export default function ProtectedRoute() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const accessToken = useAuthStore((state) => state.accessToken);
   const isBootstrapping = useAuthStore((state) => state.isBootstrapping);
+  const sessionRestoreError = useAuthStore((state) => state.sessionRestoreError);
 
   if (isBootstrapping) {
     return <PageLoader label="Checking your session..." />;
   }
+
+  if (sessionRestoreError) return <SessionRestoreError />;
 
   // Require both the persisted flag AND a live in-memory access token.
   // This closes the window between persist rehydration and AuthSessionBootstrap

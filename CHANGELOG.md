@@ -115,6 +115,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- A failed first message in a newly created conversation keeps its text and staged attachments available for retry.
+- Creating or deleting a post refreshes server-owned profile counts, while post actions and composer controls provide named, larger touch targets.
+- The moderation panel disables restoration when the server reports that a post was deleted by its owner.
+- Moderation filters use keyboard-operable buttons and wrap within phone and tablet viewports.
+- Notifications load older rows when the viewport reaches the list boundary, expose paging retry and give filter and read controls larger touch targets.
+- Switching to the light theme restores readable accent text on account and settings screens.
+- Message privacy persists the supported everyone, following and nobody values, and account reset-link requests include a fresh challenge token.
+- Chat loads older history without losing cursors or the readers position, discovers incoming conversations, keeps nested menu keyboard actions scoped and provides a visible media close control.
+- Post, story and shared dialogs trap keyboard focus, close with Escape, fit short viewports and return focus to their opener even after a caption changes.
+- Session recovery offers a retry during outages, serializes cookie refresh across tabs and retries interrupted rotations without losing identity or retaining another accounts cache.
 - Operational screens and rendering errors no longer retain homepage indexing metadata, unknown paths return real 404s, proxy redirects preserve HTTPS and mutable assets require cache revalidation.
 - Anonymous support pages now contain their primary heading and content in a main landmark.
 - The account filter on the activity log no longer cuts its placeholder text off at the edge of the field.

@@ -136,6 +136,7 @@ function AlbumTile({
   return (
     <div
       ref={tileRef}
+      data-message-id={item.id}
       style={{ position: 'relative', minWidth: 0 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => {

@@ -1,10 +1,9 @@
 import type { ChangeEvent, ReactNode } from 'react';
-import type { UserSummaryResponse, UserSettingsResponse } from '@/types/domain';
+import type { UserSummaryResponse, UserSettingsResponse, MessagePermission } from '@/types/domain';
 import type { AppError } from '@/api/axiosClient';
 import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 type ProfileForm = z.infer<typeof profileSchema> & { avatarUrl: string; bannerUrl: string };
-// Retains the existing legacy control; allowMessageRequests is absent from the current API DTO.
-type SettingsView = UserSettingsResponse & { allowMessageRequests?: boolean };
+type SettingsView = UserSettingsResponse;
 type BooleanSetting = {
   [K in keyof SettingsView]: NonNullable<SettingsView[K]> extends boolean ? K : never;
 }[keyof SettingsView] &
@@ -14,6 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import { authApi } from '@/api/authApi';
+import { TurnstileWidget } from '@/components/common/TurnstileWidget';
+import { useTurnstile } from '@/hooks/useTurnstile';
 import { clearAuthAndRedirect } from '@/api/axiosClient';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { LxIcon } from '@/components/ui/lx-icon';
@@ -594,6 +595,8 @@ export function NotificationsCategory() {
  * Both accept a partial body and leave omitted fields alone.
  */
 export function PrivacyCategory() {
+  const updateSettings = useUpdateMySettings();
+  const [messageFailure, setMessageFailure] = useState('');
   const { data: profileResponse, isLoading: profileLoading, error: profileError } = useMyProfile();
   const profile = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
   const updateProfile = useUpdateMyProfile();
@@ -661,13 +664,39 @@ export function PrivacyCategory() {
           label="allow story replies"
           sub="people can message you in response to a story"
         />
-        <SettingToggle
-          settings={settings}
-          isLoading={settingsLoading}
-          field="allowMessageRequests"
-          label="allow message requests"
-          sub="people you do not follow can message you"
+        <SettingsRow
+          label="who can message you"
+          sub="choose whether to accept messages from everyone, people you follow, or nobody"
+          control={
+            <select
+              aria-label="who can message you"
+              className="lx-settings-input"
+              style={{ maxWidth: '50%', minWidth: 0 }}
+              value={settings?.messagePermission ?? 'everyone'}
+              disabled={settingsLoading || updateSettings.isPending}
+              onChange={(event) => {
+                const value = event.target.value as MessagePermission;
+                setMessageFailure('');
+                updateSettings.mutate(
+                  { messagePermission: value },
+                  {
+                    onError: () =>
+                      setMessageFailure("We couldn't save your message preference. Try again."),
+                  }
+                );
+              }}
+            >
+              <option value="everyone">everyone</option>
+              <option value="following">people you follow</option>
+              <option value="nobody">nobody</option>
+            </select>
+          }
         />
+        {messageFailure && (
+          <div className="lx-settings-error" role="alert">
+            {messageFailure}
+          </div>
+        )}
         <SettingToggle
           settings={settings}
           isLoading={settingsLoading}
@@ -865,14 +894,20 @@ export function AccountCategory() {
 
   const [resetState, setResetState] = useState('idle');
   const [resetError, setResetError] = useState('');
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const resetChallenge = useTurnstile(setResetToken);
 
   const sendReset = async () => {
     setResetError('');
     setResetState('sending');
     try {
-      await authApi.forgotPassword({ email: profile?.email ?? sessionUser?.email });
+      await authApi.forgotPassword({
+        email: profile?.email ?? sessionUser?.email,
+        turnstileToken: resetToken ?? undefined,
+      });
       setResetState('sent');
     } catch {
+      resetChallenge.reset();
       setResetState('idle');
       setResetError("we couldn't send that email just now. try again in a moment.");
     }
@@ -1002,12 +1037,13 @@ export function AccountCategory() {
               choose the new one there.
             </p>
             {resetError ? <div className="lx-settings-error">{resetError}</div> : null}
+            <TurnstileWidget {...resetChallenge.widgetProps} size="flexible" />
             <LxBtn
               variant="secondary"
               size="sm"
               type="button"
               onClick={sendReset}
-              disabled={resetState === 'sending'}
+              disabled={resetState === 'sending' || !resetToken}
             >
               {resetState === 'sending' ? 'sending' : 'send me a reset link'}
             </LxBtn>

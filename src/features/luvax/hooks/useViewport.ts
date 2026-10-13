@@ -5,8 +5,8 @@ import type { Viewport } from '../LuvaxTweaksContext';
 export function useViewport() {
   const get = (): Viewport => {
     const w = window.innerWidth;
-    if (w >= 1200) return 'desktop';
-    if (w >= 768) return 'tablet';
+    if (w >= 960) return 'desktop';
+    if (w >= 600) return 'tablet';
     return 'mobile';
   };
   const [vp, setVp] = useState(get);

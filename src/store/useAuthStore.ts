@@ -12,6 +12,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   hasHydrated: boolean;
+  sessionRestoreError: boolean;
+  sessionRestoreAttempt: number;
 }
 
 interface AuthActions {
@@ -23,6 +25,8 @@ interface AuthActions {
   setBootstrapping: (value: boolean) => void;
   markHydrated: () => void;
   logout: () => void;
+  setSessionRestoreError: (value: boolean) => void;
+  retrySessionRestore: () => void;
 }
 
 type PersistedAuth = { user: Omit<SessionUser, 'role'> | null; isAuthenticated: boolean };
@@ -121,6 +125,8 @@ const initialState: AuthState = {
   isBootstrapping: true,
   // Starts false; set to true only after persist middleware rehydrates.
   hasHydrated: false,
+  sessionRestoreError: false,
+  sessionRestoreAttempt: 0,
 };
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -139,6 +145,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           // Captured here at login and at refresh, normalised once.
           role: normalizeRole(user?.role),
           isAuthenticated: Boolean(nextAccessToken),
+          sessionRestoreError: false,
         });
       },
 
@@ -186,6 +193,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({
           hasHydrated: true,
         }),
+
+      setSessionRestoreError: (sessionRestoreError) => set({ sessionRestoreError }),
+      retrySessionRestore: () =>
+        set((state) => ({
+          sessionRestoreError: false,
+          isBootstrapping: true,
+          sessionRestoreAttempt: state.sessionRestoreAttempt + 1,
+        })),
 
       logout: () => {
         clearLegacyAuthStorage();

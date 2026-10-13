@@ -263,7 +263,9 @@ export const PANEL_CSS = `
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--lx-border-subtle);
   border-radius: var(--radius-lg);
@@ -277,6 +279,21 @@ export const PANEL_CSS = `
   color: var(--lx-ink-2);
 }
 .lx-admin-filter-options { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.lx-admin-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 3px 9px;
+  font: 500 11px var(--font-body);
+  border-radius: 999px;
+  border: 1px solid var(--lx-border);
+  background: var(--lx-surface);
+  color: var(--lx-ink-2);
+  cursor: pointer;
+}
+.lx-admin-filter-chip[aria-pressed="true"] { background: var(--lx-accent-dim); color: var(--lx-accent-text); border-color: transparent; }
+.lx-admin-filter-chip:disabled { opacity: 0.45; cursor: not-allowed; }
 /* The clear affordance sits apart from the conditions, pushed to the end of the
    bar, so it is never where a condition control is expected. */
 .lx-admin-filter-clear { margin-left: auto; align-self: center; }

@@ -64,14 +64,31 @@ export function NotificationsScreen() {
   const [filter, setFilter] = useState('all');
   const [view, setView] = useState('list');
   const seenAdvancedRef = useRef(false);
+  const pagingRef = useRef<HTMLButtonElement | null>(null);
 
   const { data: state } = useNotificationState();
   useLiveNotifications();
   const advanceSeen = useDebouncedAdvanceSeen();
   const markAllRead = useMarkAllRead();
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage, isFetchNextPageError } =
     useNotificationList(filter);
+  useEffect(() => {
+    const target = pagingRef.current;
+    if (typeof IntersectionObserver === 'undefined') return;
+    if (!target || !hasNextPage || isFetchingNextPage || isFetchNextPageError || view !== 'list')
+      return;
+    // The shell may scroll the document rather than this list. Observe the
+    // actual end marker in the viewport instead of assuming a scroll container.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void fetchNextPage();
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage, view, filter]);
   const items = useMemo(
     () => data?.pages?.flatMap((page) => extractPageContent(page)) ?? [],
     [data]
@@ -150,6 +167,7 @@ export function NotificationsScreen() {
             background: 'none',
             border: 'none',
             cursor: pageHead ? 'pointer' : 'default',
+            minHeight: 44,
             fontFamily: v.fontBody,
             fontSize: 12,
             color: pageHead ? v.accentText : v.ink3,
@@ -175,6 +193,8 @@ export function NotificationsScreen() {
             onClick={() => setFilter(chip)}
             style={{
               flexShrink: 0,
+              minHeight: 44,
+              minWidth: 44,
               padding: '6px 14px',
               borderRadius: 999,
               border: 'none',
@@ -193,19 +213,7 @@ export function NotificationsScreen() {
 
       <FollowRequestsEntry state={state} onOpen={() => setView('requests')} />
 
-      <div
-        style={{ flex: 1, overflowY: 'auto', paddingBottom: 96 }}
-        onScroll={(event) => {
-          const el = event.currentTarget;
-          if (
-            hasNextPage &&
-            !isFetchingNextPage &&
-            el.scrollHeight - el.scrollTop - el.clientHeight < 200
-          ) {
-            fetchNextPage();
-          }
-        }}
-      >
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 96 }}>
         {isLoading ? (
           <div
             style={{
@@ -239,6 +247,21 @@ export function NotificationsScreen() {
               ))}
             </div>
           ))
+        )}
+        {hasNextPage && (
+          <button
+            ref={pagingRef}
+            type="button"
+            disabled={isFetchingNextPage}
+            onClick={() => void fetchNextPage()}
+            style={{ display: 'block', margin: '16px auto', minHeight: 44, color: v.ink2 }}
+          >
+            {isFetchingNextPage
+              ? 'Loading notifications...'
+              : isFetchNextPageError
+                ? 'Try loading more notifications again'
+                : 'Load more notifications'}
+          </button>
         )}
       </div>
     </div>

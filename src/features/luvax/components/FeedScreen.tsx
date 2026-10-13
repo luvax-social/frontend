@@ -154,6 +154,7 @@ export function StoriesCarousel({ viewport }: { viewport: Viewport }) {
       {others.map((entry) => (
         <button
           key={entry.userId}
+          data-overlay-target={entry.userId}
           onClick={() => openOverlay(routeTo.storyView(entry.stories[0].id))}
           style={{
             background: 'none',

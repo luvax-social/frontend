@@ -1,10 +1,10 @@
 import { getErrorData } from '@/utils/errors';
-import { useParams } from 'react-router-dom';
+import { matchPath, useLocation, useParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { useEffect } from 'react';
 
 import { v } from '@/config/tokens';
-import { routeTo } from '@/config/constants';
+import { ROUTES, routeTo } from '@/config/constants';
 import { extractPageContent, formatPostCount } from '@/utils/helpers';
 
 import { LxIcon } from './primitives';
@@ -95,7 +95,13 @@ function StateBlock({ icon, title, detail }: { icon: string; title: string; deta
 }
 
 export function HashtagScreen() {
-  const { name } = useParams();
+  const params = useParams();
+  const location = useLocation();
+  const name =
+    params.name ??
+    (typeof location.state?.background === 'string'
+      ? matchPath(ROUTES.HASHTAG, location.state.background)?.params.name
+      : undefined);
   const openOverlay = useOverlayNavigate();
   const detail = useHashtagDetail(name);
   const hashtag = detail.data?.data;
@@ -155,6 +161,7 @@ export function HashtagScreen() {
             <div
               key={post.id}
               role="button"
+              data-overlay-target={post.id}
               tabIndex={0}
               onClick={() => openOverlay(routeTo.postDetail(post.id))}
               onKeyDown={(event) => {

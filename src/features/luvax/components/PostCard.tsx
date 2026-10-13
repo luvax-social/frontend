@@ -381,13 +381,14 @@ export function PostCard({
           <button
             ref={menuButtonRef}
             type="button"
+            aria-label="Post options"
             data-lxtap="1"
             onClick={() => setMenuOpen((open) => !open)}
             style={{
               background: 'transparent',
               border: 'none',
-              width: 20,
-              height: 20,
+              width: 44,
+              height: 44,
               cursor: 'pointer',
               marginLeft: 'auto',
               display: 'flex',
@@ -452,6 +453,7 @@ export function PostCard({
             type="button"
             data-lxtap="1"
             onClick={handleLikeToggle}
+            aria-label={liked ? 'Unlike post' : 'Like post'}
             className={`lx-heart-button ${heartBurst ? 'is-liked' : ''}`}
             style={{
               background: 'none',
@@ -462,6 +464,8 @@ export function PostCard({
               alignItems: 'center',
               gap: 5,
               color: liked ? HEART_COLOR : v.ink3,
+              minHeight: 44,
+              minWidth: 44,
             }}
           >
             <span className="lx-heart-icon" style={{ display: 'inline-flex' }}>
@@ -475,7 +479,11 @@ export function PostCard({
             type="button"
             data-lxtap="1"
             onClick={() => openOverlay(routeTo.postDetail(post.id))}
+            aria-label="Open post comments"
+            data-overlay-target={post.id}
             style={{
+              minHeight: 44,
+              minWidth: 44,
               background: 'none',
               border: 'none',
               cursor: 'pointer',
@@ -494,7 +502,15 @@ export function PostCard({
             type="button"
             data-lxtap="1"
             onClick={() => setShareOpen(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            aria-label="Share post"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              minHeight: 44,
+              minWidth: 44,
+            }}
           >
             <LxIcon name="share" size={17} color={v.ink3} />
           </button>
@@ -502,6 +518,7 @@ export function PostCard({
             type="button"
             data-lxtap="1"
             onClick={handleSaveToggle}
+            aria-label={saved ? 'Unsave post' : 'Save post'}
             className={saveBurst ? 'lx-bookmark-button is-saved' : 'lx-bookmark-button'}
             style={{
               background: 'none',
@@ -509,6 +526,8 @@ export function PostCard({
               cursor: 'pointer',
               padding: 0,
               marginLeft: 'auto',
+              minHeight: 44,
+              minWidth: 44,
             }}
           >
             <span className="lx-bookmark-icon" style={{ display: 'inline-flex' }}>

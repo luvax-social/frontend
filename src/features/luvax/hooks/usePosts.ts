@@ -171,6 +171,7 @@ export const useCreatePost = () => {
   return useMutation({
     mutationFn: (data: CreatePostRequest) => postService.createPost(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       // Invalidate feed and userPosts so the new post appears everywhere
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['recommendedFeed'] });
@@ -186,6 +187,7 @@ export const useUpdatePostStatus = () => {
     mutationFn: ({ postId, status }: { postId: string; status: PostStatus }) =>
       postService.updatePostStatus(postId, status),
     onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['post', variables.postId] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['recommendedFeed'] });
@@ -227,6 +229,7 @@ export const useDeletePost = () => {
   return useMutation({
     mutationFn: (postId: string) => postService.deletePost(postId),
     onSuccess: (_data, postId) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       removeCachedPost(queryClient, postId);
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['explore'] });

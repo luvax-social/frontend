@@ -32,6 +32,8 @@ const setSession = (overrides: Partial<ReturnType<typeof useAuthStore.getState>>
     isAuthenticated: false,
     isBootstrapping: false,
     hasHydrated: true,
+    sessionRestoreError: false,
+    sessionRestoreAttempt: 0,
     ...overrides,
   });
 
@@ -71,6 +73,19 @@ describe('ProtectedRoute', () => {
 });
 
 describe('GuestRoute', () => {
+  it('does not redirect a returning marker without an access token', () => {
+    setSession({ isAuthenticated: true, accessToken: null });
+    renderGuard(<GuestRoute />, { entry: '/login', childPath: '/login' });
+    expect(screen.getByText('guarded content')).toBeInTheDocument();
+    expect(screen.queryByText('app shell')).not.toBeInTheDocument();
+  });
+
+  it('shows a stable retry screen after a transient restore failure', () => {
+    setSession({ isAuthenticated: true, sessionRestoreError: true });
+    renderGuard(<GuestRoute />, { entry: '/login', childPath: '/login' });
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    expect(screen.queryByText('app shell')).not.toBeInTheDocument();
+  });
   it('renders the guest screen when unauthenticated', () => {
     renderGuard(<GuestRoute />, { entry: '/login', childPath: '/login' });
     expect(screen.getByText('guarded content')).toBeInTheDocument();

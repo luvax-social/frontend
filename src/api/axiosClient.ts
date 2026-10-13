@@ -51,6 +51,68 @@ const createClient = (config: AxiosRequestConfig = {}) =>
 export const publicClient = createClient();
 export const axiosClient = createClient();
 
+let refreshRequest: Promise<AxiosResponse<AuthPayload>> | null = null;
+
+/** Serializes cookie rotation across this tab and same-origin browser tabs. */
+export const requestSessionRefresh = (): Promise<AxiosResponse<AuthPayload>> => {
+  if (refreshRequest) return refreshRequest;
+  const rotate = async () => {
+    const storageKey = `luvax:pending-refresh:${API_BASE_URL}`;
+    let requestKey: string | null = null;
+    try {
+      requestKey = window.localStorage.getItem(storageKey);
+      if (
+        !requestKey ||
+        !/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i.test(requestKey)
+      ) {
+        requestKey = crypto.randomUUID();
+        // Only the random request identifier survives navigation, never a token.
+        window.localStorage.setItem(storageKey, requestKey);
+      }
+    } catch {
+      // Storage may be unavailable; normal cookie rotation still works.
+      requestKey = null;
+    }
+    const clearPending = () => {
+      try {
+        if (requestKey && window.localStorage.getItem(storageKey) === requestKey) {
+          window.localStorage.removeItem(storageKey);
+        }
+      } catch {
+        // Storage availability does not change the result of authentication.
+      }
+    };
+    try {
+      const response = await publicClient.post<AuthPayload>(
+        REFRESH_PATH,
+        {},
+        {
+          skipAuthRefresh: true,
+          ...(requestKey ? { headers: { 'Idempotency-Key': requestKey } } : {}),
+        }
+      );
+      clearPending();
+      return response;
+    } catch (error) {
+      // A lost response may already have consumed the cookie. Retain its key
+      // for an exact retry, clearing only definitive credential rejection.
+      if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0))
+        clearPending();
+      throw error;
+    }
+  };
+  // The cookie is shared across tabs; an in-memory body token can be stale after
+  // another tab rotates it. Acquire the lock before the browser sends its cookie.
+  const request =
+    typeof navigator !== 'undefined' && navigator.locks
+      ? navigator.locks.request(`luvax:refresh:${API_BASE_URL}`, rotate)
+      : rotate();
+  refreshRequest = request.finally(() => {
+    refreshRequest = null;
+  });
+  return refreshRequest;
+};
+
 let isRefreshing = false;
 let isRedirecting = false;
 let refreshQueue: RefreshWaiter[] = [];
@@ -149,23 +211,11 @@ const persistAuthSession = ({ accessToken, refreshToken, user }: AuthInput) => {
 };
 
 const refreshAccessToken = async () => {
-  const { refreshToken } = useAuthStore.getState();
-
-  // An absent in-memory token is not a dead end: the HttpOnly refresh cookie
-  // rides along with the request and the server falls back to it when the body
-  // omits the field. Sending an empty body is what lets a reloaded tab, which
-  // has lost the in-memory copy, still rotate a session.
-  const response = await publicClient.post<AuthPayload>(
-    REFRESH_PATH,
-    refreshToken ? { refreshToken } : {},
-    {
-      skipAuthRefresh: true,
-    }
-  );
+  const response = await requestSessionRefresh();
 
   const payload = response?.data;
   const nextAccessToken = getTokenFromResponse(payload);
-  const nextRefreshToken = getRefreshTokenFromResponse(payload) || refreshToken;
+  const nextRefreshToken = getRefreshTokenFromResponse(payload);
   const nextUser = getUserFromResponse(payload);
 
   if (!nextAccessToken) {
@@ -379,7 +429,14 @@ axiosClient.interceptors.response.use(
       return axiosClient(originalRequest);
     } catch (refreshError) {
       flushRefreshQueue(refreshError);
-      clearAuthAndRedirect();
+      // A transient outage is not a rejected refresh credential. Keep the
+      // session available for the next request rather than forcing a logout.
+      if (
+        axios.isAxiosError(refreshError) &&
+        [401, 403].includes(refreshError.response?.status ?? 0)
+      ) {
+        clearAuthAndRedirect();
+      }
       return Promise.reject(
         normalizeAxiosError(refreshError instanceof Error ? refreshError : null)
       );

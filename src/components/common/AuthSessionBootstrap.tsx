@@ -12,15 +12,16 @@ import { clearLegacyAuthStorage, useAuthStore } from '@/store/useAuthStore';
 const SELF_AUTHENTICATING_PATHS = new Set(['/oauth2/callback']);
 
 export default function AuthSessionBootstrap() {
-  const didRunRef = useRef(false);
+  const lastAttemptRef = useRef<number | null>(null);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const attempt = useAuthStore((state) => state.sessionRestoreAttempt);
 
   useEffect(() => {
-    if (!hasHydrated || didRunRef.current) {
+    if (!hasHydrated || lastAttemptRef.current === attempt) {
       return;
     }
 
-    didRunRef.current = true;
+    lastAttemptRef.current = attempt;
 
     const bootstrapAuth = async () => {
       const {
@@ -32,10 +33,12 @@ export default function AuthSessionBootstrap() {
         setTokens,
         setUser,
         setBootstrapping,
+        setSessionRestoreError,
         logout,
       } = useAuthStore.getState();
 
       setBootstrapping(true);
+      setSessionRestoreError(false);
 
       try {
         clearLegacyAuthStorage();
@@ -70,7 +73,7 @@ export default function AuthSessionBootstrap() {
           // any full page load it is always absent, and treating that as "no
           // session" signed out every visitor who arrived on one of these paths
           // holding a perfectly valid cookie.
-          const refreshedSession = await authApi.refreshSession(refreshToken ?? undefined);
+          const refreshedSession = await authApi.refreshSession();
 
           if (!refreshedSession.accessToken) {
             throw new Error('Unable to restore your session.');
@@ -91,7 +94,9 @@ export default function AuthSessionBootstrap() {
           return;
         }
 
-        const nextUser = user || (await authApi.getCurrentUser());
+        // The persisted user has no server-verified role. If refresh omitted
+        // its user object, fetch it rather than accepting the cached identity.
+        const nextUser = await authApi.getCurrentUser();
         const currentState = useAuthStore.getState();
 
         setAuth({
@@ -100,17 +105,15 @@ export default function AuthSessionBootstrap() {
           user: nextUser,
         });
       } catch (error) {
-        if (getErrorResponse(error)?.status === 401) {
+        const status = getErrorResponse(error)?.status;
+        if (status === 401 || status === 403) {
           logout();
           return;
         }
 
-        // A network failure or a server fault is not evidence that the session
-        // ended. Clearing the store here would sign out someone whose
-        // connection dropped for a second and whose refresh cookie is still
-        // perfectly valid, so the persisted marker is left alone and the next
-        // load retries. Nothing is treated as signed in meanwhile: ProtectedRoute
-        // gates on a live in-memory access token, which this path never sets.
+        // Keep the returning-user marker and cookie on transient failure.
+        // Both route guards show the same retry screen until restoration succeeds.
+        setSessionRestoreError(true);
         if (import.meta.env.DEV) {
           console.error(
             '[AuthSessionBootstrap] session restore failed',
@@ -123,7 +126,7 @@ export default function AuthSessionBootstrap() {
     };
 
     bootstrapAuth();
-  }, [hasHydrated]);
+  }, [hasHydrated, attempt]);
 
   return null;
 }

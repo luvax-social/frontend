@@ -432,6 +432,98 @@ export const SETTINGS_CSS = `
   margin-top: var(--space-2);
 }
 
+/* A titled single-choice group inside a section: the title reads like a row
+   label, and the options sit under it between two hairlines. */
+.lx-radio-block {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--lx-border-subtle);
+  border-bottom: 1px solid var(--lx-border-subtle);
+  margin: var(--space-2) 0;
+}
+.lx-radio-block-title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--lx-ink);
+  margin: 0 0 var(--space-3);
+}
+
+/* Radio options: a dot, a label and the sentence that says what the choice does.
+   The whole row is the target and is at least 44px tall, so it can be hit at 390. */
+.lx-radio-list { display: flex; flex-direction: column; gap: var(--space-1); }
+.lx-radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--lx-ink);
+}
+.lx-radio-option:disabled,
+.lx-segmented-option:disabled { cursor: not-allowed; opacity: 0.5; }
+.lx-radio-dot {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--lx-ink-2);
+  background: var(--lx-surface-sunken);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.lx-radio-option[aria-checked="true"] .lx-radio-dot { border-color: var(--lx-accent-dark); }
+.lx-radio-option[aria-checked="true"] .lx-radio-dot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--lx-accent-dark);
+}
+.lx-radio-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lx-radio-label { font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+.lx-radio-description { font-size: 12px; line-height: 1.5; color: var(--lx-ink-2); }
+
+/* A segmented control is one pill track holding the choices side by side. It
+   scrolls sideways inside its own track rather than widening the page when the
+   labels do not fit. */
+.lx-segmented {
+  display: flex;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: var(--space-1);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--radius-pill);
+  background: var(--lx-surface-sunken);
+  width: fit-content;
+}
+.lx-segmented-option {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lx-ink-2);
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.lx-segmented-option[aria-checked="true"] { background: var(--lx-accent); color: var(--lx-black); }
+
 /* Below the split breakpoint the screen is not a split. Whichever region is not
    in play is removed, so the group list is the whole width until a category is
    opened and the category is the whole width afterwards, with a way back. That

@@ -15,10 +15,14 @@ export const useMySettings = () => {
   });
 };
 
-// Partial updates: callers pass only the field(s) that changed. Optimistic,
-// since a settings toggle is a single boolean with no server-computed
-// counterpart to reconcile against - the request either lands as sent or
-// rolls back.
+/**
+ * Partial update of `PATCH /users/me/settings`: callers pass only the field(s) that changed.
+ *
+ * Optimistic, since a setting is one value with no server-computed counterpart to reconcile
+ * against: the request either lands as sent or the cache rolls back to the snapshot taken in
+ * `onMutate`. Used for the notification toggles, `messagePermission` and
+ * `hiddenWordsSystemEnabled`, all under the `['users', 'me', 'settings']` key.
+ */
 export const useUpdateMySettings = () => {
   const queryClient = useQueryClient();
   return useMutation({

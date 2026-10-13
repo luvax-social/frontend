@@ -1,14 +1,8 @@
 import type { ChangeEvent, ReactNode } from 'react';
-import type { UserSummaryResponse, UserSettingsResponse } from '@/types/domain';
+import type { UserSummaryResponse } from '@/types/domain';
 import type { AppError } from '@/api/axiosClient';
 import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 type ProfileForm = z.infer<typeof profileSchema> & { avatarUrl: string; bannerUrl: string };
-// Retains the existing legacy control; allowMessageRequests is absent from the current API DTO.
-type SettingsView = UserSettingsResponse & { allowMessageRequests?: boolean };
-type BooleanSetting = {
-  [K in keyof SettingsView]: NonNullable<SettingsView[K]> extends boolean ? K : never;
-}[keyof SettingsView] &
-  string;
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -16,10 +10,8 @@ import { z } from 'zod';
 import { authApi } from '@/api/authApi';
 import { clearAuthAndRedirect } from '@/api/axiosClient';
 import { LxAvatar } from '@/components/ui/lx-avatar';
-import { LxIcon } from '@/components/ui/lx-icon';
 import { LxToggle } from '@/components/ui/lx-toggle';
 import { ROUTES } from '@/config/constants';
-import { v } from '@/config/tokens';
 import { useThemeChoice } from '@/hooks/useThemeChoice';
 import { useAuthStore } from '@/store/useAuthStore';
 import { extractPageContent } from '@/utils/helpers';
@@ -41,35 +33,14 @@ import {
   useRejectFollowRequest,
   useUnblock,
 } from '../hooks/useSocial';
-import { useMySettings, useUpdateMySettings } from '../hooks/useSettings';
+import { useMySettings } from '../hooks/useSettings';
 import { useMyProfile, useUpdateMyProfile } from '../hooks/useUsers';
 import { LxBtn } from './primitives';
 import { SavedPostsScreen } from './SavedPostsScreen';
+import { MessagePermissionGroup } from './settings/MessagePermissionGroup';
+import { SettingsRow, SettingToggle, StateBlock } from './settings/settingsParts';
 
 // ─── Shared pieces ──────────────────────────────────────────────────────────
-
-/**
- * Loading, empty and failure share one framed block, so a category never
- * renders as an unexplained blank region and the layout does not jump when a
- * request resolves into one of them.
- */
-function StateBlock({
-  icon = 'settings',
-  title,
-  hint,
-}: {
-  icon?: string;
-  title: string;
-  hint?: string;
-}) {
-  return (
-    <div className="lx-settings-state">
-      <LxIcon name={icon} size={22} color={v.ink2} />
-      <h3>{title}</h3>
-      {hint ? <p>{hint}</p> : null}
-    </div>
-  );
-}
 
 /**
  * Renders whichever of loading, failure or empty applies, or the children when
@@ -105,26 +76,6 @@ function ListState({
   if (isLoading) return <StateBlock icon="clock" title="loading" />;
   if (isEmpty) return <StateBlock icon={emptyIcon} title={emptyTitle} hint={emptyHint} />;
   return children;
-}
-
-function SettingsRow({
-  label,
-  sub,
-  control,
-}: {
-  label: string;
-  sub?: string;
-  control?: ReactNode;
-}) {
-  return (
-    <div className="lx-settings-row">
-      <div className="lx-settings-row-text">
-        <div className="lx-settings-row-label">{label}</div>
-        {sub ? <div className="lx-settings-row-sub">{sub}</div> : null}
-      </div>
-      {control}
-    </div>
-  );
 }
 
 /**
@@ -188,59 +139,6 @@ const formatDate = (value: string | null | undefined) => {
     ? '—'
     : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 };
-
-/**
- * A toggle bound to one boolean on the settings record.
- *
- * The record accepts a partial update and leaves every omitted field alone, so
- * one changed field is the whole body. A failed write rolls back through the
- * mutation hook and says so here rather than leaving the switch showing a value
- * the server never accepted.
- */
-function SettingToggle({
-  settings,
-  field,
-  label,
-  sub,
-  isLoading,
-}: {
-  settings?: SettingsView;
-  field: BooleanSetting;
-  label: string;
-  sub?: string;
-  isLoading: boolean;
-}) {
-  const updateSettings = useUpdateMySettings();
-  const [failure, setFailure] = useState('');
-
-  return (
-    <div>
-      <SettingsRow
-        label={label}
-        sub={sub}
-        control={
-          <LxToggle
-            label={label}
-            on={settings ? Boolean(settings[field]) : false}
-            disabled={!settings || isLoading}
-            busy={updateSettings.isPending}
-            onChange={(value) => {
-              setFailure('');
-              updateSettings.mutate(
-                { [field]: value },
-                {
-                  onError: () =>
-                    setFailure("we couldn't save that just now. try again in a moment."),
-                }
-              );
-            }}
-          />
-        }
-      />
-      {failure ? <div className="lx-settings-error">{failure}</div> : null}
-    </div>
-  );
-}
 
 // ─── Profile ────────────────────────────────────────────────────────────────
 
@@ -661,13 +559,7 @@ export function PrivacyCategory() {
           label="allow story replies"
           sub="people can message you in response to a story"
         />
-        <SettingToggle
-          settings={settings}
-          isLoading={settingsLoading}
-          field="allowMessageRequests"
-          label="allow message requests"
-          sub="people you do not follow can message you"
-        />
+        <MessagePermissionGroup settings={settings} isLoading={settingsLoading} />
         <SettingToggle
           settings={settings}
           isLoading={settingsLoading}

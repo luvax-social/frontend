@@ -415,7 +415,7 @@ This table is the input to the grouping. A row exists only where a real endpoint
 | notify messages | `…​.notifyMessages` | `PATCH /users/me/settings` | boolean; partial |
 | show activity status | `…​.showActivityStatus` | `PATCH /users/me/settings` | boolean; partial |
 | allow story replies | `…​.allowStoryReplies` | `PATCH /users/me/settings` | boolean; partial |
-| allow message requests | `…​.allowMessageRequests` | `PATCH /users/me/settings` | boolean; partial |
+| who can message you | `…​.messagePermission` | `PATCH /users/me/settings` `{messagePermission}` | `"everyone"`, `"following"` or `"nobody"`, lowercase; partial; any other value is 400 `MALFORMED_REQUEST_BODY`; replaces the boolean `allowMessageRequests`, which `GET` no longer returns |
 | blocked accounts | `GET /social/blocked` (`cursor`, `limit`) | `DELETE /social/block/{id}` to unblock | 204 on success; 404 if not blocked |
 | incoming follow requests | `GET /social/follow-requests` (`cursor`, `limit`) | `PATCH /social/follow-requests/{id}/approve` \| `/reject` | — |
 | warnings received | `GET /users/me/warnings` (`cursor`, `limit`) | none — read-only | `reasonKey` resolves via `/config/vocabularies` |

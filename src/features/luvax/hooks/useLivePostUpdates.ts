@@ -4,8 +4,19 @@ import type { Post } from '@/types/social';
 import type { CommentResponse } from '@/types/domain';
 import type { CommentCachePage } from '@/types/cache';
 type CommentBroadcast = Omit<CommentResponse, 'isLiked' | 'hasReported' | 'pinned'>;
+/**
+ * The comment frames this hook acts on. `comment.unhidden.v1` is the release of a comment the
+ * post owner had hidden; it reaches every subscriber whole, as a created comment does.
+ */
+type CommentEventType =
+  | 'comment.created.v1'
+  | 'comment.unhidden.v1'
+  | 'comment.edited.v1'
+  | 'comment.deleted.v1'
+  | 'comment.liked.v1'
+  | 'comment.unliked.v1';
 interface CommentEvent {
-  eventType: string;
+  eventType: CommentEventType;
   data?: {
     comment?: CommentBroadcast;
     userId?: string;
@@ -203,10 +214,33 @@ export const useLivePostUpdates = (postId: string | null | undefined) => {
       }
       const commentsKey = ['comments', postId];
 
-      if (eventType === 'comment.created.v1') {
+      if (eventType === 'comment.created.v1' || eventType === 'comment.unhidden.v1') {
         const incoming = data.comment;
         if (!incoming) {
           return;
+        }
+        const released = eventType === 'comment.unhidden.v1';
+
+        if (released) {
+          // The owner's review list no longer holds a comment that has been released, whoever
+          // released it. Nothing is written when that list was never opened.
+          queryClient.setQueryData<CommentCachePage>(
+            [...commentsKey, 'hidden'],
+            removeCachedComment(incoming.id)
+          );
+          // A released comment is new to every viewer, including the owner whose unhide already
+          // invalidated these queries, so a frame for a row that is already cached must not
+          // count it a second time.
+          const alreadyCached = incoming.parentId
+            ? cachedCommentIds(
+                queryClient.getQueryData<CommentCachePage>(['commentReplies', incoming.parentId])
+              ).has(incoming.id)
+            : cachedCommentIds(queryClient.getQueryData<CommentCachePage>(commentsKey)).has(
+                incoming.id
+              );
+          if (alreadyCached) {
+            return;
+          }
         }
 
         // The viewer's own new comment is already applied to the cache by the
@@ -217,7 +251,7 @@ export const useLivePostUpdates = (postId: string | null | undefined) => {
         // skipped here; a remote one still flows through below. data.userId is
         // the event author on every comment.* frame.
         const currentUserId = useAuthStore.getState().user?.id;
-        if (currentUserId && data.userId && currentUserId === data.userId) {
+        if (!released && currentUserId && data.userId && currentUserId === data.userId) {
           return;
         }
 

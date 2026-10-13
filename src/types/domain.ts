@@ -137,6 +137,14 @@ export interface CommentResponse {
   pinned: boolean;
 }
 
+// modules/comment/dto/response/HiddenCommentResponse.java
+export type HiddenCommentReason = 'hidden_words' | 'limited_interaction' | 'hidden_parent';
+
+export interface HiddenCommentResponse extends Omit<CommentResponse, 'pinned'> {
+  pinned: false;
+  hiddenReason: HiddenCommentReason;
+}
+
 // modules/comment/dto/response/CommentContextResponse.java
 export interface CommentContextResponse {
   postId: string;

@@ -46,6 +46,7 @@ import { useViewport } from '../hooks/useViewport';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ReportModal } from './ReportModal';
+import { HiddenCommentsPanel } from './HiddenCommentsPanel';
 import { toast } from './Toast';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { REPORT_TYPES } from '@/services/report.service';
@@ -716,7 +717,9 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const [commentEmojiSearch, setCommentEmojiSearch] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
   const [postReportTarget, setPostReportTarget] = useState<ReportTarget | null>(null);
+  const [hiddenPanelOpen, setHiddenPanelOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreMenuFocusRef = useRef(false);
   const commentsPaneRef = useRef<HTMLDivElement | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
   const commentEmojiGroupRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -1058,6 +1061,14 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               label: 'Edit post',
               onClick: handleEditOpen,
             },
+            // The server lists hidden comments for the post owner only, so the entry
+            // is not offered to anyone else.
+            {
+              id: 'hidden-comments',
+              icon: 'eye',
+              label: 'Hidden comments',
+              onClick: () => setHiddenPanelOpen(true),
+            },
             {
               id: 'delete',
               icon: 'trash',
@@ -1138,6 +1149,20 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     ]
   );
 
+  // The menu trigger unmounts while the review panel replaces the comment column, so
+  // focus goes back to its new instance once the panel has closed.
+  useEffect(() => {
+    if (!hiddenPanelOpen && restoreMenuFocusRef.current) {
+      restoreMenuFocusRef.current = false;
+      menuButtonRef.current?.focus();
+    }
+  }, [hiddenPanelOpen]);
+
+  const closeHiddenPanel = () => {
+    restoreMenuFocusRef.current = true;
+    setHiddenPanelOpen(false);
+  };
+
   if (isLoading) {
     return (
       <div
@@ -1175,7 +1200,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     );
   }
 
-  const commentColumn = (
+  const postCommentColumn = (
     <div
       style={{
         height: '100%',
@@ -1212,6 +1237,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
         <button
           ref={menuButtonRef}
           type="button"
+          aria-label="post options"
           onClick={() => setMenuOpen((open) => !open)}
           className="lx-header-icon-btn"
           style={{
@@ -1825,6 +1851,13 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       </div>
     </div>
   );
+
+  const commentColumn =
+    hiddenPanelOpen && isSelf ? (
+      <HiddenCommentsPanel postId={postId} onBack={closeHiddenPanel} />
+    ) : (
+      postCommentColumn
+    );
 
   const container = (
     <div

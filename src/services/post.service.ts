@@ -10,6 +10,7 @@ import type {
   LikedPostResponse,
   CommentResponse,
   CommentDeletionScopeResponse,
+  HiddenCommentResponse,
 } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
@@ -352,6 +353,41 @@ export const deleteComment = async (commentId: string) => {
   return response.data;
 };
 
+/**
+ * Lists the hidden comments on a post the viewer owns, newest first.
+ *
+ * Calls `GET /posts/{postId}/comments/hidden`. The backend answers 404 `POST_NOT_FOUND` to
+ * anyone who does not own the post.
+ *
+ * @param {string} postId - The ID of the post.
+ * @param {Object} params - Keyset paging (cursor, limit).
+ * @returns {Promise<Object>} ApiResponse<CursorPage<HiddenCommentResponse>>.
+ */
+export const getHiddenComments = async (postId: string, params: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<HiddenCommentResponse>>>(
+    `${POST_API_PATH}/${postId}/comments/hidden`,
+    { params }
+  );
+  return response.data;
+};
+
+/**
+ * Approves a hidden comment on the viewer's post and releases the replies hidden only because of it.
+ *
+ * Calls `POST /comments/{commentId}/unhide`. Answers 404 `COMMENT_NOT_FOUND` when the comment is
+ * not hidden or not on the viewer's post, and 409 `COMMENT_PARENT_STILL_HIDDEN` while the comment
+ * it replies to is still hidden.
+ *
+ * @param {string} commentId - The ID of the hidden comment.
+ * @returns {Promise<Object>} ApiResponse<CommentResponse> for the approved comment.
+ */
+export const unhideComment = async (commentId: string) => {
+  const response = await axiosInstance.post<ApiResponse<CommentResponse>>(
+    `/comments/${commentId}/unhide`
+  );
+  return response.data;
+};
+
 export const postService = {
   createPost,
   getFeed,
@@ -374,6 +410,8 @@ export const postService = {
   editComment,
   getCommentDeletionScope,
   deleteComment,
+  getHiddenComments,
+  unhideComment,
   getSavedPosts,
 };
 

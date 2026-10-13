@@ -337,10 +337,12 @@ export function ComposerScreen() {
             fontSize: 14,
             fontWeight: 600,
             background: isActionDisabled ? v.surfaceRaised : v.accent,
-            color: isActionDisabled ? v.ink3 : v.inkInverse,
+            color: isActionDisabled ? v.ink3 : v.black,
             border: 'none',
             borderRadius: 999,
             padding: '7px 16px',
+            minHeight: 44,
+            minWidth: 44,
             cursor: isActionDisabled ? 'default' : 'pointer',
           }}
         >

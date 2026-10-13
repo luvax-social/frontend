@@ -117,6 +117,8 @@ export function LxAppBar({ screen, navigate }: { screen: string; navigate: Navig
               onClick={() => navigate(ROUTES.COMPOSE)}
               aria-label="open composer"
               style={{
+                minWidth: 44,
+                minHeight: 44,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',

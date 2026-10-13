@@ -3,8 +3,8 @@ import {
   getRefreshTokenFromResponse,
   getTokenFromResponse,
   publicClient,
+  requestSessionRefresh,
 } from '@/api/axiosClient';
-import { useAuthStore } from '@/store/useAuthStore';
 import type { AxiosResponse } from 'axios';
 import type { AppError } from '@/api/axiosClient';
 import type { AuthFormValues, AuthPayload, SessionUser } from '@/types/auth';
@@ -147,25 +147,12 @@ export const authApi = {
   // answers 401 without revoking the refresh token or expiring the refresh
   // cookie, which would leave a "logged out" browser able to restore the
   // session on the next reload.
-  async logout(refreshToken = useAuthStore.getState().refreshToken) {
-    await axiosClient.post(
-      '/auth/logout',
-      buildRequestBody({
-        refreshToken: refreshToken ?? undefined,
-      })
-    );
+  async logout() {
+    await axiosClient.post('/auth/logout', {});
   },
 
-  async refreshSession(refreshToken = useAuthStore.getState().refreshToken) {
-    const response = await publicClient.post<AuthEnvelope>(
-      '/auth/refresh',
-      buildRequestBody({
-        refreshToken: refreshToken ?? undefined,
-      }),
-      {
-        skipAuthRefresh: true,
-      }
-    );
+  async refreshSession() {
+    const response = await requestSessionRefresh();
 
     return extractAuthSession(response);
   },

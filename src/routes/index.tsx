@@ -12,6 +12,7 @@ import {
 import { Suspense, lazy } from 'react';
 
 import AuthSessionBootstrap from '@/components/common/AuthSessionBootstrap';
+import SessionCacheScope from '@/components/common/SessionCacheScope';
 import GuestRoute from '@/components/common/GuestRoute';
 import NotFoundPage from '@/components/common/NotFoundPage';
 import PageLoader from '@/components/common/PageLoader';
@@ -65,6 +66,7 @@ function RootLayout() {
   return (
     <>
       <RouteMetadata />
+      <SessionCacheScope />
       <AuthSessionBootstrap />
       {/* Sends every navigation to the top of the page and returns the browser
           to its previous offset on back, replacing the manual scroll reset the

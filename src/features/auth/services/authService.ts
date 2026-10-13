@@ -24,8 +24,8 @@ const authService = {
   /**
    * @returns {Promise<void>}
    */
-  logout: async (refreshToken?: string | null) => {
-    await authApi.logout(refreshToken);
+  logout: async () => {
+    await authApi.logout();
   },
 
   /**

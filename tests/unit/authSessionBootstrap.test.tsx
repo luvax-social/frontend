@@ -21,6 +21,8 @@ const setSession = (overrides: Partial<ReturnType<typeof useAuthStore.getState>>
     isAuthenticated: false,
     isBootstrapping: false,
     hasHydrated: true,
+    sessionRestoreError: false,
+    sessionRestoreAttempt: 0,
     ...overrides,
   });
 
@@ -59,19 +61,22 @@ describe('AuthSessionBootstrap', () => {
     }
   );
 
-  it('signs the visitor out when a stale marker cannot be restored', async () => {
-    // The persisted marker says a session existed here, so the call must still be made and its
-    // 401 must still sign the visitor out. This is the branch the anonymous skip must not break.
-    visit('/login');
-    setSession({ isAuthenticated: true, user: SESSION_USER });
-    vi.mocked(authApi.refreshSession).mockRejectedValue({ response: { status: 401 } });
+  it.each([401, 403])(
+    'signs the visitor out when restoration is rejected with %i',
+    async (status) => {
+      // The persisted marker says a session existed here, so the call must still be made and its
+      // credential rejection must sign the visitor out, including an account-state denial.
+      visit('/login');
+      setSession({ isAuthenticated: true, user: SESSION_USER });
+      vi.mocked(authApi.refreshSession).mockRejectedValue({ response: { status } });
 
-    render(<AuthSessionBootstrap />);
+      render(<AuthSessionBootstrap />);
 
-    await waitFor(() => expect(authApi.refreshSession).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(false));
-    expect(useAuthStore.getState().user).toBeNull();
-  });
+      await waitFor(() => expect(authApi.refreshSession).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(false));
+      expect(useAuthStore.getState().user).toBeNull();
+    }
+  );
 
   it('makes no request for a visitor who has never held a session', async () => {
     // No in-memory token and no persisted marker: there is nothing to restore, so the call that

@@ -1,12 +1,13 @@
 import MockAdapter from 'axios-mock-adapter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { axiosClient, publicClient } from '@/api/axiosClient';
+import { API_BASE_URL, axiosClient, publicClient, requestSessionRefresh } from '@/api/axiosClient';
 import { useAuthStore } from '@/store/useAuthStore';
 
 let authMock: MockAdapter;
 let publicMock: MockAdapter;
 
 beforeEach(() => {
+  window.localStorage.removeItem(`luvax:pending-refresh:${API_BASE_URL}`);
   authMock = new MockAdapter(axiosClient);
   publicMock = new MockAdapter(publicClient);
   useAuthStore.setState({
@@ -18,6 +19,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.localStorage.removeItem(`luvax:pending-refresh:${API_BASE_URL}`);
   authMock.restore();
   publicMock.restore();
   vi.restoreAllMocks();
@@ -58,13 +60,50 @@ describe('single-flight token refresh', () => {
     expect(seen).toEqual(['Bearer fresh-token']);
   });
 
-  it('clears the session when the refresh itself fails', async () => {
-    authMock.onGet('/protected').reply(401);
-    publicMock.onPost('/auth/refresh').reply(401);
+  it.each([401, 403])(
+    'clears the session when refresh rejects credentials with %i',
+    async (status) => {
+      authMock.onGet('/protected').reply(401);
+      publicMock.onPost('/auth/refresh').reply(status);
 
-    await expect(axiosClient.get('/protected')).rejects.toBeTruthy();
-    expect(useAuthStore.getState().accessToken).toBeNull();
-    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      await expect(axiosClient.get('/protected')).rejects.toBeTruthy();
+      expect(useAuthStore.getState().accessToken).toBeNull();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    }
+  );
+
+  it('retains the same request key after transient failure and clears it after success', async () => {
+    const storageKey = `luvax:pending-refresh:${API_BASE_URL}`;
+    const requestKey = '11111111-1111-4111-8111-111111111111';
+    window.localStorage.setItem(storageKey, requestKey);
+    const keys: unknown[] = [];
+    publicMock.onPost('/auth/refresh').replyOnce((config) => {
+      keys.push(config.headers?.['Idempotency-Key']);
+      expect(JSON.parse(config.data)).toEqual({});
+      return [503, {}];
+    });
+    publicMock.onPost('/auth/refresh').replyOnce((config) => {
+      keys.push(config.headers?.['Idempotency-Key']);
+      return [200, { accessToken: 'fresh-token' }];
+    });
+
+    await expect(requestSessionRefresh()).rejects.toBeTruthy();
+    expect(window.localStorage.getItem(storageKey)).toBe(requestKey);
+    await requestSessionRefresh();
+    expect(keys).toEqual([requestKey, requestKey]);
+    expect(window.localStorage.getItem(storageKey)).toBeNull();
+  });
+
+  it('does not erase a newer pending request when an older refresh finishes', async () => {
+    const storageKey = `luvax:pending-refresh:${API_BASE_URL}`;
+    window.localStorage.setItem(storageKey, '11111111-1111-4111-8111-111111111111');
+    publicMock.onPost('/auth/refresh').reply(() => {
+      window.localStorage.setItem(storageKey, '22222222-2222-4222-8222-222222222222');
+      return [200, { accessToken: 'fresh-token' }];
+    });
+
+    await requestSessionRefresh();
+    expect(window.localStorage.getItem(storageKey)).toBe('22222222-2222-4222-8222-222222222222');
   });
 
   it('does not attempt a refresh for a public auth endpoint', async () => {

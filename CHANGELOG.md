@@ -115,6 +115,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- Session recovery offers a retry during outages, serializes cookie refresh across tabs and retries interrupted rotations without losing identity or retaining another accounts cache.
 - Operational screens and rendering errors no longer retain homepage indexing metadata, unknown paths return real 404s, proxy redirects preserve HTTPS and mutable assets require cache revalidation.
 - Anonymous support pages now contain their primary heading and content in a main landmark.
 - The account filter on the activity log no longer cuts its placeholder text off at the edge of the field.

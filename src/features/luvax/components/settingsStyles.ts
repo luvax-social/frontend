@@ -524,6 +524,88 @@ export const SETTINGS_CSS = `
 }
 .lx-segmented-option[aria-checked="true"] { background: var(--lx-accent); color: var(--lx-black); }
 
+/* Hidden words: the add field and its button share a row, and the words sit as
+   removable pills beneath. */
+.lx-hidden-words-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.lx-hidden-words-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--lx-ink-2);
+}
+.lx-hidden-words-form { display: flex; gap: var(--space-2); align-items: center; }
+.lx-hidden-words-form .lx-settings-input { flex: 1; min-width: 0; }
+.lx-hidden-words-preview { margin-top: var(--space-2); }
+.lx-hidden-words-footnote { margin-top: var(--space-6); }
+.lx-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+}
+.lx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--lx-surface);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--lx-ink);
+  overflow-wrap: anywhere;
+}
+/* The glyph is small but the target is not: 28px square at the chip's edge, so
+   a thumb can remove a word without hitting its neighbour. */
+.lx-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: none;
+  cursor: pointer;
+}
+.lx-chip-remove:hover { background: var(--lx-surface-raised); }
+.lx-chip-remove:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* Limit interactions: the status card that replaces the form while a limit is
+   in force, and the three sentences naming what the limit does. */
+.lx-limit-status {
+  background: var(--lx-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+.lx-limit-status-line { display: flex; align-items: center; gap: var(--space-2); }
+.lx-limit-status-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--lx-success);
+}
+.lx-limit-status-title {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--lx-ink);
+}
+.lx-limit-status .lx-settings-note { margin: var(--space-2) 0 var(--space-4); }
+.lx-limit-status-actions { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.lx-limit-effects { padding-left: var(--space-5); margin: var(--space-4) 0 0; }
+.lx-limit-effects li + li { margin-top: var(--space-1); }
+
 /* Below the split breakpoint the screen is not a split. Whichever region is not
    in play is removed, so the group list is the whole width until a category is
    opened and the category is the whole width afterwards, with a way back. That

@@ -416,6 +416,9 @@ This table is the input to the grouping. A row exists only where a real endpoint
 | show activity status | `…​.showActivityStatus` | `PATCH /users/me/settings` | boolean; partial |
 | allow story replies | `…​.allowStoryReplies` | `PATCH /users/me/settings` | boolean; partial |
 | who can message you | `…​.messagePermission` | `PATCH /users/me/settings` `{messagePermission}` | `"everyone"`, `"following"` or `"nobody"`, lowercase; partial; any other value is 400 `MALFORMED_REQUEST_BODY`; replaces the boolean `allowMessageRequests`, which `GET` no longer returns |
+| use the luvax hidden words list | `GET /users/me/settings` `.hiddenWordsSystemEnabled` | `PATCH /users/me/settings` `{hiddenWordsSystemEnabled}` | boolean; partial; on by default; the personal list is unaffected |
+| personal hidden words | `GET /users/me/hidden-words` → `{entries: [{id, phrase, createdAt}], limit: 200}`, newest first | `POST /users/me/hidden-words` `{phrase}` → 201 with the entry; `DELETE /users/me/hidden-words/{entryId}` → 204 | phrase 1 to 64 characters and 1 to 6 words once normalised; 400 `HIDDEN_WORD_INVALID`, 409 `HIDDEN_WORD_DUPLICATE`, 422 `HIDDEN_WORD_LIMIT_REACHED` |
+| interaction limit | `GET /users/me/interaction-limits` → `{limitNonFollowers, limitRecentFollowers, expiresAt, active}` | `PUT /users/me/interaction-limits` `{limitNonFollowers, limitRecentFollowers, durationDays}`; `DELETE` → 204 turns it off | `durationDays` is 1, 3, 7, 14 or 28; both audiences false or any other duration is 400 `VALIDATION_ERROR`; the server computes `expiresAt` |
 | blocked accounts | `GET /social/blocked` (`cursor`, `limit`) | `DELETE /social/block/{id}` to unblock | 204 on success; 404 if not blocked |
 | incoming follow requests | `GET /social/follow-requests` (`cursor`, `limit`) | `PATCH /social/follow-requests/{id}/approve` \| `/reject` | — |
 | warnings received | `GET /users/me/warnings` (`cursor`, `limit`) | none — read-only | `reasonKey` resolves via `/config/vocabularies` |
@@ -425,7 +428,11 @@ This table is the input to the grouping. A row exists only where a real endpoint
 | password | not readable | `POST /auth/forgot-password {email}` — sends a reset link | 200 regardless; no authenticated change endpoint |
 | sign out | — | `POST /auth/logout` | — |
 
-**Twenty-three rows. Everything a settings screen may render comes from this table.**
+**Twenty-six rows. Everything a settings screen may render comes from this table.**
+
+The rows for who can message you, the luvax hidden words list, personal hidden words and the interaction limit were written on 2026-10-14 from the backend request and response records (`UpdateSettingsRequest`, `UserSettingsResponse`, `UserSafetyController` and the records it uses) and its error codes.
+They were not called against a running backend.
+The rest of this document is the 2026-08-25 record described at the top.
 
 ---
 

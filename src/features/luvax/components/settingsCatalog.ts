@@ -98,6 +98,22 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         icon: 'ban',
         description: 'people you have blocked. they cannot see you, and you cannot see them.',
       },
+      {
+        id: 'hidden-words',
+        path: ROUTES.SETTINGS_HIDDEN_WORDS,
+        label: 'hidden words',
+        icon: 'filter',
+        description:
+          'Comments on your posts and new message requests that contain these words are hidden. You can review hidden comments on each post.',
+      },
+      {
+        id: 'limits',
+        path: ROUTES.SETTINGS_LIMITS,
+        label: 'limit interactions',
+        icon: 'clock',
+        description:
+          "For a while, hide comments and message requests from people who don't follow you or only just followed you. They aren't told.",
+      },
     ],
   },
   {

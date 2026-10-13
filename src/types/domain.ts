@@ -237,6 +237,47 @@ export interface UpdateSettingsRequest {
   hiddenWordsSystemEnabled?: boolean | null;
 }
 
+// modules/social/dto/response/HiddenWordEntryResponse.java
+export interface HiddenWordEntryResponse {
+  id: string;
+  /** The phrase as the account typed it, not its normalised matching form. */
+  phrase: string;
+  createdAt: string;
+}
+
+// modules/social/dto/response/HiddenWordListResponse.java
+export interface HiddenWordListResponse {
+  /** Newest first. */
+  entries: HiddenWordEntryResponse[];
+  /** The most entries one account may keep. */
+  limit: number;
+}
+
+// modules/social/dto/request/CreateHiddenWordRequest.java
+export interface CreateHiddenWordRequest {
+  phrase: string;
+}
+
+/** The durations `PUT /users/me/interaction-limits` accepts, in days. */
+export type InteractionLimitDuration = 1 | 3 | 7 | 14 | 28;
+
+// modules/social/dto/response/InteractionLimitResponse.java
+export interface InteractionLimitResponse {
+  limitNonFollowers: boolean;
+  limitRecentFollowers: boolean;
+  /** Null when no limit was ever set. */
+  expiresAt: string | null;
+  /** True only while `expiresAt` is in the future. */
+  active: boolean;
+}
+
+// modules/social/dto/request/UpdateInteractionLimitRequest.java
+export interface UpdateInteractionLimitRequest {
+  limitNonFollowers: boolean;
+  limitRecentFollowers: boolean;
+  durationDays: InteractionLimitDuration;
+}
+
 // common/response/UserListItemResponse.java
 export interface UserListItemResponse {
   user: UserSummaryResponse;

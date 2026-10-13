@@ -2,8 +2,9 @@
  * Hidden Words text normalisation, mirroring the backend `TextMatchNormalizer`.
  *
  * The contract is the "Text match normalisation" section of the backend's
- * `docs/modules/GLOBAL_RULES.md`. The Hidden Words settings screen previews matches with these
- * functions, so a divergence shows the user a match the server will not make, or the reverse.
+ * `docs/modules/GLOBAL_RULES.md`. The Hidden Words settings screen previews the normalised form of
+ * what is typed and refuses a duplicate entry with these functions, so a divergence shows the user
+ * a form the server will not match on, or the reverse.
  * The shared cases are `tests/unit/fixtures/text-match-vectors.json`, a byte copy of the backend
  * file; change the contract, the backend normaliser and both vector files together.
  */

@@ -1,7 +1,12 @@
 import type { ApiResponse, CursorPage, CursorParams } from '@/types/api';
 import type {
+  CreateHiddenWordRequest,
+  HiddenWordEntryResponse,
+  HiddenWordListResponse,
+  InteractionLimitResponse,
   PublicUserProfileResponse,
   UserProfileResponse,
+  UpdateInteractionLimitRequest,
   UpdateProfileRequest,
   UserSettingsResponse,
   UpdateSettingsRequest,
@@ -52,6 +57,57 @@ export const updateMySettings = async (data: UpdateSettingsRequest) => {
     data
   );
   return response.data;
+};
+
+// My personal hidden words, newest first, with the size limit. Returns the
+// ApiResponse envelope; callers unwrap it.
+export const getMyHiddenWords = async () => {
+  const response = await axiosInstance.get<ApiResponse<HiddenWordListResponse>>(
+    `${USERS_API_PATH}/me/hidden-words`
+  );
+  return response.data;
+};
+
+// Adds a phrase to my personal list and returns the created entry. Refusals are
+// 409 HIDDEN_WORD_DUPLICATE, 422 HIDDEN_WORD_LIMIT_REACHED and 400
+// HIDDEN_WORD_INVALID.
+export const addHiddenWord = async (phrase: string) => {
+  const body: CreateHiddenWordRequest = { phrase };
+  const response = await axiosInstance.post<ApiResponse<HiddenWordEntryResponse>>(
+    `${USERS_API_PATH}/me/hidden-words`,
+    body
+  );
+  return response.data;
+};
+
+// Removes one entry from my personal list. Answers 204 with no body.
+export const removeHiddenWord = async (entryId: string) => {
+  await axiosInstance.delete(`${USERS_API_PATH}/me/hidden-words/${entryId}`);
+};
+
+// My interaction limit as stored and as it stands now. An account that never set
+// one gets both flags false, `expiresAt` null and `active` false.
+export const getMyInteractionLimit = async () => {
+  const response = await axiosInstance.get<ApiResponse<InteractionLimitResponse>>(
+    `${USERS_API_PATH}/me/interaction-limits`
+  );
+  return response.data;
+};
+
+// Turns the limit on for a preset number of days. The server computes the end
+// time from the duration and returns it; 400 VALIDATION_ERROR when both
+// audiences are false or the duration is not a preset.
+export const setMyInteractionLimit = async (data: UpdateInteractionLimitRequest) => {
+  const response = await axiosInstance.put<ApiResponse<InteractionLimitResponse>>(
+    `${USERS_API_PATH}/me/interaction-limits`,
+    data
+  );
+  return response.data;
+};
+
+// Turns the limit off before it expires. Answers 204 with no body.
+export const clearMyInteractionLimit = async () => {
+  await axiosInstance.delete(`${USERS_API_PATH}/me/interaction-limits`);
 };
 
 // The warnings a moderator has issued against my own account, newest first.

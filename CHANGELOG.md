@@ -115,6 +115,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- A failed first message in a newly created conversation keeps its text and staged attachments available for retry.
 - Creating or deleting a post refreshes server-owned profile counts, while post actions and composer controls provide named, larger touch targets.
 - The moderation panel disables restoration when the server reports that a post was deleted by its owner.
 - Moderation filters use keyboard-operable buttons and wrap within phone and tablet viewports.

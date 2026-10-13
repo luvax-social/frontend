@@ -719,6 +719,10 @@ export function MessagesScreen() {
       if (!conversationId) {
         const response = await messageService.createDirect(pendingTargetUserId!);
         conversationId = response?.data?.id;
+        // The list refresh promotes the pending composer to this real id. Keep
+        // its draft under the new key so a failed first send remains retryable.
+        composerDraftsRef.current[conversationId] = draft;
+        composerAttachmentsRef.current[conversationId] = pendingAttachments;
         // Awaited, not fired and forgotten: the reconciliation effects above reset the active
         // thread whenever its id is absent from the loaded list, so selecting it before the
         // refetch lands would snap the panel straight back to the previous thread.

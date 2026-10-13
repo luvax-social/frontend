@@ -476,7 +476,6 @@ export function ConvRow({
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           items={dropdownItems}
-          align="right"
           zIndex={2200}
         />
       </div>

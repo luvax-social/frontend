@@ -433,11 +433,22 @@ button:disabled {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 14px 30px rgba(26, 24, 22, 0.16), 0 4px 12px rgba(26, 24, 22, 0.09);
-  transform-origin: top right;
   animation: lx-popover-in var(--duration-normal) var(--ease-out);
 }
 
-.lx-popover-menu.is-up {
+.lx-popover-menu.is-start {
+  transform-origin: top left;
+}
+
+.lx-popover-menu.is-start.is-up {
+  transform-origin: bottom left;
+}
+
+.lx-popover-menu.is-end {
+  transform-origin: top right;
+}
+
+.lx-popover-menu.is-end.is-up {
   transform-origin: bottom right;
 }
 

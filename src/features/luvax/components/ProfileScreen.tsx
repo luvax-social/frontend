@@ -662,7 +662,6 @@ export function ProfileScreen() {
               open={menuOpen}
               onClose={() => setMenuOpen(false)}
               items={menuItems}
-              align="right"
             />
           )}
           {isSelf && (

@@ -674,7 +674,6 @@ function CommentRow({
         onClose={() => setCommentMenuOpen(false)}
         items={commentMenuItems}
         width={214}
-        align="right"
         zIndex={5200}
       />
 

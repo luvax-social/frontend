@@ -3,9 +3,10 @@ import type { Viewport } from '../LuvaxTweaksContext';
 import { getErrorMessage } from '@/utils/errors';
 type StorySequenceItem = ReturnType<typeof useFlatStorySequence>[number];
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { useViewport } from '../hooks/useViewport';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { LxIcon, LxAvatar, LxBtn, LxModal } from './primitives';
 import {
   useStoryFeed,
@@ -234,10 +235,17 @@ function StoryStage({
   height?: string;
 }) {
   const isMobile = viewport === 'mobile';
+  const location = useLocation();
+  const stageRef = useDialogFocus(true, onClose, location.state?.backgroundFocus);
 
   if (isMobile) {
     return (
       <div
+        ref={stageRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Story viewer"
+        tabIndex={-1}
         style={{
           position: 'fixed',
           inset: 0,
@@ -278,7 +286,10 @@ function StoryStage({
 
   // Contained, not near-fullscreen, so the peeks and chevrons around it have
   // room to read as their own elements rather than crowding the card's edge.
-  const cardHeight = height || 'min(80vh, 760px)';
+  const widthBound = peeks
+    ? `calc(((100vw - 48px) / var(--lx-scale, 1) - 140px) / ${STORY_RATIO * 2.56})`
+    : `calc((100vw - 48px) / var(--lx-scale, 1) / ${STORY_RATIO})`;
+  const cardHeight = `min(${height || '80vh'}, 760px, calc((100dvh - ${footer ? 128 : 48}px) / var(--lx-scale, 1)), ${widthBound})`;
   const cardWidth = `calc(${cardHeight} * ${STORY_RATIO})`;
   const peekHeight = `calc(${cardHeight} * 0.78)`;
 
@@ -287,6 +298,11 @@ function StoryStage({
     // stops that click from bubbling, so nothing inside - card, peeks,
     // chevrons, reply bar, close button - closes it by accident.
     <div
+      ref={stageRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Story viewer"
+      tabIndex={-1}
       onClick={onClose}
       style={{
         position: 'fixed',

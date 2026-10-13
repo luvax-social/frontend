@@ -5,6 +5,8 @@ import { LxAvatar } from '@/components/ui/lx-avatar';
 import { LxDropdownMenu } from '@/components/ui/lx-dropdown-menu';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
+import { useId } from 'react';
 
 export { LxIcon, LxAvatar, LxDropdownMenu };
 
@@ -101,6 +103,7 @@ export function LxBtn({
         fontWeight: 500,
         borderRadius: 999,
         cursor: disabled ? 'default' : 'pointer',
+        minHeight: 44,
         letterSpacing: '-0.01em',
         textTransform: 'lowercase',
         transition: 'all 150ms ease-out',
@@ -194,7 +197,8 @@ export function LxModal({
   actions?: ReactNode;
   zIndex?: number;
 }) {
-  useEscapeKey(open, onClose);
+  const dialogRef = useDialogFocus(open, onClose);
+  const titleId = useId();
 
   if (!open) return null;
   return (
@@ -211,6 +215,12 @@ export function LxModal({
       />
       <div
         className="lx-modal-panel"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : 'Dialog'}
+        tabIndex={-1}
         style={{
           position: 'fixed',
           top: '50%',
@@ -220,8 +230,9 @@ export function LxModal({
           borderRadius: 12,
           width: 'calc(100% - 32px)',
           maxWidth: 320,
+          maxHeight: 'calc(100dvh / var(--lx-scale, 1) - 32px)',
           boxShadow: `0 20px 60px ${v.shadow25}, 0 4px 16px ${v.shadow12}`,
-          overflow: 'hidden',
+          overflowY: 'auto',
           zIndex: zIndex + 1,
           display: 'flex',
           flexDirection: 'column',
@@ -229,6 +240,7 @@ export function LxModal({
       >
         {title ? (
           <div
+            id={titleId}
             style={{
               padding: '16px 20px',
               borderBottom: `1px solid ${v.border}`,

@@ -43,6 +43,7 @@ import { useBlock, useFollow, useFollowing, useUnfollow } from '../hooks/useSoci
 import { useUserProfile } from '../hooks/useUsers';
 import { useRelativeTime } from '../hooks/useRelativeTime';
 import { useViewport } from '../hooks/useViewport';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ReportModal } from './ReportModal';
@@ -924,7 +925,8 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   // The post detail is a route overlay rather than an LxModal, so it did not
   // inherit the shared Escape handling. Wire it here so Escape closes it like
   // every other overlay.
-  useEscapeKey(overlay, closePost);
+  const dialogRef = useDialogFocus(overlay, closePost, location.state?.backgroundFocus);
+  useEscapeKey(overlay && (isLoading || isError || !postId), closePost);
 
   const handleLikeToggle = useCallback(() => {
     setHeartBurst(false);
@@ -1172,6 +1174,11 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       >
         <LxIcon name="explore" size={32} color={v.error} />
         <div>post not found</div>
+        {overlay && (
+          <button type="button" onClick={closePost} style={{ minHeight: 44 }}>
+            Close post
+          </button>
+        )}
       </div>
     );
   }
@@ -1213,6 +1220,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
         <button
           ref={menuButtonRef}
           type="button"
+          aria-label="Post options"
           onClick={() => setMenuOpen((open) => !open)}
           className="lx-header-icon-btn"
           style={{
@@ -1233,6 +1241,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
         <button
           type="button"
           onClick={closePost}
+          aria-label="Close post"
           className="lx-header-icon-btn"
           style={{
             width: 24,
@@ -1382,8 +1391,11 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
           <button
             type="button"
             onClick={handleLikeToggle}
+            aria-label={liked ? 'Unlike post' : 'Like post'}
             className={`lx-heart-button ${heartBurst ? 'is-liked' : ''}`}
             style={{
+              minWidth: 44,
+              minHeight: 44,
               background: 'none',
               border: 'none',
               padding: 0,
@@ -1405,7 +1417,10 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
           <button
             type="button"
             onClick={() => commentInputRef.current?.focus()}
+            aria-label="Write a comment"
             style={{
+              minWidth: 44,
+              minHeight: 44,
               background: 'none',
               border: 'none',
               padding: 0,
@@ -1422,11 +1437,11 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
           </button>
           <button
             type="button"
-            // The only control in this row with no text beside its glyph, so it
-            // is the only one with no accessible name to take from its content.
             aria-label="share post"
             onClick={() => setShareOpen(true)}
             style={{
+              minWidth: 44,
+              minHeight: 44,
               background: 'none',
               border: 'none',
               padding: 0,
@@ -1729,7 +1744,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
                 border: `1px solid ${v.borderSubtle}`,
                 background: v.surfaceSunken,
                 display: 'grid',
-                gridTemplateColumns: '32px minmax(0, 1fr) 32px',
+                gridTemplateColumns: '44px minmax(0, 1fr) 44px',
                 alignItems: 'end',
                 gap: 6,
                 padding: '4px 7px',
@@ -1745,8 +1760,8 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
                 }}
                 aria-label="choose emoji"
                 style={{
-                  width: 32,
-                  height: 32,
+                  width: 44,
+                  height: 44,
                   borderRadius: '50%',
                   background: 'transparent',
                   border: 'none',
@@ -1762,6 +1777,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               </button>
               <textarea
                 ref={commentInputRef}
+                aria-label="Write a comment"
                 value={commentDraft}
                 onChange={(event) => setCommentDraft(event.target.value)}
                 wrap="soft"
@@ -1803,9 +1819,10 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               <button
                 type="button"
                 onClick={handleCommentSubmit}
+                aria-label="Send comment"
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 44,
+                  height: 44,
                   borderRadius: '50%',
                   background: 'none',
                   border: 'none',
@@ -1901,7 +1918,15 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
           }}
           onClick={closePost}
         >
-          <div className="lx-overlay-panel" onClick={(event) => event.stopPropagation()}>
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Post detail"
+            tabIndex={-1}
+            className="lx-overlay-panel"
+            onClick={(event) => event.stopPropagation()}
+          >
             {container}
           </div>
         </div>

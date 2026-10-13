@@ -1,6 +1,7 @@
 import type { To } from 'react-router-dom';
 import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { captureDialogOpener } from '@/hooks/useDialogFocus';
 
 /**
  * Opens an overlay address while recording the screen it was opened from.
@@ -31,6 +32,7 @@ export function useOverlayNavigate() {
         state: {
           background: location.pathname,
           backgroundScrollY: window.scrollY,
+          backgroundFocus: captureDialogOpener(),
           ...(extraState || {}),
         },
       }),

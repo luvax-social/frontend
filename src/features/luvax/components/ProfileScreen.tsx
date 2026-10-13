@@ -6,6 +6,7 @@ import type {
 } from '@/types/domain';
 import type { ReportTarget } from '@/types/report';
 import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
+import { getErrorResponse } from '@/utils/errors';
 type ProfileView = Partial<Omit<PublicUserProfileResponse, 'viewerState'>> & {
   firstName?: string | null;
   viewerState?: Partial<ViewerRelationshipResponse>;
@@ -172,6 +173,7 @@ export function ProfileScreen() {
     data: profileResponse,
     isError: isProfileError,
     isLoading: isProfileLoading,
+    error: profileError,
   } = useUserProfile(queryUserId);
   const fetchedUser = profileResponse ? unwrapApiResponse(profileResponse) : undefined;
 
@@ -359,7 +361,10 @@ export function ProfileScreen() {
           color: v.error,
         }}
       >
-        we couldn't load this profile. check your connection and try again.
+        {getErrorResponse(profileError)?.status === 403 ||
+        getErrorResponse(profileError)?.status === 404
+          ? 'This profile is not available.'
+          : "We couldn't load this profile. Check your connection and try again."}
       </div>
     );
   }
@@ -508,7 +513,10 @@ export function ProfileScreen() {
           {posts.map((p) => {
             const hasMedia = (p.media || []).length > 0;
             return (
-              <div
+              <button
+                type="button"
+                aria-label={p.caption ? `Open post: ${p.caption}` : 'Open post'}
+                data-overlay-target={p.id}
                 key={p.id}
                 onClick={() =>
                   openOverlay(routeTo.postDetail(p.id), {
@@ -517,7 +525,14 @@ export function ProfileScreen() {
                     ...(!isSelf && user?.id ? { background: routeTo.userProfile(user.id) } : {}),
                   })
                 }
-                style={{ cursor: 'pointer' }}
+                style={{
+                  cursor: 'pointer',
+                  padding: 0,
+                  border: 'none',
+                  background: 'none',
+                  textAlign: 'left',
+                  color: 'inherit',
+                }}
               >
                 {hasMedia ? (
                   <MediaThumb post={p} radius={4} />
@@ -526,7 +541,7 @@ export function ProfileScreen() {
                   // correct treatment for a post that genuinely carries no media.
                   <TextPostTile caption={p.caption} />
                 )}
-              </div>
+              </button>
             );
           })}
         </div>

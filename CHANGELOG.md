@@ -115,6 +115,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- Switching to the light theme restores readable accent text on account and settings screens.
 - Message privacy persists the supported everyone, following and nobody values, and account reset-link requests include a fresh challenge token.
 - Chat loads older history without losing cursors or the readers position, discovers incoming conversations, keeps nested menu keyboard actions scoped and provides a visible media close control.
 - Post, story and shared dialogs trap keyboard focus, close with Escape, fit short viewports and return focus to their opener even after a caption changes.

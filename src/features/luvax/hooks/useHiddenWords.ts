@@ -89,9 +89,10 @@ export const useAddHiddenWord = () => {
  * Removes one entry by its id.
  *
  * Optimistic: the row disappears at once. On failure the cache rolls back to the snapshot taken in
- * `onMutate` and the list is refetched.
+ * `onMutate` and the list is refetched. `options.onError` runs for every failed removal; a callback
+ * passed to `mutate` runs only for the latest call, so quick removals would lose earlier failures.
  */
-export const useRemoveHiddenWord = () => {
+export const useRemoveHiddenWord = (options: { onError?: (error: unknown) => void } = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (entryId: string) => userService.removeHiddenWord(entryId),
@@ -103,9 +104,10 @@ export const useRemoveHiddenWord = () => {
       );
       return { previous };
     },
-    onError: (_error, _entryId, context) => {
+    onError: (error, _entryId, context) => {
       if (context?.previous) queryClient.setQueryData(hiddenWordsKey, context.previous);
       void queryClient.invalidateQueries({ queryKey: hiddenWordsKey });
+      options.onError?.(error);
     },
   });
 };

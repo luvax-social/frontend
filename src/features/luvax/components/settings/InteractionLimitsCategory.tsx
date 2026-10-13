@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { LxToggle } from '@/components/ui/lx-toggle';
 import type { InteractionLimitDuration, InteractionLimitResponse } from '@/types/domain';
@@ -16,25 +16,53 @@ import { SettingsRow, StateBlock } from './settingsParts';
 const NON_FOLLOWERS_LABEL = "accounts that don't follow you";
 const RECENT_FOLLOWERS_LABEL = 'accounts that followed you in the last 7 days';
 
-// Values and labels of the presets `PUT /users/me/interaction-limits` accepts. The radio values
-// are strings because a radio group is string-keyed; they are converted back before sending.
-const DURATIONS: readonly RadioOption<string>[] = [
+// A radio group is keyed by strings, so each preset `PUT /users/me/interaction-limits` accepts has
+// a string value, and the two lookups below convert between that value and the number of days
+// without a cast.
+type DurationValue = `${InteractionLimitDuration}`;
+const DURATIONS: readonly RadioOption<DurationValue>[] = [
   { value: '1', label: '1 day' },
   { value: '3', label: '3 days' },
   { value: '7', label: '7 days' },
   { value: '14', label: '14 days' },
   { value: '28', label: '28 days' },
 ];
+const DAYS_OF: Record<DurationValue, InteractionLimitDuration> = {
+  '1': 1,
+  '3': 3,
+  '7': 7,
+  '14': 14,
+  '28': 28,
+};
+const VALUE_OF: Record<InteractionLimitDuration, DurationValue> = {
+  1: '1',
+  3: '3',
+  7: '7',
+  14: '14',
+  28: '28',
+};
 const DEFAULT_DURATION: InteractionLimitDuration = 7;
 
 const ON_FAILED_MESSAGE = "We couldn't turn that on just now. Try again in a moment.";
 const OFF_FAILED_MESSAGE = "We couldn't turn that off just now. Try again in a moment.";
+
+// The longest delay a timer holds: a larger one overflows and fires at once. A 28 day limit is
+// further away than this, so the expiry timer re-arms itself instead of waiting in one step.
+const LONGEST_TIMER_MS = 2 ** 31 - 1;
+// Past the end by a little, so the server's own clock agrees that the limit is over.
+const EXPIRY_GRACE_MS = 500;
 
 interface Draft {
   limitNonFollowers: boolean;
   limitRecentFollowers: boolean;
   durationDays: InteractionLimitDuration;
 }
+
+const INITIAL_DRAFT: Draft = {
+  limitNonFollowers: false,
+  limitRecentFollowers: false,
+  durationDays: DEFAULT_DURATION,
+};
 
 const describeAudience = (limit: InteractionLimitResponse) => {
   if (limit.limitNonFollowers && limit.limitRecentFollowers) {
@@ -54,20 +82,54 @@ const describeAudience = (limit: InteractionLimitResponse) => {
  * reopens the form with the current audiences.
  *
  * Nothing here is optimistic: the server computes the end time, so the status appears only after
- * the server has answered.
+ * the server has answered. A timer refetches the limit when its end passes while the page is open,
+ * so the status does not keep claiming limits that have stopped.
+ *
+ * When the view swaps, focus follows it, because the control that was pressed is gone: to the
+ * status line after "turn on" or "cancel", and to the first audience switch after "change" or
+ * "turn off now".
  */
 export function InteractionLimitsCategory() {
-  const { data: limit, isLoading, error } = useMyInteractionLimit();
+  const { data: limit, isLoading, error, refetch } = useMyInteractionLimit();
   const setLimit = useSetInteractionLimit();
   const clearLimit = useClearInteractionLimit();
 
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<Draft>({
-    limitNonFollowers: false,
-    limitRecentFollowers: false,
-    durationDays: DEFAULT_DURATION,
-  });
+  const [draft, setDraft] = useState<Draft>(INITIAL_DRAFT);
   const [failure, setFailure] = useState('');
+  const [expiryTick, setExpiryTick] = useState(0);
+
+  const view = !limit ? 'loading' : limit.active && !editing ? 'status' : 'form';
+  const focusAfterSwap = useRef<'status' | 'form' | null>(null);
+  const statusRef = useRef<HTMLSpanElement | null>(null);
+  const formRef = useRef<HTMLDivElement | null>(null);
+
+  // Runs when the view changes, not on every render: it exists only to hand focus to the control
+  // that replaced the one that was pressed, and only when a press asked for it.
+  useEffect(() => {
+    if (focusAfterSwap.current !== view) return;
+    focusAfterSwap.current = null;
+    const target =
+      view === 'status'
+        ? statusRef.current
+        : formRef.current?.querySelector<HTMLElement>('[role="switch"]');
+    target?.focus();
+  }, [view]);
+
+  const expiresAt = limit?.active ? limit.expiresAt : null;
+  // Re-arms when the end moves, and after each wait that fell short of the end because a timer
+  // cannot hold a delay as long as 28 days. Cleared on unmount so a left page never refetches.
+  useEffect(() => {
+    if (!expiresAt) return;
+    const end = Date.parse(expiresAt);
+    if (Number.isNaN(end)) return;
+    const wait = Math.min(Math.max(end - Date.now(), 0) + EXPIRY_GRACE_MS, LONGEST_TIMER_MS);
+    const timer = window.setTimeout(() => {
+      if (end - Date.now() > 0) setExpiryTick((tick) => tick + 1);
+      else void refetch();
+    }, wait);
+    return () => window.clearTimeout(timer);
+  }, [expiresAt, expiryTick, refetch]);
 
   if (error) {
     return (
@@ -80,13 +142,13 @@ export function InteractionLimitsCategory() {
   }
   if (isLoading || !limit) return <StateBlock icon="clock" title="loading" />;
 
-  if (limit.active && !editing) {
+  if (view === 'status') {
     return (
       <div>
         <div className="lx-limit-status">
           <div className="lx-limit-status-line">
             <span className="lx-limit-status-dot" aria-hidden="true" />
-            <span className="lx-limit-status-title">
+            <span ref={statusRef} tabIndex={-1} className="lx-limit-status-title">
               {`limits are on until ${formatLimitEnd(limit.expiresAt)}`}
             </span>
           </div>
@@ -99,7 +161,16 @@ export function InteractionLimitsCategory() {
               disabled={clearLimit.isPending}
               onClick={() => {
                 setFailure('');
-                clearLimit.mutate(undefined, { onError: () => setFailure(OFF_FAILED_MESSAGE) });
+                // The form is not on screen while the status is, so it is reset now and is
+                // already empty when turning off brings it back.
+                setDraft(INITIAL_DRAFT);
+                focusAfterSwap.current = 'form';
+                clearLimit.mutate(undefined, {
+                  onError: () => {
+                    focusAfterSwap.current = null;
+                    setFailure(OFF_FAILED_MESSAGE);
+                  },
+                });
               }}
             >
               turn off now
@@ -114,13 +185,18 @@ export function InteractionLimitsCategory() {
                   limitRecentFollowers: limit.limitRecentFollowers,
                   durationDays: DEFAULT_DURATION,
                 });
+                focusAfterSwap.current = 'form';
                 setEditing(true);
               }}
             >
               change
             </button>
           </div>
-          {failure ? <div className="lx-settings-error">{failure}</div> : null}
+          {failure ? (
+            <div className="lx-settings-error" role="alert">
+              {failure}
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -129,7 +205,7 @@ export function InteractionLimitsCategory() {
   const none = !draft.limitNonFollowers && !draft.limitRecentFollowers;
 
   return (
-    <div>
+    <div ref={formRef}>
       <SettingsRow
         label={NON_FOLLOWERS_LABEL}
         control={
@@ -157,11 +233,14 @@ export function InteractionLimitsCategory() {
           label="for how long"
           variant="segmented"
           options={DURATIONS}
-          value={String(draft.durationDays)}
-          onChange={(value) =>
-            setDraft({ ...draft, durationDays: Number(value) as InteractionLimitDuration })
-          }
+          value={VALUE_OF[draft.durationDays]}
+          onChange={(value) => setDraft({ ...draft, durationDays: DAYS_OF[value] })}
         />
+        {/* Only when a limit is already running: the preselected 7 days is a default, not the
+            duration that was chosen before, which the server does not keep. */}
+        {limit.active ? (
+          <p className="lx-settings-note lx-limit-restart-hint">The new duration starts now.</p>
+        ) : null}
       </div>
 
       <ul className="lx-settings-note lx-limit-effects">
@@ -170,7 +249,11 @@ export function InteractionLimitsCategory() {
         <li>You won&apos;t be notified when they mention you.</li>
       </ul>
 
-      {failure ? <div className="lx-settings-error">{failure}</div> : null}
+      {failure ? (
+        <div className="lx-settings-error" role="alert">
+          {failure}
+        </div>
+      ) : null}
 
       <div className="lx-settings-actions">
         <LxBtn
@@ -179,16 +262,28 @@ export function InteractionLimitsCategory() {
           disabled={none || setLimit.isPending}
           onClick={() => {
             setFailure('');
+            focusAfterSwap.current = 'status';
             setLimit.mutate(draft, {
               onSuccess: () => setEditing(false),
-              onError: () => setFailure(ON_FAILED_MESSAGE),
+              onError: () => {
+                focusAfterSwap.current = null;
+                setFailure(ON_FAILED_MESSAGE);
+              },
             });
           }}
         >
           {setLimit.isPending ? 'turning on' : 'turn on'}
         </LxBtn>
         {editing ? (
-          <LxBtn variant="ghost" type="button" onClick={() => setEditing(false)}>
+          <LxBtn
+            variant="ghost"
+            type="button"
+            onClick={() => {
+              setFailure('');
+              focusAfterSwap.current = 'status';
+              setEditing(false);
+            }}
+          >
             cancel
           </LxBtn>
         ) : null}

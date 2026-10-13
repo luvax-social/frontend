@@ -34,16 +34,23 @@ const loaded = async (phrases = ['spam link', 'Đồ điên', 'idiot']) => {
 
 const type = (value: string) => fireEvent.change(input(), { target: { value } });
 
+// The server's copy of the settings, so a refetch after a save returns what it really holds.
+let stored = settingsFixture();
+
 beforeEach(() => {
   vi.resetAllMocks();
-  service.getMySettings.mockResolvedValue(envelope(settingsFixture()));
+  stored = settingsFixture();
+  service.getMySettings.mockImplementation(async () => envelope({ ...stored }));
+  service.updateMySettings.mockImplementation(async (patch) => {
+    if (typeof patch.hiddenWordsSystemEnabled === 'boolean') {
+      stored = { ...stored, hiddenWordsSystemEnabled: patch.hiddenWordsSystemEnabled };
+    }
+    return envelope({ ...stored });
+  });
 });
 
 describe('hidden words: the luvax list', () => {
   it('shows the switch on by default and saves a change on its own', async () => {
-    service.updateMySettings.mockResolvedValue(
-      envelope(settingsFixture({ hiddenWordsSystemEnabled: false }))
-    );
     await loaded();
     const toggle = screen.getByRole('switch', { name: 'use the luvax list' });
     await waitFor(() => expect(toggle).toBeEnabled());
@@ -63,7 +70,9 @@ describe('hidden words: the luvax list', () => {
 
     fireEvent.click(toggle);
 
-    await screen.findByText("We couldn't save that just now. Try again in a moment.");
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't save that just now. Try again in a moment."
+    );
     expect(toggle).toHaveAttribute('aria-checked', 'true');
   });
 });
@@ -257,5 +266,92 @@ describe('hidden words: the personal list', () => {
     expect(
       screen.getByText('Your list is full. Remove a word to add another.')
     ).toBeInTheDocument();
+  });
+});
+
+describe('hidden words: links between the field and its messages', () => {
+  it('describes the field by the preview and by an error once there is one', async () => {
+    await loaded(['do dien']);
+
+    type('Đồ ngu!');
+    const preview = screen.getByText(/^Matches/);
+    expect(input().getAttribute('aria-describedby')).toBe(preview.id);
+
+    type('do dien');
+    fireEvent.click(addButton());
+    const error = await screen.findByRole('alert');
+    expect(error).toHaveTextContent('You already hide "do dien".');
+    expect(input()).toHaveAttribute('aria-errormessage', error.id);
+    expect(input()).toHaveAttribute('aria-invalid', 'true');
+    expect(input().getAttribute('aria-describedby')?.split(' ')).toEqual(
+      expect.arrayContaining([screen.getByText(/^Matches/).id, error.id])
+    );
+  });
+
+  it('does not point at messages that are not there', async () => {
+    await loaded();
+
+    expect(input()).not.toHaveAttribute('aria-describedby');
+    expect(input()).not.toHaveAttribute('aria-errormessage');
+  });
+
+  it('announces a failed removal as an alert', async () => {
+    service.removeHiddenWord.mockRejectedValue(apiError('INTERNAL_SERVER_ERROR', 500));
+    await loaded();
+
+    fireEvent.click(screen.getByRole('button', { name: 'remove idiot' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't remove that just now. Try again in a moment."
+    );
+  });
+});
+
+describe('hidden words: focus', () => {
+  const press = (name: string) => {
+    const button = screen.getByRole('button', { name });
+    button.focus();
+    fireEvent.click(button);
+  };
+
+  it('returns to the add field after a word is added', async () => {
+    service.addHiddenWord.mockResolvedValue(envelope(hiddenWordEntry('new-id', 'rude')));
+    await loaded();
+
+    type('rude');
+    press('add');
+
+    await screen.findByText('4 of 200');
+    expect(input()).toHaveFocus();
+  });
+
+  it('moves to the next chip after a chip is removed', async () => {
+    service.removeHiddenWord.mockResolvedValue(undefined);
+    await loaded();
+
+    press('remove spam link');
+
+    await screen.findByText('2 of 200');
+    expect(screen.getByRole('button', { name: 'remove Đồ điên' })).toHaveFocus();
+  });
+
+  it('moves to the previous chip when the last chip is removed', async () => {
+    service.removeHiddenWord.mockResolvedValue(undefined);
+    await loaded();
+
+    press('remove idiot');
+
+    await screen.findByText('2 of 200');
+    expect(screen.getByRole('button', { name: 'remove Đồ điên' })).toHaveFocus();
+  });
+
+  it('moves to the add field when the only chip is removed', async () => {
+    service.removeHiddenWord.mockResolvedValue(undefined);
+    await loaded(['idiot']);
+
+    press('remove idiot');
+
+    await screen.findByText('0 of 200');
+    expect(input()).toHaveFocus();
   });
 });

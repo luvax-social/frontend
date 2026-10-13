@@ -50,7 +50,8 @@ keeps its scroll position while you move between categories.
 | `saved` (a separate screen) | **saved posts** |
 | `blocked users` (a separate screen) | **blocked accounts**, with unblock in place |
 | `private account` | **privacy** |
-| `show activity status`, `allow story replies`, `allow message requests` | **privacy** |
+| `show activity status`, `allow story replies` | **privacy** |
+| `allow message requests` | **privacy**, as the three-way "who can message you" choice (everyone, people you follow, no one) |
 | the five notification toggles | **notifications** |
 | `email` | **account**, as information — it has no endpoint to change it |
 | `dark mode` | removed from settings; the theme is a device preference with no server behind it, and it still works where it already did |

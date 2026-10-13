@@ -81,8 +81,8 @@ export function SettingToggle({
   isLoading: boolean;
   failureMessage?: string;
 }) {
-  const updateSettings = useUpdateMySettings();
   const [failure, setFailure] = useState('');
+  const updateSettings = useUpdateMySettings({ onError: () => setFailure(failureMessage) });
 
   return (
     <div>
@@ -97,15 +97,16 @@ export function SettingToggle({
             busy={updateSettings.isPending}
             onChange={(value) => {
               setFailure('');
-              updateSettings.mutate(
-                { [field]: value },
-                { onError: () => setFailure(failureMessage) }
-              );
+              updateSettings.mutate({ [field]: value });
             }}
           />
         }
       />
-      {failure ? <div className="lx-settings-error">{failure}</div> : null}
+      {failure ? (
+        <div className="lx-settings-error" role="alert">
+          {failure}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -603,6 +603,7 @@ export const SETTINGS_CSS = `
 }
 .lx-limit-status .lx-settings-note { margin: var(--space-2) 0 var(--space-4); }
 .lx-limit-status-actions { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.lx-limit-restart-hint { margin-top: var(--space-2); }
 .lx-limit-effects { padding-left: var(--space-5); margin: var(--space-4) 0 0; }
 .lx-limit-effects li + li { margin-top: var(--space-1); }
 

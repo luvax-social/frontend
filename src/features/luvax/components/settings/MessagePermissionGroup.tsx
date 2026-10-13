@@ -5,6 +5,8 @@ import type { MessagePermission, UserSettingsResponse } from '@/types/domain';
 import { useUpdateMySettings } from '../../hooks/useSettings';
 import { SettingsRadioGroup, type RadioOption } from './SettingsRadioGroup';
 
+const SAVE_FAILED_MESSAGE = "We couldn't save that just now. Try again in a moment.";
+
 const OPTIONS: readonly RadioOption<MessagePermission>[] = [
   {
     value: 'everyone',
@@ -38,8 +40,11 @@ export function MessagePermissionGroup({
   settings?: UserSettingsResponse;
   isLoading: boolean;
 }) {
-  const updateSettings = useUpdateMySettings();
   const [failure, setFailure] = useState('');
+  // Hook-level, so the failure of every change is reported, not only the latest one.
+  const updateSettings = useUpdateMySettings({
+    onError: () => setFailure(SAVE_FAILED_MESSAGE),
+  });
 
   return (
     <div className="lx-radio-block">
@@ -51,13 +56,14 @@ export function MessagePermissionGroup({
         disabled={!settings || isLoading}
         onChange={(messagePermission) => {
           setFailure('');
-          updateSettings.mutate(
-            { messagePermission },
-            { onError: () => setFailure("We couldn't save that just now. Try again in a moment.") }
-          );
+          updateSettings.mutate({ messagePermission });
         }}
       />
-      {failure ? <div className="lx-settings-error">{failure}</div> : null}
+      {failure ? (
+        <div className="lx-settings-error" role="alert">
+          {failure}
+        </div>
+      ) : null}
     </div>
   );
 }

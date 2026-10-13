@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { PrivacyCategory } from '@/features/luvax/components/settingsCategories';
@@ -36,10 +36,19 @@ const loaded = async () => {
   await waitFor(() => expect(radio(/^everyone$/)).toBeEnabled());
 };
 
+// The server's copy of the settings: PATCH applies to it and GET reads it, so a refetch after a
+// save returns what the server really holds.
+let stored = settingsFixture();
+
 beforeEach(() => {
   vi.resetAllMocks();
+  stored = settingsFixture();
   service.getMyProfile.mockResolvedValue(envelope(profile));
-  service.getMySettings.mockResolvedValue(envelope(settingsFixture()));
+  service.getMySettings.mockImplementation(async () => envelope({ ...stored }));
+  service.updateMySettings.mockImplementation(async (patch) => {
+    if (patch.messagePermission) stored = { ...stored, messagePermission: patch.messagePermission };
+    return envelope({ ...stored });
+  });
 });
 
 describe('privacy: who can message you', () => {
@@ -75,18 +84,13 @@ describe('privacy: who can message you', () => {
   });
 
   it('reflects the saved permission', async () => {
-    service.getMySettings.mockResolvedValue(
-      envelope(settingsFixture({ messagePermission: 'nobody' }))
-    );
+    stored = settingsFixture({ messagePermission: 'nobody' });
     await loaded();
 
     expect(radio(/^no one$/)).toHaveAttribute('aria-checked', 'true');
   });
 
   it('saves a chosen option with a partial body', async () => {
-    service.updateMySettings.mockResolvedValue(
-      envelope(settingsFixture({ messagePermission: 'following' }))
-    );
     await loaded();
 
     fireEvent.click(radio(/^people you follow$/));
@@ -98,9 +102,6 @@ describe('privacy: who can message you', () => {
   });
 
   it('moves and saves with the arrow keys, wrapping at both ends', async () => {
-    service.updateMySettings.mockImplementation(async (patch) =>
-      envelope(settingsFixture({ messagePermission: patch.messagePermission ?? 'everyone' }))
-    );
     await loaded();
 
     radio(/^everyone$/).focus();
@@ -133,8 +134,35 @@ describe('privacy: who can message you', () => {
 
     fireEvent.click(radio(/^no one$/));
 
-    await screen.findByText("We couldn't save that just now. Try again in a moment.");
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't save that just now. Try again in a moment."
+    );
     expect(radio(/^everyone$/)).toHaveAttribute('aria-checked', 'true');
     expect(radio(/^no one$/)).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('shows the failure of an earlier change when a later change succeeds', async () => {
+    let refuseFirst = () => {};
+    service.updateMySettings.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          refuseFirst = () => reject(apiError('INTERNAL_SERVER_ERROR', 500));
+        })
+    );
+    await loaded();
+
+    fireEvent.keyDown(radio(/^everyone$/), { key: 'ArrowDown' });
+    await waitFor(() =>
+      expect(radio(/^people you follow$/)).toHaveAttribute('aria-checked', 'true')
+    );
+    fireEvent.keyDown(radio(/^people you follow$/), { key: 'ArrowDown' });
+    await waitFor(() => expect(radio(/^no one$/)).toHaveAttribute('aria-checked', 'true'));
+    await act(async () => refuseFirst());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't save that just now. Try again in a moment."
+    );
+    await waitFor(() => expect(radio(/^no one$/)).toHaveAttribute('aria-checked', 'true'));
+    expect(service.updateMySettings).toHaveBeenNthCalledWith(2, { messagePermission: 'nobody' });
   });
 });

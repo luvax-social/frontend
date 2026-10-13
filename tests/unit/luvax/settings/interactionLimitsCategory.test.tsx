@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { InteractionLimitsCategory } from '@/features/luvax/components/settings/InteractionLimitsCategory';
 import { formatLimitEnd } from '@/features/luvax/utils/interactionLimitFormat';
@@ -211,5 +211,194 @@ describe('limit interactions: the active state', () => {
 
     expect(await screen.findByRole('radiogroup', { name: 'for how long' })).toBeInTheDocument();
     expect(screen.queryByText(/limits are on until/)).toBeNull();
+  });
+});
+
+describe('limit interactions: reopening and resetting the form', () => {
+  it('says the new duration starts now when the form is reopened with change', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(activeLimit));
+    renderCategory();
+
+    expect(screen.queryByText('The new duration starts now.')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: 'change' }));
+
+    expect(screen.getByText('The new duration starts now.')).toBeInTheDocument();
+  });
+
+  it('does not say it on the first form', async () => {
+    await loadedForm();
+
+    expect(screen.queryByText('The new duration starts now.')).toBeNull();
+  });
+
+  it('shows the initial form again after turn off, whatever was chosen before', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(limitFixture()));
+    service.setMyInteractionLimit.mockResolvedValue(
+      envelope({ ...activeLimit, limitRecentFollowers: true })
+    );
+    service.clearMyInteractionLimit.mockResolvedValue(undefined);
+    await loadedForm();
+
+    fireEvent.click(nonFollowers());
+    fireEvent.click(recentFollowers());
+    fireEvent.click(duration('14 days'));
+    fireEvent.click(turnOn());
+    fireEvent.click(await screen.findByRole('button', { name: 'turn off now' }));
+    await screen.findByRole('radiogroup', { name: 'for how long' });
+
+    expect(nonFollowers()).toHaveAttribute('aria-checked', 'false');
+    expect(recentFollowers()).toHaveAttribute('aria-checked', 'false');
+    expect(duration('7 days')).toHaveAttribute('aria-checked', 'true');
+    expect(turnOn()).toBeDisabled();
+  });
+});
+
+describe('limit interactions: alerts', () => {
+  it('announces a failed turn on as an alert', async () => {
+    service.setMyInteractionLimit.mockRejectedValue(apiError('VALIDATION_ERROR', 400));
+    await loadedForm();
+
+    fireEvent.click(nonFollowers());
+    fireEvent.click(turnOn());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't turn that on just now. Try again in a moment."
+    );
+  });
+
+  it('announces a failed turn off as an alert', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(activeLimit));
+    service.clearMyInteractionLimit.mockRejectedValue(apiError('INTERNAL_SERVER_ERROR', 500));
+    renderCategory();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'turn off now' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't turn that off just now. Try again in a moment."
+    );
+  });
+});
+
+describe('limit interactions: focus', () => {
+  it('moves to the status line after turn on', async () => {
+    service.setMyInteractionLimit.mockResolvedValue(envelope(activeLimit));
+    await loadedForm();
+
+    fireEvent.click(nonFollowers());
+    turnOn().focus();
+    fireEvent.click(turnOn());
+
+    const status = await screen.findByText(/limits are on until/);
+    await waitFor(() => expect(status).toHaveFocus());
+    expect(status).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('moves to the first audience switch after change', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(activeLimit));
+    renderCategory();
+
+    const change = await screen.findByRole('button', { name: 'change' });
+    change.focus();
+    fireEvent.click(change);
+
+    await waitFor(() => expect(nonFollowers()).toHaveFocus());
+  });
+
+  it('moves to the status line after cancel', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(activeLimit));
+    renderCategory();
+    fireEvent.click(await screen.findByRole('button', { name: 'change' }));
+
+    const cancel = await screen.findByRole('button', { name: 'cancel' });
+    cancel.focus();
+    fireEvent.click(cancel);
+
+    await waitFor(() => expect(screen.getByText(/limits are on until/)).toHaveFocus());
+  });
+
+  it('moves to the first audience switch after turn off now', async () => {
+    service.getMyInteractionLimit
+      .mockResolvedValueOnce(envelope(activeLimit))
+      .mockResolvedValue(envelope(limitFixture()));
+    service.clearMyInteractionLimit.mockResolvedValue(undefined);
+    renderCategory();
+
+    const off = await screen.findByRole('button', { name: 'turn off now' });
+    off.focus();
+    fireEvent.click(off);
+
+    await waitFor(() => expect(nonFollowers()).toHaveFocus());
+  });
+
+  it('does not steal focus when turning off fails', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(activeLimit));
+    service.clearMyInteractionLimit.mockRejectedValue(apiError('INTERNAL_SERVER_ERROR', 500));
+    renderCategory();
+
+    const off = await screen.findByRole('button', { name: 'turn off now' });
+    off.focus();
+    fireEvent.click(off);
+    await screen.findByRole('alert');
+
+    expect(off).toHaveFocus();
+  });
+});
+
+describe('limit interactions: expiry while the page is open', () => {
+  const now = new Date('2026-10-14T10:00:00Z');
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(now);
+  });
+
+  it('refetches when the limit ends and shows the form again', async () => {
+    service.getMyInteractionLimit
+      .mockResolvedValueOnce(
+        envelope({ ...activeLimit, expiresAt: new Date(now.getTime() + 60_000).toISOString() })
+      )
+      .mockResolvedValue(envelope(limitFixture({ limitNonFollowers: true })));
+    renderCategory();
+    await screen.findByText(/limits are on until/);
+    expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(61_000);
+    });
+
+    expect(await screen.findByRole('radiogroup', { name: 'for how long' })).toBeInTheDocument();
+    expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not fire early for an end further away than a timer can wait', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(
+      envelope({
+        ...activeLimit,
+        expiresAt: new Date(now.getTime() + 28 * 86_400_000).toISOString(),
+      })
+    );
+    renderCategory();
+    await screen.findByText(/limits are on until/);
+
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+    });
+
+    expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels the timer when the page is left', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(
+      envelope({ ...activeLimit, expiresAt: new Date(now.getTime() + 60_000).toISOString() })
+    );
+    const view = renderCategory();
+    await screen.findByText(/limits are on until/);
+
+    view.unmount();
+    await act(async () => {
+      vi.advanceTimersByTime(120_000);
+    });
+
+    expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(1);
   });
 });

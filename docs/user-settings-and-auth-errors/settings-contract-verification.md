@@ -200,6 +200,9 @@ Each of these was searched for across all 115 declared paths and is absent:
 
 Eight writable booleans. Nothing else.
 
+Update of 2026-10-14: `allowMessageRequests` no longer exists.
+`messagePermission` (`"everyone"`, `"following"` or `"nobody"`) replaced it, and `GET` also returns `suggestible` and `hiddenWordsSystemEnabled`.
+
 ### Write semantics — established by calling, not by reading the schema
 
 | Probe | Request | Result |

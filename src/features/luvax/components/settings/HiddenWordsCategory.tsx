@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 import { LxIcon } from '@/components/ui/lx-icon';
 import { v } from '@/config/tokens';
@@ -51,20 +51,32 @@ export function HiddenWordsCategory() {
   const settings = settingsResponse ? unwrapApiResponse(settingsResponse) : undefined;
   const { data: list, isLoading, error } = useMyHiddenWords();
   const addWord = useAddHiddenWord();
-  const removeWord = useRemoveHiddenWord();
+  const [removeError, setRemoveError] = useState('');
+  // Hook-level, so every failed removal is reported, not only the latest one.
+  const removeWord = useRemoveHiddenWord({ onError: () => setRemoveError(REMOVE_FAILED_MESSAGE) });
+
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
+  const previewId = useId();
+  const errorId = useId();
 
   const [phrase, setPhrase] = useState('');
   const [addError, setAddError] = useState('');
-  const [removeError, setRemoveError] = useState('');
 
   const entries = list?.entries ?? [];
   const limit = list?.limit ?? 0;
   const full = list !== undefined && entries.length >= limit;
   const normalized = normalizePhrase(phrase);
+  const describedBy = [normalized ? previewId : null, addError ? errorId : null]
+    .filter(Boolean)
+    .join(' ');
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!normalized || full || addWord.isPending) return;
+    // Focus stays on the field whether the word is refused or taken, so the next one can be typed
+    // at once; the add button is disabled while a request is in flight and would drop it.
+    inputRef.current?.focus();
     if (entries.some((entry) => normalizePhrase(entry.phrase) === normalized)) {
       setAddError(duplicateMessage(normalized));
       return;
@@ -83,7 +95,14 @@ export function HiddenWordsCategory() {
 
   const remove = (entryId: string) => {
     setRemoveError('');
-    removeWord.mutate(entryId, { onError: () => setRemoveError(REMOVE_FAILED_MESSAGE) });
+    // Focus moves to the next chip, else the previous one, else the field, before the removed chip
+    // leaves the page; a word still being added has no usable remove button and is skipped.
+    const index = entries.findIndex((entry) => entry.id === entryId);
+    const neighbour = [...entries.slice(index + 1), ...entries.slice(0, index).reverse()].find(
+      (entry) => !isPendingHiddenWord(entry)
+    );
+    (neighbour ? removeButtons.current.get(neighbour.id) : inputRef.current)?.focus();
+    removeWord.mutate(entryId);
   };
 
   let words;
@@ -108,6 +127,10 @@ export function HiddenWordsCategory() {
               <li key={entry.id} className="lx-chip">
                 {entry.phrase}
                 <button
+                  ref={(node) => {
+                    if (node) removeButtons.current.set(entry.id, node);
+                    else removeButtons.current.delete(entry.id);
+                  }}
                   type="button"
                   className="lx-chip-remove"
                   aria-label={`remove ${entry.phrase}`}
@@ -120,7 +143,11 @@ export function HiddenWordsCategory() {
             ))}
           </ul>
         )}
-        {removeError ? <div className="lx-settings-error">{removeError}</div> : null}
+        {removeError ? (
+          <div className="lx-settings-error" role="alert">
+            {removeError}
+          </div>
+        ) : null}
       </>
     );
   }
@@ -146,11 +173,14 @@ export function HiddenWordsCategory() {
 
         <form className="lx-hidden-words-form" onSubmit={submit}>
           <input
+            ref={inputRef}
             className="lx-settings-input"
             type="text"
             autoComplete="off"
             aria-label="add a word or phrase"
             aria-invalid={addError ? true : undefined}
+            aria-describedby={describedBy || undefined}
+            aria-errormessage={addError ? errorId : undefined}
             placeholder="Add a word or phrase"
             value={phrase}
             onChange={(event) => {
@@ -168,12 +198,12 @@ export function HiddenWordsCategory() {
         </form>
 
         {normalized ? (
-          <p className="lx-settings-note lx-hidden-words-preview">
+          <p id={previewId} className="lx-settings-note lx-hidden-words-preview">
             {`Matches "${normalized}", including accented, capitalised and number-swapped spellings.`}
           </p>
         ) : null}
         {addError ? (
-          <div className="lx-settings-error" role="alert">
+          <div id={errorId} className="lx-settings-error" role="alert">
             {addError}
           </div>
         ) : null}

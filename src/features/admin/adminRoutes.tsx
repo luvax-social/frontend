@@ -48,6 +48,11 @@ const AccountListScreen = lazy(() =>
 const HashtagRegistryScreen = lazy(() =>
   import('./screens/HashtagRegistryScreen').then((m) => ({ default: m.HashtagRegistryScreen }))
 );
+const HiddenWordRegistryScreen = lazy(() =>
+  import('./screens/HiddenWordRegistryScreen').then((m) => ({
+    default: m.HiddenWordRegistryScreen,
+  }))
+);
 const StatisticsScreen = lazy(() =>
   import('./screens/StatisticsScreen').then((m) => ({ default: m.StatisticsScreen }))
 );
@@ -77,16 +82,17 @@ export const adminRoute = {
         // administrator reaches its own escalations here too.
         { path: rel(ROUTES.ADMIN_MY_ESCALATIONS), element: <MyEscalationsScreen /> },
         { path: rel(ROUTES.ADMIN_USER), element: <AccountModerationScreen /> },
-        // Administrator-only: the account list and search and the hashtag
-        // registry sit behind the second guard because the backend answers the
-        // whole account surface and the hashtag admin surface with 403 for a
-        // moderator, so the screens never mount to fire one.
+        // Administrator-only: the account list and search, the hashtag registry
+        // and the hidden word registry sit behind the second guard because the
+        // backend answers the whole account surface and both registries with 403
+        // for a moderator, so the screens never mount to fire one.
         {
           element: <AdminOnlyRoute />,
           children: [
             { path: rel(ROUTES.ADMIN_ESCALATED), element: <EscalatedQueueScreen /> },
             { path: rel(ROUTES.ADMIN_USERS), element: <AccountListScreen /> },
             { path: rel(ROUTES.ADMIN_HASHTAGS), element: <HashtagRegistryScreen /> },
+            { path: rel(ROUTES.ADMIN_HIDDEN_WORDS), element: <HiddenWordRegistryScreen /> },
             { path: rel(ROUTES.ADMIN_STATISTICS), element: <StatisticsScreen /> },
             { path: rel(ROUTES.ADMIN_ACTIVITY), element: <ActivityLogScreen /> },
           ],

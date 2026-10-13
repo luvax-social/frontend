@@ -6,6 +6,16 @@ import type {
   ReportStatus,
   UserSummaryResponse,
 } from './domain';
+// modules/social/dto/response/AdminHiddenWordResponse.java
+export interface AdminHiddenWordResponse {
+  id: string;
+  phrase: string;
+  normalizedPhrase: string;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // modules/hashtag/dto/response/HashtagAdminResponse.java
 export interface HashtagAdminResponse {
   id: string;

@@ -101,6 +101,13 @@ const NAV_SECTIONS: {
         roles: [ROLES.ADMIN],
       },
       {
+        key: 'hidden-words',
+        label: 'hidden words',
+        icon: 'eye',
+        to: ROUTES.ADMIN_HIDDEN_WORDS,
+        roles: [ROLES.ADMIN],
+      },
+      {
         key: 'statistics',
         label: 'statistics',
         icon: 'eye',

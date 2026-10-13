@@ -6,12 +6,11 @@ export interface FilterGroup {
   options: { value: string; label: ReactNode; disabled?: boolean }[];
 }
 import { v } from '@/config/tokens';
-import { LxTag } from '@/features/luvax/components/primitives';
 import { LxIcon } from '@/components/ui/lx-icon';
 
 /**
- * Derived pattern: a filter bar over small, fixed enumerations. Built from
- * `LxTag` in its active state, which is a ready-made filter chip. Each group
+ * A filter bar over small, fixed enumerations. Native toggle buttons retain
+ * the filter-chip shape and expose selection to keyboard and assistive input. Each group
  * offers an "all" chip plus one chip per value; selecting a value serialises to
  * only the endpoint's declared parameter keys upstream, and changing any filter
  * resets pagination because the query key includes the filter values.
@@ -21,8 +20,8 @@ import { LxIcon } from '@/components/ui/lx-icon';
  *
  * Each condition sits on its own labelled plate rather than in one continuous
  * run of chips, because adjacent conditions with only a gap between them read
- * as a single row and are easy to hit by mistake. Groups never compress: they
- * wrap onto the next line at their natural width. The clear affordance is
+ * as a single row and are easy to hit by mistake. Groups wrap onto the next
+ * line, and their chips wrap within the available width. The clear affordance is
  * pushed to the end of the bar so it never occupies a position where a
  * condition control is expected.
  *
@@ -54,24 +53,27 @@ export function FilterBar({
             role="group"
             aria-labelledby={`filter-${group.key}`}
           >
-            <LxTag size="sm" active={!group.value} onClick={() => onChange(group.key, '')}>
+            <button
+              type="button"
+              className="lx-admin-filter-chip"
+              aria-pressed={!group.value}
+              onClick={() => onChange(group.key, '')}
+            >
               all
-            </LxTag>
+            </button>
             {group.options.map((option) => (
-              <span
+              <button
+                type="button"
+                className="lx-admin-filter-chip"
                 key={option.value}
-                style={option.disabled ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}
+                disabled={option.disabled}
+                aria-pressed={group.value === option.value}
+                onClick={() => onChange(group.key, option.value)}
                 title={option.disabled ? 'unavailable' : undefined}
               >
-                <LxTag
-                  size="sm"
-                  active={group.value === option.value}
-                  onClick={option.disabled ? undefined : () => onChange(group.key, option.value)}
-                >
-                  {option.label}
-                  {option.disabled ? ' (unavailable)' : ''}
-                </LxTag>
-              </span>
+                {option.label}
+                {option.disabled ? ' (unavailable)' : ''}
+              </button>
             ))}
           </div>
         </div>

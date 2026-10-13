@@ -133,7 +133,7 @@ cd frontend
 npm run dev
 ```
 
-This runs `scripts/dev-server.mjs`, not `vite` directly.
+This runs `scripts/dev-server.mts`, not `vite` directly.
 
 ```
 VITE v8.0.13  ready in 3655 ms

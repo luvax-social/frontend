@@ -21,8 +21,8 @@
 
 | Layer | Library | What lives here | Notes |
 |-------|---------|-----------------|-------|
-| Server state | TanStack Query | API data, mutations, pagination, caching | Cache TTLs defined in `src/config/constants.js` (STALE_TIME) |
-| Global client state | Zustand | Auth session, cross-feature state | `src/store/useAuthStore.js` is the current global store |
+| Server state | TanStack Query | API data, mutations, pagination, caching | Cache TTLs defined in `src/config/constants.ts` (STALE_TIME) |
+| Global client state | Zustand | Auth session, cross-feature state | `src/store/useAuthStore.ts` is the current global store |
 | Feature-local state | React `useState` / `useReducer` | UI state local to one component | Default unless sharing is needed |
 
 Rules:
@@ -37,7 +37,7 @@ Rules:
 
 ## 3. API Layer Rules
 
-- All BE API calls must go through `src/api/axiosClient.js`.
+- All BE API calls must go through `src/api/axiosClient.ts`.
 - Use `axiosClient` for authenticated requests; use `publicClient` for public/auth endpoints.
 - Never call `fetch` or `axios.create()` directly in components, hooks, or feature services.
 - Feature-specific API wrappers belong in `src/features/<feature>/services/`.
@@ -70,32 +70,30 @@ Rules:
 
 ## 5. Type Safety
 
-The project uses plain JavaScript. TypeScript is not configured.
+TypeScript is the target language for application code and tests.
 
-- `jsconfig.json` is present for IDE path resolution and basic inference — it is not a TypeScript
-  build step.
-- Prop types and data shapes are validated at runtime via Zod schemas (see
-  `src/features/auth/utils/authSchemas.js` as the canonical example).
-- Prefer explicit Zod schemas for all form data and API request payloads.
-- Do not add TypeScript files (`.ts`, `.tsx`) without first aligning with the team — this is a
-  deliberate language choice.
+- Run `npm run typecheck` before committing. Production builds and CI enforce it.
+- Application, tests and supported tooling use strict TypeScript. `eslint.config.js` is the sole JS tooling exception; see `docs/typescript.md`.
+- Retain runtime Zod validation. Derive form input/output types from schemas.
+- Network responses follow backend DTOs and the OpenAPI contract; IDs remain opaque strings.
+- Do not bypass checking with blanket `any`, unchecked module declarations, or file-wide suppressions.
+- Shared contract types belong in `src/types/`; feature-specific props and view models stay in their feature.
 
 ---
-
 ## 6. Routing Rules
 
-- Routing is config-based. `src/routes/index.jsx` is the root router; `src/routes/appScreens.jsx`
+- Routing is config-based. `src/routes/index.tsx` is the root router; `src/routes/appScreens.tsx`
   holds the authenticated screen table it builds its children from, and
-  `src/features/admin/adminRoutes.jsx` holds the `/admin` subtree.
+  `src/features/admin/adminRoutes.tsx` holds the `/admin` subtree.
 - New routes must be added to one of those three tables — no ad-hoc `<Routes>` trees elsewhere in
   feature code.
-- Route path constants are defined in `src/config/constants.js` under `ROUTES`. Use them for
+- Route path constants are defined in `src/config/constants.ts` under `ROUTES`. Use them for
   `navigate()` calls and `<Link>` components; never hardcode path strings.
 - Route guards:
   - `ProtectedRoute`: wraps any route that requires authentication; redirects to `/login` if not
     authenticated.
   - `GuestRoute`: wraps login/register routes; sends an already-authenticated visitor to
-    `landingPathForRole(role)` from `src/config/roles.js`, so a moderator or administrator lands
+    `landingPathForRole(role)` from `src/config/roles.ts`, so a moderator or administrator lands
     in the panel rather than in the user-facing application.
 
 ---
@@ -117,7 +115,7 @@ The project uses plain JavaScript. TypeScript is not configured.
 - The refresh token is delivered as an HttpOnly cookie and is never readable by JavaScript. A
   copy may sit in memory when a response carries one, but the cookie alone completes a refresh
   and is what the interceptor relies on.
-- The `clearLegacyAuthStorage` utility in `useAuthStore.js` is the single point for wiping auth
+- The `clearLegacyAuthStorage` utility in `useAuthStore.ts` is the single point for wiping auth
   artifacts on logout; call it exclusively, do not write ad-hoc localStorage cleanup code.
 - Never log tokens, user PII, or sensitive headers to the console in production code.
 - All user-facing error messages must be normalized (the `axiosClient` interceptor handles this).

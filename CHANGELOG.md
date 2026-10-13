@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Regression coverage for empty conversation subtitles and preserved legacy payload fallback assertions after TypeScript fixture conversion.
+- Strict TypeScript coverage for every unit/live/E2E test and typed domain fixtures, preserving test discovery and existing assertions.
+- TypeScript entry points, route factories, Vite/Vitest/Playwright configurations and native Node scripts.
+- TypeScript contracts across all admin tables, confirmations, account moderation, report/support queues, audit/activity logs and statistics screens.
+- Typed admin API contracts, role-scoped pagination, moderation mutations, staff support actions and statistics helpers.
+- TypeScript contracts for message history, optimistic sending, attachment previews, conversations and live subscriptions.
+- TypeScript contracts for search, support tickets, appeal links and verification requests, with schema-derived forms and explicit API responses.
+- TypeScript contracts for profile editing, settings, follow lists and notification events, cache updates and rollback.
+- TypeScript contracts for feed, composer, post details, stories, sharing and app navigation, including their existing query and media flows.
+- Strict TypeScript checking for converted frontend modules, with build and CI gates and support for TypeScript test discovery.
 - An opt-in public homepage indexing policy with canonical metadata, a factual brand graph, robots discovery and a sitemap, plus deployment and HTTP verification guidance.
 - Suggestion cards in the feed: trending hashtags with post previews, and suggested accounts showing avatar, banner and follower count. A card appears after every fifth post, alternating between the two kinds, and each kind can be dismissed for the session.
 - An appeal action on each warning in settings and on each content-removal notification, opening an appeal against that decision without waiting for an email.
@@ -41,6 +51,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Frontend source and tests now use TypeScript throughout; removed migration-only JS allowance and updated documentation, structural tooling and supported configuration/script paths.
+- Post interactions, realtime cache updates, media rendering and composer utilities now use typed query data and browser events.
+- Shared domain services, media upload, impression batching and realtime subscriptions now use explicit API contracts.
+- Authentication forms and outcome pages now infer TypeScript values from their existing Zod schemas.
+- Shared UI primitives, route guards, error boundaries and Turnstile lifecycle now use typed props and refs.
+- Shared utilities, browser hooks and SEO build metadata now carry strict TypeScript types without changing pagination, theme or challenge behavior.
+- Authentication state, role normalization and API refresh handling now use explicit TypeScript contracts while preserving session persistence and cookie credentials.
 - Authentication views now use shareable query URLs, a stable visible primary heading, smaller responsive images and earlier font discovery, while the moderation support queue loads on demand.
 - The historical admin panel backend reference now identifies itself as an API contract and uses a descriptive filename.
 - The sign-in challenge now expands to match the width of the login fields.

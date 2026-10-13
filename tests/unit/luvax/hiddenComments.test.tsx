@@ -5,7 +5,7 @@ import type { CommentResponse, HiddenCommentReason, HiddenCommentResponse } from
 import type { CommentCachePage } from '@/types/cache';
 import type { ReportTarget } from '@/types/report';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -15,7 +15,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 
 import { postService } from '@/services/post.service';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -67,6 +67,7 @@ const click = async (element: Element) => {
   });
 };
 
+const LATE_WAIT = { timeout: 3000 };
 const service = vi.mocked(postService);
 const POST_ID = 'p1';
 const HIDDEN_KEY = ['comments', POST_ID, 'hidden'];
@@ -232,6 +233,7 @@ describe('useUnhideComment', () => {
     expect(keys).toContainEqual(['comments', POST_ID]);
     expect(keys).toContainEqual(['post', POST_ID]);
     expect(keys).toContainEqual(['feed']);
+    expect(keys).toContainEqual(['commentReplies']);
   });
 
   it('refetches the list when the comment is no longer there to unhide', async () => {
@@ -369,6 +371,83 @@ describe('HiddenCommentsPanel', () => {
     expect(await screen.findByTestId('hidden-comment-b')).toBeInTheDocument();
   });
 
+  it('shows no row message for a 404, because the refetch decides whether the row stays', async () => {
+    // The server still lists the row, so a message set by the failure would stay visible.
+    service.getHiddenComments.mockResolvedValue(page([hiddenComment('a')]));
+    service.unhideComment.mockRejectedValue(apiError('COMMENT_NOT_FOUND', 404));
+    renderPanel();
+    const row = await screen.findByTestId('hidden-comment-a');
+
+    await click(within(row).getByRole('button', { name: 'unhide' }));
+
+    await waitFor(() => expect(service.getHiddenComments).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('moves focus to the next row, else the previous row, else the back control after an unhide', async () => {
+    service.getHiddenComments
+      .mockResolvedValueOnce(page([hiddenComment('a'), hiddenComment('b'), hiddenComment('c')]))
+      .mockResolvedValueOnce(page([hiddenComment('a'), hiddenComment('c')]))
+      .mockResolvedValueOnce(page([hiddenComment('a')]))
+      .mockResolvedValue(page([]));
+    service.unhideComment.mockImplementation(async (id) => unhideResponse(id));
+    renderPanel();
+    const unhideOf = (id: string) =>
+      within(screen.getByTestId(`hidden-comment-${id}`)).getByRole('button', { name: 'unhide' });
+    await screen.findByTestId('hidden-comment-a');
+
+    unhideOf('b').focus();
+    await click(unhideOf('b'));
+    await waitFor(() => expect(unhideOf('c')).toHaveFocus());
+
+    unhideOf('c').focus();
+    await click(unhideOf('c'));
+    await waitFor(() => expect(unhideOf('a')).toHaveFocus());
+
+    unhideOf('a').focus();
+    await click(unhideOf('a'));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'back to comments' })).toHaveFocus()
+    );
+  });
+
+  it('offers only the load more control while the first page is empty but more exist', async () => {
+    service.getHiddenComments.mockResolvedValue(page([], 'cursor-1'));
+    renderPanel();
+
+    expect(await screen.findByRole('button', { name: 'load more' })).toBeInTheDocument();
+    expect(screen.queryByText('No hidden comments on this post')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^0\+ on this post/)).not.toBeInTheDocument();
+  });
+
+  it('announces loading as a status', () => {
+    service.getHiddenComments.mockReturnValue(new Promise(() => {}));
+    renderPanel();
+
+    expect(screen.getByRole('status')).toHaveTextContent(/loading/i);
+  });
+
+  it('goes back on Escape', async () => {
+    service.getHiddenComments.mockResolvedValue(page([]));
+    const { onBack } = renderPanel();
+    await screen.findByText('No hidden comments on this post');
+
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves Escape to the report modal while it is open', async () => {
+    service.getHiddenComments.mockResolvedValue(page([hiddenComment('a')]));
+    const { onBack } = renderPanel();
+    const row = await screen.findByTestId('hidden-comment-a');
+
+    await click(within(row).getByRole('button', { name: 'report' }));
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
   it('goes back through the back control', async () => {
     service.getHiddenComments.mockResolvedValue(page([]));
     const { onBack } = renderPanel();
@@ -417,6 +496,73 @@ describe('PostDetailScreen hidden comments entry', () => {
     expect(screen.getByRole('button', { name: 'post options' })).toHaveFocus();
   });
 
+  const asOwner = () => {
+    mockedPostHooks.post = {
+      data: { id: POST_ID, author: { id: 'owner', username: 'owner' }, media: [], commentCount: 0 },
+    };
+    useAuthStore.setState({ user: { id: 'owner', username: 'owner' } } as never);
+  };
+
+  const openPanel = async () => {
+    await click(screen.getByRole('button', { name: 'post options' }));
+    await click(await screen.findByRole('button', { name: 'Hidden comments' }));
+    await screen.findByTestId('hidden-comment-a');
+  };
+
+  it('closes the panel on Escape before the post overlay closes', async () => {
+    service.getHiddenComments.mockResolvedValue(page([hiddenComment('a')]));
+    asOwner();
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={['/app', `/app/p/${POST_ID}`]} initialIndex={1}>
+          <Routes>
+            <Route path="/app" element={<div>feed screen</div>} />
+            <Route path="/app/p/:postId" element={<PostDetailScreen overlay />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    await openPanel();
+
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    await waitFor(() => expect(screen.queryByTestId('hidden-comment-a')).not.toBeInTheDocument());
+    expect(screen.queryByText('feed screen')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'post options' })).toHaveFocus();
+  });
+
+  it('closes the panel when another post is opened', async () => {
+    service.getHiddenComments.mockResolvedValue(page([hiddenComment('a')]));
+    asOwner();
+    function Jump() {
+      const navigate = useNavigate();
+      return <button onClick={() => navigate('/app/p/p2')}>jump</button>;
+    }
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={[`/app/p/${POST_ID}`]}>
+          <Routes>
+            <Route
+              path="/app/p/:postId"
+              element={
+                <>
+                  <PostDetailScreen />
+                  <Jump />
+                </>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    await openPanel();
+
+    await click(screen.getByRole('button', { name: 'jump' }));
+
+    await waitFor(() => expect(screen.queryByTestId('hidden-comment-a')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'post options' })).toBeInTheDocument();
+  });
+
   it('does not offer it to anyone else', async () => {
     renderDetail('visitor');
 
@@ -440,11 +586,17 @@ describe('live unhidden comments', () => {
       comment: { ...commentFixture({ id, postId: POST_ID, parentId }), content: `text of ${id}` },
     },
   });
+  const deliver = (...frames: ReturnType<typeof frame>[]) =>
+    act(() => {
+      for (const next of frames) liveHandlers.get(COMMENT_TOPIC)?.(next);
+    });
 
-  const setup = () => {
+  const setup = (rows: CommentResponse[] = []) => {
     const client = makeClient();
     client.setQueryData(['comments', POST_ID], {
-      pages: [{ data: { content: [commentFixture({ id: 'existing', postId: POST_ID })] } }],
+      pages: [
+        { data: { content: [commentFixture({ id: 'existing', postId: POST_ID }), ...rows] } },
+      ],
       pageParams: [null],
     });
     client.setQueryData(['post', POST_ID], { data: { id: POST_ID, commentCount: 1 } });
@@ -452,35 +604,193 @@ describe('live unhidden comments', () => {
       pages: [page([hiddenComment('late'), hiddenComment('other')])],
       pageParams: [null],
     });
+    const spy = vi.spyOn(client, 'invalidateQueries');
     renderHook(() => useLivePostUpdates(POST_ID), { wrapper: wrapperFor(client) });
-    return client;
+    return { client, spy };
   };
 
   const topLevelIds = (client: QueryClient) =>
     client
       .getQueryData<CommentCachePage>(['comments', POST_ID])
       ?.pages?.flatMap((entry) => entry.data?.content?.map((row) => row.id) ?? []);
+  const commentCount = (client: QueryClient) =>
+    client.getQueryData<{ data: { commentCount: number } }>(['post', POST_ID])?.data.commentCount;
+  const invalidatedKeys = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.map(([filters]) => (filters as { queryKey?: unknown[] })?.queryKey);
 
-  it('adds an unhidden comment once, however many times its frame arrives', () => {
-    const client = setup();
-    const deliver = liveHandlers.get(COMMENT_TOPIC);
+  it('adds an unhidden comment once and leaves every count to the refetch', async () => {
+    const { client, spy } = setup();
 
-    act(() => {
-      deliver?.(frame('late'));
-      deliver?.(frame('late'));
-    });
+    deliver(frame('late'), frame('late'));
 
     expect(topLevelIds(client)).toEqual(['existing', 'late']);
-    expect(
-      client.getQueryData<{ data: { commentCount: number } }>(['post', POST_ID])?.data.commentCount
-    ).toBe(2);
+    expect(commentCount(client)).toBe(1);
+    await waitFor(() => expect(invalidatedKeys(spy)).toContainEqual(['post', POST_ID]), LATE_WAIT);
+    expect(invalidatedKeys(spy)).toContainEqual(['comments', POST_ID]);
+    expect(invalidatedKeys(spy)).toContainEqual(['commentReplies']);
+  });
+
+  it('does no reply count arithmetic for a released reply', async () => {
+    const { client, spy } = setup([commentFixture({ id: 'top', postId: POST_ID, replyCount: 2 })]);
+    client.setQueryData(['commentReplies', 'top'], {
+      data: { content: [commentFixture({ id: 'r0', parentId: 'top', depth: 1 })] },
+    });
+
+    deliver(frame('r1', 'top'), frame('r1', 'top'));
+
+    const rows = client.getQueryData<CommentCachePage>(['commentReplies', 'top'])?.data?.content;
+    expect(rows?.map((row) => row.id)).toEqual(['r0', 'r1']);
+    const top = client
+      .getQueryData<CommentCachePage>(['comments', POST_ID])
+      ?.pages?.[0]?.data?.content?.find((row) => row.id === 'top');
+    expect(top?.replyCount).toBe(2);
+    expect(commentCount(client)).toBe(1);
+    await waitFor(() => expect(invalidatedKeys(spy)).toContainEqual(['post', POST_ID]), LATE_WAIT);
+  });
+
+  it('writes nothing into a replies list that was never opened', () => {
+    const { client } = setup([commentFixture({ id: 'top', postId: POST_ID, replyCount: 1 })]);
+
+    deliver(frame('r1', 'top'));
+
+    expect(client.getQueryData(['commentReplies', 'top'])).toBeUndefined();
+  });
+
+  it('refreshes the counts for the commenter whose own hidden row is already cached', async () => {
+    const { client, spy } = setup([commentFixture({ id: 'mine', postId: POST_ID })]);
+
+    deliver(frame('mine'));
+
+    expect(topLevelIds(client)).toEqual(['existing', 'mine']);
+    expect(commentCount(client)).toBe(1);
+    await waitFor(() => expect(invalidatedKeys(spy)).toContainEqual(['post', POST_ID]), LATE_WAIT);
+  });
+
+  it('collapses a burst of frames into one refresh', async () => {
+    const { spy } = setup();
+
+    deliver(...Array.from({ length: 12 }, (_, index) => frame(`burst-${index}`)));
+    await waitFor(() => expect(invalidatedKeys(spy)).toContainEqual(['post', POST_ID]), LATE_WAIT);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    const keys = invalidatedKeys(spy);
+    expect(keys.filter((key) => key?.[0] === 'post')).toHaveLength(1);
+    expect(keys.filter((key) => key?.[0] === 'comments')).toHaveLength(1);
+    expect(keys.filter((key) => key?.[0] === 'commentReplies')).toHaveLength(1);
   });
 
   it('drops the released comment from the owner review list', () => {
-    const client = setup();
+    const { client } = setup();
 
-    act(() => liveHandlers.get(COMMENT_TOPIC)?.(frame('late')));
+    deliver(frame('late'));
 
     expect(idsInCache(client)).toEqual(['other']);
+  });
+});
+
+describe('counts after the owner unhides', () => {
+  const COMMENT_TOPIC = `/topic/comments.${POST_ID}.events`;
+  type Server = { commentCount: number; rows: CommentResponse[]; fetchesOfPost: number };
+
+  const frameOf = (comment: CommentResponse) => ({
+    eventType: 'comment.unhidden.v1',
+    data: {
+      postId: POST_ID,
+      commentId: comment.id,
+      commentOwnerId: 'someone',
+      depth: comment.depth,
+      parentId: comment.parentId,
+      comment,
+    },
+  });
+
+  const harness = (before: Server, after: Omit<Server, 'fetchesOfPost'>) => {
+    const server = before;
+    service.unhideComment.mockImplementation(async (id) => {
+      Object.assign(server, after);
+      return unhideResponse(id);
+    });
+    const client = makeClient();
+    const view = renderHook(
+      () => {
+        useLivePostUpdates(POST_ID);
+        const post = useQuery({
+          queryKey: ['post', POST_ID],
+          queryFn: async () => {
+            server.fetchesOfPost += 1;
+            return { data: { id: POST_ID, commentCount: server.commentCount } };
+          },
+        });
+        const comments = useQuery({
+          queryKey: ['comments', POST_ID],
+          queryFn: async () => ({ data: { content: server.rows } }),
+        });
+        return { post, comments, unhide: useUnhideComment(POST_ID) };
+      },
+      { wrapper: wrapperFor(client) }
+    );
+    return { server, client, view };
+  };
+
+  const replyCountOf = (view: ReturnType<typeof harness>['view'], id: string) =>
+    view.result.current.comments.data?.data.content.find((row) => row.id === id)?.replyCount;
+
+  it('keeps the refetched counts when the frames of a comment and its released replies arrive', async () => {
+    const top = commentFixture({ id: 'top', postId: POST_ID, replyCount: 0 });
+    const released = [
+      commentFixture({ id: 'r1', postId: POST_ID, parentId: 'top', rootId: 'top', depth: 1 }),
+      commentFixture({ id: 'r2', postId: POST_ID, parentId: 'top', rootId: 'top', depth: 1 }),
+    ];
+    const { server, view } = harness(
+      { commentCount: 1, rows: [top], fetchesOfPost: 0 },
+      { commentCount: 4, rows: [{ ...top, replyCount: 2 }] }
+    );
+    await waitFor(() => expect(view.result.current.post.data?.data.commentCount).toBe(1));
+
+    await act(async () => view.result.current.unhide.mutate('top'));
+    await waitFor(() => expect(view.result.current.post.data?.data.commentCount).toBe(4));
+    await waitFor(() => expect(replyCountOf(view, 'top')).toBe(2));
+    const fetchesBeforeFrames = server.fetchesOfPost;
+
+    act(() => {
+      for (const comment of [{ ...top, replyCount: 2 }, ...released]) {
+        liveHandlers.get(COMMENT_TOPIC)?.(frameOf(comment));
+      }
+    });
+
+    expect(view.result.current.post.data?.data.commentCount).toBe(4);
+    expect(replyCountOf(view, 'top')).toBe(2);
+    await waitFor(() => expect(server.fetchesOfPost).toBe(fetchesBeforeFrames + 1), LATE_WAIT);
+    expect(view.result.current.post.data?.data.commentCount).toBe(4);
+    expect(replyCountOf(view, 'top')).toBe(2);
+  });
+
+  it('keeps the refetched counts when the unhidden comment is itself a reply', async () => {
+    const parent = commentFixture({ id: 'parent', postId: POST_ID, replyCount: 0 });
+    const reply = commentFixture({
+      id: 'reply',
+      postId: POST_ID,
+      parentId: 'parent',
+      rootId: 'parent',
+      depth: 1,
+    });
+    const { server, view } = harness(
+      { commentCount: 1, rows: [parent], fetchesOfPost: 0 },
+      { commentCount: 2, rows: [{ ...parent, replyCount: 1 }] }
+    );
+    await waitFor(() => expect(view.result.current.post.data?.data.commentCount).toBe(1));
+
+    await act(async () => view.result.current.unhide.mutate('reply'));
+    await waitFor(() => expect(view.result.current.post.data?.data.commentCount).toBe(2));
+    await waitFor(() => expect(replyCountOf(view, 'parent')).toBe(1));
+    const fetchesBeforeFrames = server.fetchesOfPost;
+
+    act(() => liveHandlers.get(COMMENT_TOPIC)?.(frameOf(reply)));
+
+    expect(view.result.current.post.data?.data.commentCount).toBe(2);
+    expect(replyCountOf(view, 'parent')).toBe(1);
+    await waitFor(() => expect(server.fetchesOfPost).toBe(fetchesBeforeFrames + 1), LATE_WAIT);
+    expect(view.result.current.post.data?.data.commentCount).toBe(2);
+    expect(replyCountOf(view, 'parent')).toBe(1);
   });
 });

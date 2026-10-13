@@ -62,10 +62,10 @@ export const useHiddenComments = (postId: string | null | undefined) =>
  * Optimistic: the row leaves the review list at once. On failure the list rolls back to the
  * snapshot taken in `onMutate`, so a refused unhide never leaves the row missing, and
  * `options.onError` receives the error with the comment id. A 404 also refetches the list,
- * because the comment is no longer hidden there. On success the post's comments, the post and the
- * feed are invalidated for their counts; `['comments', postId]` is the parent of the hidden list's
- * key, so the list refetches too and replies released along with the comment show up in the
- * regular thread.
+ * because the comment is no longer hidden there. On success the post's comments, the post, the
+ * feed and the open reply threads are invalidated for their counts; `['comments', postId]` is the
+ * parent of the hidden list's key, so the list refetches too and replies released along with the
+ * comment show up in the regular thread.
  */
 export const useUnhideComment = (
   postId: string | null | undefined,
@@ -94,6 +94,8 @@ export const useUnhideComment = (
       void queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       void queryClient.invalidateQueries({ queryKey: ['post', postId] });
       void queryClient.invalidateQueries({ queryKey: ['feed'] });
+      // A released reply shows in an already expanded thread even when live updates are off.
+      void queryClient.invalidateQueries({ queryKey: ['commentReplies'] });
     },
   });
 };

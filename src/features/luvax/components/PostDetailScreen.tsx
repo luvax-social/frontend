@@ -717,7 +717,9 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const [commentEmojiSearch, setCommentEmojiSearch] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
   const [postReportTarget, setPostReportTarget] = useState<ReportTarget | null>(null);
-  const [hiddenPanelOpen, setHiddenPanelOpen] = useState(false);
+  // The panel is tied to the post it was opened on, so opening another post shows that post's
+  // comments instead of carrying the panel across.
+  const [hiddenPanelPostId, setHiddenPanelPostId] = useState<string | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const restoreMenuFocusRef = useRef(false);
   const commentsPaneRef = useRef<HTMLDivElement | null>(null);
@@ -1067,7 +1069,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               id: 'hidden-comments',
               icon: 'eye',
               label: 'Hidden comments',
-              onClick: () => setHiddenPanelOpen(true),
+              onClick: () => setHiddenPanelPostId(postId ?? null),
             },
             {
               id: 'delete',
@@ -1149,6 +1151,8 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     ]
   );
 
+  const hiddenPanelOpen = Boolean(postId) && hiddenPanelPostId === postId;
+
   // The menu trigger unmounts while the review panel replaces the comment column, so
   // focus goes back to its new instance once the panel has closed.
   useEffect(() => {
@@ -1160,7 +1164,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
 
   const closeHiddenPanel = () => {
     restoreMenuFocusRef.current = true;
-    setHiddenPanelOpen(false);
+    setHiddenPanelPostId(null);
   };
 
   if (isLoading) {

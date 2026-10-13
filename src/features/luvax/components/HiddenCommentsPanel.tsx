@@ -2,8 +2,10 @@ import type { CSSProperties } from 'react';
 import type { HiddenCommentReason, HiddenCommentResponse } from '@/types/domain';
 import type { ReportTarget } from '@/types/report';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { HTTP_STATUS } from '@/config/constants';
 import { v } from '@/config/tokens';
 import { REPORT_TYPES } from '@/services/report.service';
+import { getErrorResponse } from '@/utils/errors';
 import { extractPageContent, getDisplayName } from '@/utils/helpers';
 import { LxAvatar, LxBtn, LxIcon } from './primitives';
 import { ReportModal } from './ReportModal';
@@ -46,6 +48,7 @@ function HiddenCommentRow({
   return (
     <div
       data-testid={`hidden-comment-${comment.id}`}
+      data-hidden-comment-id={comment.id}
       style={{
         display: 'flex',
         gap: 12,
@@ -88,7 +91,13 @@ function HiddenCommentRow({
           flexShrink: 0,
         }}
       >
-        <LxBtn variant="ghost" size="sm" onClick={() => onUnhide(comment)} type="button">
+        <LxBtn
+          variant="ghost"
+          size="sm"
+          onClick={() => onUnhide(comment)}
+          type="button"
+          data-unhide-for={comment.id}
+        >
           unhide
         </LxBtn>
         {comment.hasReported ? (
@@ -128,12 +137,18 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const backRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const focusAfterRemoval = useRef<{ removedId: string; nextId: string | null } | null>(null);
 
   const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useHiddenComments(postId);
   const unhide = useUnhideComment(postId, {
-    // A 404 refetches the list and drops the row, so only other failures keep a row to explain.
     onError: (error, commentId) => {
+      // A failed unhide restores the row, so focus has nothing to move away from.
+      if (focusAfterRemoval.current?.removedId === commentId) focusAfterRemoval.current = null;
+      // A 404 refetches the list and the refetch decides whether the row stays, so a message
+      // set here would flash on a row that is about to go.
+      if (getErrorResponse(error)?.status === HTTP_STATUS.NOT_FOUND) return;
       const message = isParentStillHidden(error) ? PARENT_HIDDEN_COPY : UNHIDE_FAILED_COPY;
       setRowErrors((current) => ({ ...current, [commentId]: message }));
     },
@@ -143,13 +158,46 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
     backRef.current?.focus();
   }, []);
 
+  // Escape steps back out of the review list. The listener is on the window in the capture
+  // phase so it runs ahead of the post overlay's own Escape handling, which would otherwise
+  // close the whole post. While the report modal is open Escape belongs to the modal.
+  useEffect(() => {
+    if (reportTarget) return undefined;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      onBack();
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [onBack, reportTarget]);
+
   const comments = useMemo(
     () => (data?.pages ?? []).flatMap((entry) => extractPageContent(entry)),
     [data]
   );
 
+  // Once the row that held focus has left the list, focus goes to a row that is still there.
+  useEffect(() => {
+    const pending = focusAfterRemoval.current;
+    if (!pending || comments.some((comment) => comment.id === pending.removedId)) return;
+    focusAfterRemoval.current = null;
+    const next = pending.nextId
+      ? panelRef.current?.querySelector<HTMLElement>(`[data-unhide-for="${pending.nextId}"]`)
+      : null;
+    (next ?? backRef.current)?.focus();
+  }, [comments]);
+
   const handleUnhide = (comment: HiddenCommentResponse) => {
     setRowErrors(({ [comment.id]: _cleared, ...rest }) => rest);
+    const focusInRow = Boolean(
+      document.activeElement?.closest(`[data-hidden-comment-id="${comment.id}"]`)
+    );
+    if (focusInRow) {
+      const index = comments.findIndex((row) => row.id === comment.id);
+      const neighbour = comments[index + 1] ?? comments[index - 1];
+      focusAfterRemoval.current = { removedId: comment.id, nextId: neighbour?.id ?? null };
+    }
     unhide.mutate(comment.id);
   };
 
@@ -165,6 +213,7 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
   return (
     <>
       <div
+        ref={panelRef}
         style={{
           height: '100%',
           minWidth: 0,
@@ -209,7 +258,7 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
             >
               hidden comments
             </span>
-            {isLoading || isError ? null : (
+            {isLoading || isError || (comments.length === 0 && hasNextPage) ? null : (
               <span style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink3 }}>
                 {`${comments.length}${hasNextPage ? '+' : ''} on this post, only you can see these`}
               </span>
@@ -219,13 +268,19 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
 
         <div style={{ minHeight: 0, overflowY: 'auto' }}>
           {isLoading ? (
-            <div style={statusStyle}>Loading hidden comments...</div>
+            <div role="status" style={statusStyle}>
+              Loading hidden comments...
+            </div>
           ) : isError ? (
             <div style={{ ...statusStyle, color: v.error }}>
               We couldn't load the hidden comments. Try again.
             </div>
           ) : comments.length === 0 ? (
-            <div style={statusStyle}>No hidden comments on this post</div>
+            // While more pages exist an empty page is not the end of the list, so only
+            // the load more control below is shown.
+            hasNextPage ? null : (
+              <div style={statusStyle}>No hidden comments on this post</div>
+            )
           ) : (
             comments.map((comment) => (
               <HiddenCommentRow

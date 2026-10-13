@@ -54,6 +54,7 @@ export function ConvRow({
   onHideOptions,
 }: Props) {
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -61,7 +62,7 @@ export function ConvRow({
   const swipedRef = useRef(false);
   const thresholdNotifiedRef = useRef(false);
   const isMobile = viewport === 'mobile';
-  const showOptions = (isMobile && revealedOptions) || hovered || menuOpen;
+  const showOptions = (isMobile && revealedOptions) || hovered || focused || menuOpen;
   const openingProgress =
     isMobile && dragX < 0 ? Math.min(Math.max(Math.abs(dragX) / 74, 0), 1) : 0;
   const closingProgress =
@@ -173,10 +174,18 @@ export function ConvRow({
         onSelect?.();
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') onSelect?.();
+        if (event.target !== event.currentTarget) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect?.();
+        }
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+      }}
       onPointerDown={(event) => {
         if (isMobile) {
           dragStartRef.current = { x: event.clientX, y: event.clientY };

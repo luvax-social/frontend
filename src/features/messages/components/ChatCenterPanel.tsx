@@ -20,6 +20,11 @@ interface Props {
   isDesktop: boolean;
   isTablet: boolean;
   scrollerRef: RefObject<HTMLDivElement | null>;
+  onHistoryScroll: () => void;
+  loadOlderMessages: () => void;
+  hasOlderMessages: boolean;
+  loadingOlderMessages: boolean;
+  historyLoadFailed: boolean;
   openPreview: (items: PreviewMedia[], index?: number) => void;
   openStory: (id: string) => void;
   handleDeleteToggle: (id: string) => void;
@@ -181,16 +186,22 @@ function MessageActionRow({
   isMine,
   minHeight = 'auto',
   alignItems = 'stretch',
+  messageId,
+  messageIds,
 }: {
   children: (hovered: boolean) => ReactNode;
   isMine: boolean;
   minHeight?: CSSProperties['minHeight'];
   alignItems?: CSSProperties['alignItems'];
+  messageId?: string;
+  messageIds?: string[];
 }) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
+      data-message-id={messageId}
+      data-message-ids={messageIds?.join(' ')}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -215,6 +226,11 @@ export function ChatCenterPanel({
   isDesktop,
   isTablet,
   scrollerRef,
+  onHistoryScroll,
+  loadOlderMessages,
+  hasOlderMessages,
+  loadingOlderMessages,
+  historyLoadFailed,
   openPreview,
   openStory,
   handleDeleteToggle,
@@ -396,8 +412,10 @@ export function ChatCenterPanel({
 
       <div
         ref={scrollerRef}
+        onScroll={onHistoryScroll}
         style={{
           overflowY: 'auto',
+          overflowAnchor: 'none',
           padding: viewport === 'mobile' ? '14px 20px' : '16px 18px 10px',
         }}
       >
@@ -410,6 +428,20 @@ export function ChatCenterPanel({
             justifyContent: activeThread.messages.length <= 1 ? 'space-between' : 'flex-start',
           }}
         >
+          {hasOlderMessages && (
+            <button
+              type="button"
+              onClick={loadOlderMessages}
+              disabled={loadingOlderMessages}
+              style={{ minHeight: 44, color: v.ink2, alignSelf: 'center' }}
+            >
+              {loadingOlderMessages
+                ? 'Loading older messages...'
+                : historyLoadFailed
+                  ? 'Try loading older messages again'
+                  : 'Load older messages'}
+            </button>
+          )}
           <ConversationGreeting
             messageCount={activeThread.messages.length}
             pending={!activeThread.id}
@@ -457,7 +489,13 @@ export function ChatCenterPanel({
                   <div style={{ width: ALBUM_AVATAR_SIZE, flexShrink: 0 }} aria-hidden="true" />
                 );
               return (
-                <MessageActionRow key={row.id} isMine={isMine} alignItems="flex-end">
+                <MessageActionRow
+                  key={row.id}
+                  messageId={row.items[0]?.id}
+                  messageIds={row.items.map((item) => item.id)}
+                  isMine={isMine}
+                  alignItems="flex-end"
+                >
                   {(rowHovered) => (
                     <div
                       style={{
@@ -491,6 +529,7 @@ export function ChatCenterPanel({
             return (
               <MessageActionRow
                 key={row.id}
+                messageId={row.id}
                 isMine={row.from === 'me'}
                 minHeight="auto"
                 alignItems="stretch"

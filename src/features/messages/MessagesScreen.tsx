@@ -8,13 +8,14 @@ declare global {
     __lxMessagesBack?: () => boolean;
   }
 }
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { v } from '@/config/tokens';
 import { CHAR_LIMITS, ROUTES, routeTo } from '@/config/constants';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import {
   counterpartOf,
   toPendingThread,
@@ -141,6 +142,7 @@ export function MessagesScreen() {
     index: number;
   } | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const previewRef = useDialogFocus(Boolean(previewGallery), () => setPreviewGallery(null));
   const [isSending, setIsSending] = useState(false);
   const [pendingDeleteMessageId, setPendingDeleteMessageId] = useState<string | null>(null);
   const [deleteThreadTarget, setDeleteThreadTarget] = useState<ThreadTarget | null>(null);
@@ -189,7 +191,98 @@ export function MessagesScreen() {
         )
       : null) ||
     null;
-  const { messages: activeMessages } = useMessages(activeConversation?.id);
+  const {
+    messages: activeMessages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+  } = useMessages(activeConversation?.id);
+  const historyAnchorRef = useRef<{
+    id: string;
+    messageId: string | null;
+    offset: number;
+    top: number;
+  } | null>(null);
+  const atBottomRef = useRef(true);
+  const previousHistoryRef = useRef<{ id: string | null; count: number }>({ id: null, count: 0 });
+
+  const loadOlderMessages = async () => {
+    const scroller = scrollerRef.current;
+    if (
+      !scroller ||
+      !activeConversation ||
+      !hasNextPage ||
+      isFetchingNextPage ||
+      historyAnchorRef.current
+    )
+      return;
+    const bounds = scroller.getBoundingClientRect();
+    const visibleMessage = Array.from(
+      scroller.querySelectorAll<HTMLElement>('[data-message-id]')
+    ).find(
+      (element) =>
+        element.getBoundingClientRect().bottom > bounds.top &&
+        element.getBoundingClientRect().top < bounds.bottom
+    );
+    historyAnchorRef.current = {
+      id: activeConversation.id,
+      messageId: visibleMessage?.dataset.messageId ?? null,
+      offset: visibleMessage ? visibleMessage.getBoundingClientRect().top - bounds.top : 0,
+      top: scroller.scrollTop,
+    };
+    try {
+      const result = await fetchNextPage();
+      if (result.isError) historyAnchorRef.current = null;
+    } catch {
+      historyAnchorRef.current = null;
+    }
+  };
+
+  const handleHistoryScroll = () => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    atBottomRef.current = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 64;
+    if (scroller.scrollTop < 64 && !isFetchNextPageError) void loadOlderMessages();
+  };
+
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    const id = activeConversation?.id ?? null;
+    if (!scroller) {
+      previousHistoryRef.current = { id: null, count: 0 };
+      return;
+    }
+    const previous = previousHistoryRef.current;
+    const anchor = historyAnchorRef.current;
+    if (anchor && anchor.id !== id) historyAnchorRef.current = null;
+    if (anchor?.id === id && !isFetchingNextPage) {
+      const target = Array.from(scroller.querySelectorAll<HTMLElement>('[data-message-id]')).find(
+        (element) =>
+          element.dataset.messageId === anchor.messageId ||
+          Boolean(
+            anchor.messageId && element.dataset.messageIds?.split(' ').includes(anchor.messageId)
+          )
+      );
+      if (target) {
+        const bounds = scroller.getBoundingClientRect();
+        const zoom = bounds.height / scroller.clientHeight || 1;
+        scroller.scrollTop +=
+          (target.getBoundingClientRect().top - bounds.top - anchor.offset) / zoom;
+      } else {
+        scroller.scrollTop = anchor.top;
+      }
+      historyAnchorRef.current = null;
+    } else if (
+      previous.id !== id ||
+      (previous.count === 0 && activeMessages.length > 0) ||
+      (!anchor && atBottomRef.current)
+    ) {
+      scroller.scrollTop = scroller.scrollHeight;
+      atBottomRef.current = true;
+    }
+    previousHistoryRef.current = { id, count: activeMessages.length };
+  }, [activeConversation?.id, activeMessages.length, isFetchingNextPage, threadOpen, viewport]);
   const { data: pendingProfileResponse } = useUserProfile(
     pendingTargetUserId,
     Boolean(pendingTargetUserId) && !activeConversation
@@ -390,12 +483,6 @@ export function MessagesScreen() {
       setActiveThreadId(threads[0].id);
     }
   }, [viewport, activeThreadId, threads, pendingTargetUserId]);
-
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    scroller.scrollTop = scroller.scrollHeight;
-  }, [activeThreadId, threads]);
 
   // A profile's "message" button lands here carrying the target in route state rather than a URL
   // param, so a stale bookmark can never re-trigger it. The state is cleared right after firing, so
@@ -767,9 +854,9 @@ export function MessagesScreen() {
         // opens as an overlay from the header's info button, so it never reserves screen width it
         // isn't using.
         gridTemplateColumns: isDesktop
-          ? `${desktopSidebar}px minmax(520px, 1fr)`
+          ? `${desktopSidebar}px minmax(0, 1fr)`
           : isTablet
-            ? `${tabletSidebar}px minmax(40px, 1fr)`
+            ? `clamp(180px, 35%, ${tabletSidebar}px) minmax(0, 1fr)`
             : '1fr',
         // Explicit, not auto: an auto row's track size can end up based on its content rather
         // than the container's own (definite) height, which is what let the message list and
@@ -817,6 +904,11 @@ export function MessagesScreen() {
           isDesktop={isDesktop}
           isTablet={isTablet}
           scrollerRef={scrollerRef}
+          onHistoryScroll={handleHistoryScroll}
+          loadOlderMessages={() => void loadOlderMessages()}
+          hasOlderMessages={Boolean(hasNextPage)}
+          loadingOlderMessages={isFetchingNextPage}
+          historyLoadFailed={isFetchNextPageError}
           openPreview={openPreview}
           openStory={openStory}
           handleDeleteToggle={handleDeleteToggle}
@@ -885,10 +977,12 @@ export function MessagesScreen() {
       ) : null}
 
       {previewGallery ? (
-        // Clicking the scrim closes the viewer; clicking the media itself must not, so the media
-        // element stops the click from reaching this handler. No card, no rounded corners, no
-        // close button - the raw image or video at its own scale is the whole interface.
         <div
+          ref={previewRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Message media"
+          tabIndex={-1}
           onClick={() => setPreviewGallery(null)}
           style={{
             position: 'fixed',
@@ -901,6 +995,30 @@ export function MessagesScreen() {
             padding: 24,
           }}
         >
+          <button
+            type="button"
+            aria-label="close media viewer"
+            onClick={(event) => {
+              event.stopPropagation();
+              setPreviewGallery(null);
+            }}
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              width: 44,
+              height: 44,
+              color: v.white,
+              display: 'grid',
+              placeItems: 'center',
+              border: '1px solid rgba(255,255,255,0.35)',
+              borderRadius: '50%',
+              background: 'rgba(10,9,8,0.65)',
+              zIndex: 3,
+            }}
+          >
+            <LxIcon name="close" size={22} color={v.white} />
+          </button>
           {(() => {
             const { items, index } = previewGallery;
             const current = items[index];

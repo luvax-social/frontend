@@ -29,6 +29,23 @@ const message = (id: string, createdAt: string, content = id) =>
   messageFixture({ id, createdAt, content });
 
 describe('mergeMessagePages', () => {
+  it('keeps the oldest page cursor when older history is appended', () => {
+    const newest = message('newest', '2026-08-24T01:03:00.000Z');
+    const older = message('older', '2026-08-24T01:02:00.000Z');
+    const oldData = { pages: [page([newest], 'middle')], pageParams: [null] };
+    const newData = {
+      pages: [page([newest], 'middle'), page([older], 'oldest')],
+      pageParams: [null, 'middle'],
+    };
+    const result = mergeMessagePages(oldData, newData);
+    expect(result.pageParams).toEqual([null, 'middle']);
+    expect(result.pages).toHaveLength(2);
+    expect(result.pages[1].data.pageInfo.endCursor).toBe('oldest');
+    expect(result.pages.flatMap((p) => p.data.content).map((m) => m.id)).toEqual([
+      'newest',
+      'older',
+    ]);
+  });
   it('preserves loaded history when a refresh page no longer contains an older marker message', () => {
     const marker = message('marker', '2026-08-24T01:00:00.000Z', 'user 1 marker');
     const oldData = {

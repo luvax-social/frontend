@@ -53,20 +53,28 @@ export const mergeMessagePages = (
     });
   });
 
-  const merged = Array.from(byId.values()).sort((a, b) => messageTime(b) - messageTime(a));
-  const firstPage = newData.pages[0];
+  const seen = new Set<string>();
+  const pages = newData.pages.map((page) => ({
+    ...page,
+    data: {
+      ...page.data,
+      content: (page.data?.content || []).filter((message) => {
+        if (seen.has(message.id)) return false;
+        seen.add(message.id);
+        return true;
+      }),
+    },
+  }));
+  const retained = Array.from(byId.values())
+    .filter((message) => !seen.has(message.id))
+    .sort((a, b) => messageTime(b) - messageTime(a));
+  const lastPage = pages[pages.length - 1];
+  lastPage.data.content = [...lastPage.data.content, ...retained];
+  // Keep every response cursor and page parameter. Collapsing to the first
+  // page causes fetchNextPage to request the same older cursor repeatedly.
   return {
     ...newData,
-    pages: [
-      {
-        ...firstPage,
-        data: {
-          ...firstPage.data,
-          content: merged,
-        },
-      },
-    ],
-    pageParams: [newData.pageParams?.[0] ?? null],
+    pages,
   };
 };
 
@@ -89,7 +97,13 @@ export const useMessages = (conversationId: string | null | undefined) => {
       mergeMessagePages(oldData as MessageData | undefined, newData as MessageData),
   });
 
-  const messages = (query.data?.pages || []).flatMap((page) => page?.data?.content || []);
+  const messages = Array.from(
+    new Map(
+      (query.data?.pages || [])
+        .flatMap((page) => page?.data?.content || [])
+        .map((message) => [message.id, message])
+    ).values()
+  ).sort((a, b) => messageTime(b) - messageTime(a));
   return { ...query, messages };
 };
 

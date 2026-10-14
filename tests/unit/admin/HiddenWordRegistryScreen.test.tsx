@@ -345,3 +345,101 @@ describe('HiddenWordRegistryScreen edit and delete', () => {
     expect(screen.getByRole('complementary', { name: 'edit word' })).toBeInTheDocument();
   });
 });
+
+describe('HiddenWordRegistryScreen focus and announcements', () => {
+  it('moves focus to the reason field when only the reason is missing', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByText('câm mồm');
+
+    await user.click(screen.getByRole('button', { name: 'add word' }));
+    const form = screen.getByRole('complementary', { name: 'add word' });
+    await user.type(within(form).getByLabelText('word or phrase'), 'loser');
+    await user.click(within(form).getByRole('button', { name: 'save' }));
+
+    expect(within(form).getByLabelText('reason')).toHaveFocus();
+    expect(within(form).getByLabelText('reason')).toHaveAccessibleDescription(
+      'A reason is required.'
+    );
+  });
+
+  it('moves focus to the phrase field when the phrase is the first error', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByText('câm mồm');
+
+    await user.click(screen.getByRole('button', { name: 'add word' }));
+    const form = screen.getByRole('complementary', { name: 'add word' });
+    await user.click(within(form).getByRole('button', { name: 'save' }));
+
+    expect(within(form).getByLabelText('word or phrase')).toHaveFocus();
+    expect(within(form).getByLabelText('word or phrase')).toHaveAccessibleDescription(
+      'Enter a word or phrase.'
+    );
+  });
+
+  it('returns focus to the phrase field when the server refuses a duplicate', async () => {
+    const user = userEvent.setup();
+    api.create.mockRejectedValue(apiError('HIDDEN_WORD_DUPLICATE'));
+    renderScreen();
+    await screen.findByText('câm mồm');
+
+    await user.click(screen.getByRole('button', { name: 'add word' }));
+    const form = screen.getByRole('complementary', { name: 'add word' });
+    await user.type(within(form).getByLabelText('word or phrase'), 'cam mom');
+    await user.type(within(form).getByLabelText('reason'), 'again');
+    await user.click(within(form).getByRole('button', { name: 'save' }));
+
+    await within(form).findByText('This phrase is already on the list.');
+    await waitFor(() => expect(within(form).getByLabelText('word or phrase')).toHaveFocus());
+  });
+
+  it('announces the matched form in a polite live region', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await screen.findByText('câm mồm');
+
+    await user.click(screen.getByRole('button', { name: 'add word' }));
+    const form = screen.getByRole('complementary', { name: 'add word' });
+    await user.type(within(form).getByLabelText('word or phrase'), 'Đồ Ngu');
+
+    expect(within(form).getByRole('status')).toHaveTextContent('Matches "do ngu".');
+  });
+
+  it('accepts a 40 character phrase of characters outside the basic plane', async () => {
+    const user = userEvent.setup();
+    api.create.mockResolvedValue(entry({ id: 'w9' }));
+    renderScreen();
+    await screen.findByText('câm mồm');
+
+    await user.click(screen.getByRole('button', { name: 'add word' }));
+    const form = screen.getByRole('complementary', { name: 'add word' });
+    await user.type(within(form).getByLabelText('word or phrase'), '\u{1D49C}'.repeat(40));
+    await user.type(within(form).getByLabelText('reason'), 'because');
+    await user.click(within(form).getByRole('button', { name: 'save' }));
+
+    await waitFor(() => expect(api.create).toHaveBeenCalled());
+  });
+});
+
+describe('HiddenWordRegistryScreen stale rows', () => {
+  it('reloads the list when a delete finds the word already gone', async () => {
+    const user = userEvent.setup();
+    api.remove.mockRejectedValue(
+      Object.assign(new Error('gone'), {
+        response: { status: 404, data: { code: 'HIDDEN_WORD_NOT_FOUND', message: 'gone' } },
+      })
+    );
+    renderScreen();
+    await screen.findByText('câm mồm');
+    expect(api.list).toHaveBeenCalledTimes(1);
+
+    const form = await openEdit(user, 'câm mồm');
+    api.list.mockResolvedValue(page([]));
+    await user.type(within(form).getByLabelText('reason'), 'cleanup');
+    await user.click(within(form).getByRole('button', { name: 'delete' }));
+
+    await waitFor(() => expect(api.list).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('no hidden words yet')).toBeInTheDocument();
+  });
+});

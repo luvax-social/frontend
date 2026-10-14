@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { v } from '@/config/tokens';
 import { LxBtn } from '@/features/luvax/components/primitives';
@@ -70,9 +70,19 @@ export function HiddenWordForm({
   const [reason, setReason] = useState('');
   const [phraseError, setPhraseError] = useState<string | null>(null);
   const [reasonError, setReasonError] = useState<string | null>(null);
+  const phraseRef = useRef<HTMLInputElement>(null);
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
 
   const normalized = normalizePhrase(phrase);
   const shownPhraseError = phraseError ?? serverError;
+
+  // A refusal the server made after the request belongs to the phrase, so the keyboard user lands
+  // where the message is instead of staying on a disabled save button.
+  useEffect(() => {
+    if (serverError) {
+      phraseRef.current?.focus();
+    }
+  }, [serverError]);
 
   const checkReason = () => {
     if (!reason.trim()) {
@@ -87,6 +97,7 @@ export function HiddenWordForm({
     setPhraseError(invalid);
     const reasonOk = checkReason();
     if (invalid || !reasonOk) {
+      (invalid ? phraseRef : reasonRef).current?.focus();
       return;
     }
     onSave(phrase.trim(), reason.trim());
@@ -95,6 +106,8 @@ export function HiddenWordForm({
   const remove = () => {
     if (checkReason()) {
       onDelete(reason.trim());
+    } else {
+      reasonRef.current?.focus();
     }
   };
 
@@ -128,11 +141,13 @@ export function HiddenWordForm({
       </label>
       <input
         id="hidden-word-phrase"
+        ref={phraseRef}
         type="text"
         value={phrase}
         disabled={busy}
         autoFocus
         aria-invalid={shownPhraseError ? true : undefined}
+        aria-describedby="hidden-word-phrase-note"
         onChange={(event) => {
           setPhrase(event.target.value);
           setPhraseError(null);
@@ -144,11 +159,16 @@ export function HiddenWordForm({
         }}
       />
       {shownPhraseError ? (
-        <div role="alert" style={errorText}>
+        <div id="hidden-word-phrase-note" role="alert" style={errorText}>
           {shownPhraseError}
         </div>
       ) : (
-        <div style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink2, marginTop: 6 }}>
+        <div
+          id="hidden-word-phrase-note"
+          role="status"
+          aria-live="polite"
+          style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink2, marginTop: 6 }}
+        >
           {normalized
             ? `Matches "${normalized}".`
             : 'Matching ignores accents, case and common character swaps.'}
@@ -160,12 +180,14 @@ export function HiddenWordForm({
       </label>
       <textarea
         id="hidden-word-reason"
+        ref={reasonRef}
         value={reason}
         rows={4}
         maxLength={REASON_MAX_CHARS}
         disabled={busy}
         placeholder="Why this change is needed. Saved to the audit log."
         aria-invalid={reasonError ? true : undefined}
+        aria-describedby={reasonError ? 'hidden-word-reason-error' : undefined}
         onChange={(event) => {
           setReason(event.target.value);
           setReasonError(null);
@@ -178,7 +200,7 @@ export function HiddenWordForm({
         }}
       />
       {reasonError ? (
-        <div role="alert" style={errorText}>
+        <div id="hidden-word-reason-error" role="alert" style={errorText}>
           {reasonError}
         </div>
       ) : null}

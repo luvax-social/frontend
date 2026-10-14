@@ -16,7 +16,8 @@ export function validatePhrase(raw: string): string | null {
   if (wordCount === 0) {
     return 'Enter a word or phrase.';
   }
-  if (stripped.length > PHRASE_MAX_CHARS || wordCount > PHRASE_MAX_WORDS) {
+  // The backend counts code points, so a character outside the basic plane is one, not two.
+  if (Array.from(stripped).length > PHRASE_MAX_CHARS || wordCount > PHRASE_MAX_WORDS) {
     return HIDDEN_WORD_INVALID_MESSAGE;
   }
   return null;

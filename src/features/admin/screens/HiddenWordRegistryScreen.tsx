@@ -6,7 +6,7 @@ import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { LxBtn } from '@/features/luvax/components/primitives';
 import { toast } from '@/features/luvax/components/Toast';
-import { getErrorMessage } from '@/utils/errors';
+import { getErrorMessage, getErrorResponse } from '@/utils/errors';
 
 import { PageHeader, PanelCard } from '../components/PanelPage';
 import { RecordTable } from '../components/RecordTable';
@@ -19,15 +19,6 @@ import { shortId, useResolveUsername } from '../hooks/useResolveUsername';
 import { describeError, getErrorCode } from '../lib/errors';
 import { HIDDEN_WORD_INVALID_MESSAGE } from '../lib/hiddenWordPhrase';
 
-/**
- * The platform-wide hidden word registry. Administrator only.
- *
- * Words listed here are hidden for every account that keeps the Luvax list on, so each change is
- * an administrative action: create, edit and delete all require a reason, which the backend
- * records on the audit row. The side form carries the reason and shows the normalised form that
- * is actually matched, which makes near-duplicates visible.
- */
-
 type Panel = { mode: 'add' } | { mode: 'edit'; word: AdminHiddenWordResponse };
 
 function AddedBy({ userId }: { userId: string | null }) {
@@ -38,6 +29,14 @@ function AddedBy({ userId }: { userId: string | null }) {
   return <span>{username ?? shortId(userId)}</span>;
 }
 
+/**
+ * The platform-wide hidden word registry. Administrator only.
+ *
+ * Words listed here are hidden for every account that keeps the Luvax list on, so each change is
+ * an administrative action: create, edit and delete all require a reason, which the backend
+ * records on the audit row. The side form carries the reason and shows the normalised form that
+ * is actually matched, which makes near-duplicates visible.
+ */
 export function HiddenWordRegistryScreen() {
   const search = useDebouncedSearch({ minLength: 1 });
   const list = useHiddenWordList(search.term);
@@ -73,6 +72,11 @@ export function HiddenWordRegistryScreen() {
   };
 
   const onError = (err: unknown) => {
+    if (getErrorResponse(err)?.status === 404) {
+      toast('That word was already removed.');
+      closePanel();
+      return;
+    }
     const code = getErrorCode(err);
     if (code === 'HIDDEN_WORD_DUPLICATE') {
       setPhraseError('This phrase is already on the list.');

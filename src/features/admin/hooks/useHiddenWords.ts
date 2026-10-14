@@ -3,6 +3,8 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 
 import { STALE_TIME } from '@/config/constants';
 
+import { getErrorResponse } from '@/utils/errors';
+
 import { hiddenWordsApi } from '../api/hiddenWords';
 import { getNextPageParam, panelQueryRetry } from '../lib/pagination';
 
@@ -56,7 +58,8 @@ const requireReason = (reason: string) => {
 /**
  * Create, edit and delete for the hidden word list. Each requires a non-blank reason, which the
  * backend records on the audit row, and each invalidates the list queries and the action log so
- * the change and its audit entry appear without a reload. None auto-retries.
+ * the change and its audit entry appear without a reload. An edit or delete refused with a 404
+ * also reloads the list, because the row it targeted no longer exists. None auto-retries.
  */
 export function useHiddenWordActions() {
   const queryClient = useQueryClient();
@@ -64,6 +67,13 @@ export function useHiddenWordActions() {
   const afterAction = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'hiddenWords'] });
     queryClient.invalidateQueries({ queryKey: ['admin', 'actions'] });
+  };
+
+  // A 404 means another administrator already removed the word, so the row on screen is stale.
+  const reloadWhenWordIsGone = (error: unknown) => {
+    if (getErrorResponse(error)?.status === 404) {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'hiddenWords'] });
+    }
   };
 
   const create = useMutation({
@@ -75,11 +85,13 @@ export function useHiddenWordActions() {
     mutationFn: ({ id, phrase, reason }: { id: string; phrase: string; reason: string }) =>
       hiddenWordsApi.update(id, { phrase, reason: requireReason(reason) }),
     onSuccess: afterAction,
+    onError: reloadWhenWordIsGone,
   });
   const remove = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       hiddenWordsApi.remove(id, { reason: requireReason(reason) }),
     onSuccess: afterAction,
+    onError: reloadWhenWordIsGone,
   });
 
   return { create, update, remove };

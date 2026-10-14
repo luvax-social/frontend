@@ -51,6 +51,8 @@ const OFF_FAILED_MESSAGE = "We couldn't turn that off just now. Try again in a m
 const LONGEST_TIMER_MS = 2 ** 31 - 1;
 // Past the end by a little, so the server's own clock agrees that the limit is over.
 const EXPIRY_GRACE_MS = 500;
+// When the server still reports a limit after its end, ask again at this pace instead of at once.
+const EXPIRY_RETRY_MS = 5000;
 
 interface Draft {
   limitNonFollowers: boolean;
@@ -103,12 +105,18 @@ export function InteractionLimitsCategory() {
   const focusAfterSwap = useRef<'status' | 'form' | null>(null);
   const statusRef = useRef<HTMLSpanElement | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const wasActive = useRef(false);
 
   // Runs when the view changes, not on every render: it exists only to hand focus to the control
-  // that replaced the one that was pressed, and only when a press asked for it.
+  // that replaced the one that was pressed, and only when a press asked for it. A request can
+  // resolve long after the press, so focus is handed over only while it is still on this page's
+  // content or nowhere (the pressed control just left); a user who moved on keeps their place.
   useEffect(() => {
     if (focusAfterSwap.current !== view) return;
     focusAfterSwap.current = null;
+    const focused = document.activeElement;
+    if (focused && focused !== document.body && !rootRef.current?.contains(focused)) return;
     const target =
       view === 'status'
         ? statusRef.current
@@ -116,19 +124,47 @@ export function InteractionLimitsCategory() {
     target?.focus();
   }, [view]);
 
+  const isActive = Boolean(limit?.active);
+  // A limit that ends while the page is open leaves nothing of the old choices behind: the form
+  // that comes back is the initial one, not the draft of a "change" that was never saved.
+  useEffect(() => {
+    if (wasActive.current && !isActive) {
+      setDraft(INITIAL_DRAFT);
+      setEditing(false);
+      setFailure('');
+    }
+    wasActive.current = isActive;
+  }, [isActive]);
+
   const expiresAt = limit?.active ? limit.expiresAt : null;
-  // Re-arms when the end moves, and after each wait that fell short of the end because a timer
-  // cannot hold a delay as long as 28 days. Cleared on unmount so a left page never refetches.
+  // Re-arms when the end moves, after each wait that fell short of the end because a timer cannot
+  // hold a delay as long as 28 days, and after a refetch that still reports the same limit (the
+  // server's clock can trail this one). Cleared on unmount so a left page never refetches.
   useEffect(() => {
     if (!expiresAt) return;
     const end = Date.parse(expiresAt);
     if (Number.isNaN(end)) return;
-    const wait = Math.min(Math.max(end - Date.now(), 0) + EXPIRY_GRACE_MS, LONGEST_TIMER_MS);
+    let cancelled = false;
+    const remaining = end - Date.now();
+    const wait =
+      remaining > 0
+        ? Math.min(remaining + EXPIRY_GRACE_MS, LONGEST_TIMER_MS)
+        : expiryTick === 0
+          ? EXPIRY_GRACE_MS
+          : EXPIRY_RETRY_MS;
     const timer = window.setTimeout(() => {
-      if (end - Date.now() > 0) setExpiryTick((tick) => tick + 1);
-      else void refetch();
+      if (end - Date.now() > 0) {
+        setExpiryTick((tick) => tick + 1);
+        return;
+      }
+      void refetch().finally(() => {
+        if (!cancelled) setExpiryTick((tick) => tick + 1);
+      });
     }, wait);
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [expiresAt, expiryTick, refetch]);
 
   if (error) {
@@ -144,7 +180,7 @@ export function InteractionLimitsCategory() {
 
   if (view === 'status') {
     return (
-      <div>
+      <div ref={rootRef}>
         <div className="lx-limit-status">
           <div className="lx-limit-status-line">
             <span className="lx-limit-status-dot" aria-hidden="true" />
@@ -205,7 +241,12 @@ export function InteractionLimitsCategory() {
   const none = !draft.limitNonFollowers && !draft.limitRecentFollowers;
 
   return (
-    <div ref={formRef}>
+    <div
+      ref={(node) => {
+        formRef.current = node;
+        rootRef.current = node;
+      }}
+    >
       <SettingsRow
         label={NON_FOLLOWERS_LABEL}
         control={

@@ -127,6 +127,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- Limit interactions no longer pulls focus back after the user moved to another control while a change was saving, keeps asking the server when it still reports a limit after its end, and shows an empty form when a limit ends while the change form is open.
 - The hidden word registry reloads its list when an edit or delete finds the word already removed, and it counts a phrase's length in characters the way the server does.
 - The hidden word form moves focus to the first field with an error, links each error to its field, announces the matched form politely, and the registry has an icon of its own in the sidebar instead of sharing the statistics eye.
 - Options menus now open to the right of their trigger when space permits, flip left near the viewport edge, and keep their opening animation anchored to the chosen side.

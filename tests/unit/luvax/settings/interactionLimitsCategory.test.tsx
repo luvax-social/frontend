@@ -342,6 +342,34 @@ describe('limit interactions: focus', () => {
 
     expect(off).toHaveFocus();
   });
+
+  it('does not pull focus back once the user has moved on to another control', async () => {
+    let finish: (value: ReturnType<typeof envelope<typeof activeLimit>>) => void = () => {};
+    service.setMyInteractionLimit.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    service.getMyInteractionLimit.mockResolvedValue(envelope(limitFixture()));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <button type="button">elsewhere</button>
+        <InteractionLimitsCategory />
+      </QueryClientProvider>
+    );
+    await screen.findByRole('radiogroup', { name: 'for how long' });
+
+    fireEvent.click(nonFollowers());
+    turnOn().focus();
+    fireEvent.click(turnOn());
+    await waitFor(() => expect(service.setMyInteractionLimit).toHaveBeenCalled());
+    const elsewhere = screen.getByRole('button', { name: 'elsewhere' });
+    elsewhere.focus();
+
+    await act(async () => finish(envelope(activeLimit)));
+    await screen.findByText(/limits are on until/);
+
+    expect(elsewhere).toHaveFocus();
+  });
 });
 
 describe('limit interactions: expiry while the page is open', () => {
@@ -385,6 +413,48 @@ describe('limit interactions: expiry while the page is open', () => {
     });
 
     expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again later when the server still reports the limit after its end', async () => {
+    const endsAt = new Date(now.getTime() + 60_000).toISOString();
+    service.getMyInteractionLimit
+      .mockResolvedValueOnce(envelope({ ...activeLimit, expiresAt: endsAt }))
+      .mockResolvedValueOnce(envelope({ ...activeLimit, expiresAt: endsAt }))
+      .mockResolvedValue(envelope(limitFixture()));
+    renderCategory();
+    await screen.findByText(/limits are on until/);
+
+    await act(async () => {
+      vi.advanceTimersByTime(61_000);
+    });
+    await waitFor(() => expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(await screen.findByRole('radiogroup', { name: 'for how long' })).toBeInTheDocument();
+    expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(3);
+  });
+
+  it('empties the draft when the limit ends while the change form is open', async () => {
+    service.getMyInteractionLimit
+      .mockResolvedValueOnce(
+        envelope({ ...activeLimit, expiresAt: new Date(now.getTime() + 60_000).toISOString() })
+      )
+      .mockResolvedValue(envelope(limitFixture()));
+    renderCategory();
+    fireEvent.click(await screen.findByRole('button', { name: 'change' }));
+    expect(nonFollowers()).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(duration('28 days'));
+
+    await act(async () => {
+      vi.advanceTimersByTime(61_000);
+    });
+
+    await waitFor(() => expect(nonFollowers()).toHaveAttribute('aria-checked', 'false'));
+    expect(duration('7 days')).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('button', { name: 'cancel' })).toBeNull();
   });
 
   it('cancels the timer when the page is left', async () => {

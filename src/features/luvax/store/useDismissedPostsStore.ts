@@ -46,4 +46,5 @@ export const useDismissedPostsStore = create<DismissedPostsState>()((set) => ({
     }),
 }));
 
-resetOnUserChange(() => useDismissedPostsStore.setState({ byPostId: {} }));
+const stopResetting = resetOnUserChange(() => useDismissedPostsStore.setState({ byPostId: {} }));
+import.meta.hot?.dispose(stopResetting);

@@ -4,7 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as feedbackService from '@/services/postFeedback.service';
 import * as safetyService from '@/services/safety.service';
 
-import { useDismissedPostsStore } from '../store/useDismissedPostsStore';
+import { currentUserId } from '../store/resetOnUserChange';
+import { useDismissedPostsStore, type PostDismissal } from '../store/useDismissedPostsStore';
 import { RECOMMENDED_FEED_KEYS } from '../utils/feedCacheKeys';
 
 interface DismissVariables {
@@ -32,6 +33,30 @@ const FEEDBACK_SCOPE = { id: 'feed-preferences' };
 
 const dismissed = (postId: string) => useDismissedPostsStore.getState().byPostId[postId];
 
+interface RollbackContext {
+  previous: PostDismissal | undefined;
+  userId: string | null;
+}
+
+const snapshot = (postId: string): RollbackContext => ({
+  previous: dismissed(postId),
+  userId: currentUserId(),
+});
+
+// A failure can land after another account signed in. The store was emptied then, so putting the
+// earlier snapshot back would show the previous account's row to the new one; the failure is
+// that account's alone and is dropped.
+const rollBack = (
+  postId: string,
+  context: RollbackContext | undefined,
+  options: Options,
+  error: unknown
+) => {
+  if (context && context.userId !== currentUserId()) return;
+  useDismissedPostsStore.getState().restore(postId, context?.previous);
+  options.onError?.(error);
+};
+
 /**
  * Not interested: hides one post from the feed and tells the recommender.
  *
@@ -47,32 +72,26 @@ export const useNotInterested = (options: Options = {}) => {
     scope: FEEDBACK_SCOPE,
     mutationFn: ({ postId }: DismissVariables) => feedbackService.markNotInterested(postId),
     onMutate: ({ postId, authorId, authorHandle, focusUndo }) => {
-      const previous = dismissed(postId);
+      const context = snapshot(postId);
       useDismissedPostsStore
         .getState()
         .set(postId, { kind: 'not-interested', authorId, authorHandle, focusUndo });
-      return { previous };
+      return context;
     },
     // Rolls back to the dismissal the post had before this change, which is none for a new one.
-    onError: (error, { postId }, context) => {
-      useDismissedPostsStore.getState().restore(postId, context?.previous);
-      options.onError?.(error);
-    },
+    onError: (error, { postId }, context) => rollBack(postId, context, options, error),
     onSuccess: () => markStale(queryClient, [['feed'], ...RECOMMENDED_FEED_KEYS]),
   });
   const undo = useMutation({
     scope: FEEDBACK_SCOPE,
     mutationFn: ({ postId }: { postId: string }) => feedbackService.undoNotInterested(postId),
     onMutate: ({ postId }) => {
-      const previous = dismissed(postId);
+      const context = snapshot(postId);
       useDismissedPostsStore.getState().clear(postId);
-      return { previous };
+      return context;
     },
     // Rolls back to the row the viewer was looking at, so a refused undo leaves it in place.
-    onError: (error, { postId }, context) => {
-      useDismissedPostsStore.getState().restore(postId, context?.previous);
-      options.onError?.(error);
-    },
+    onError: (error, { postId }, context) => rollBack(postId, context, options, error),
     onSuccess: () => markStale(queryClient, [['feed'], ...RECOMMENDED_FEED_KEYS]),
   });
   return { apply, undo };
@@ -91,17 +110,14 @@ export const useShowFewer = (options: Options = {}) => {
     scope: FEEDBACK_SCOPE,
     mutationFn: ({ authorId }: DismissVariables) => safetyService.showFewer(authorId),
     onMutate: ({ postId, authorId, authorHandle, focusUndo }) => {
-      const previous = dismissed(postId);
+      const context = snapshot(postId);
       useDismissedPostsStore
         .getState()
         .set(postId, { kind: 'show-fewer', authorId, authorHandle, focusUndo });
-      return { previous };
+      return context;
     },
     // Rolls back to the dismissal the post had before this change, which is none for a new one.
-    onError: (error, { postId }, context) => {
-      useDismissedPostsStore.getState().restore(postId, context?.previous);
-      options.onError?.(error);
-    },
+    onError: (error, { postId }, context) => rollBack(postId, context, options, error),
     onSuccess: () => markStale(queryClient, RECOMMENDED_FEED_KEYS),
   });
   const undo = useMutation({
@@ -109,15 +125,12 @@ export const useShowFewer = (options: Options = {}) => {
     mutationFn: ({ authorId }: { postId: string; authorId: string }) =>
       safetyService.undoShowFewer(authorId),
     onMutate: ({ postId }) => {
-      const previous = dismissed(postId);
+      const context = snapshot(postId);
       useDismissedPostsStore.getState().clear(postId);
-      return { previous };
+      return context;
     },
     // Rolls back to the row the viewer was looking at, so a refused undo leaves it in place.
-    onError: (error, { postId }, context) => {
-      useDismissedPostsStore.getState().restore(postId, context?.previous);
-      options.onError?.(error);
-    },
+    onError: (error, { postId }, context) => rollBack(postId, context, options, error),
     onSuccess: () => markStale(queryClient, RECOMMENDED_FEED_KEYS),
   });
   return { apply, undo };

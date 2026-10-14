@@ -781,6 +781,12 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     onError: () => toast("Couldn't hide that post. Try again."),
   });
   const showFewer = useShowFewer({ onError: () => toast("Couldn't save that. Try again.") });
+  // The mutation objects change on every render; their mutate functions do not, so the callbacks
+  // below depend on those.
+  const { mutate: applyNotInterested } = notInterested.apply;
+  const { mutate: undoNotInterested } = notInterested.undo;
+  const { mutate: applyShowFewer } = showFewer.apply;
+  const { mutate: undoShowFewer } = showFewer.undo;
   const { data: myFollowingData } = useFollowing(currentUser?.id);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
@@ -1001,25 +1007,25 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   // this overlay reads, so the card there is already an undo row when the overlay closes.
   const handleNotInterested = useCallback(() => {
     if (!targetUserId || !postId) return;
-    notInterested.apply.mutate({ postId, authorId: targetUserId, authorHandle });
+    applyNotInterested({ postId, authorId: targetUserId, authorHandle });
     // The overlay closes with the post, so undo lives on the toast; the dismissal itself is in the
     // store, where the feed behind this overlay shows it as an undo row too.
     toast('Post hidden', {
-      action: { label: 'undo', onClick: () => notInterested.undo.mutate({ postId }) },
+      action: { label: 'Undo', onClick: () => undoNotInterested({ postId }) },
     });
     navigate(-1);
-  }, [authorHandle, navigate, notInterested, postId, targetUserId]);
+  }, [applyNotInterested, authorHandle, navigate, postId, targetUserId, undoNotInterested]);
 
   const handleShowFewer = useCallback(() => {
     if (!targetUserId || !postId) return;
-    showFewer.apply.mutate({ postId, authorId: targetUserId, authorHandle });
+    applyShowFewer({ postId, authorId: targetUserId, authorHandle });
     toast(`You'll see fewer posts from @${authorHandle}`, {
       action: {
-        label: 'undo',
-        onClick: () => showFewer.undo.mutate({ postId, authorId: targetUserId }),
+        label: 'Undo',
+        onClick: () => undoShowFewer({ postId, authorId: targetUserId }),
       },
     });
-  }, [authorHandle, postId, showFewer, targetUserId]);
+  }, [applyShowFewer, authorHandle, postId, targetUserId, undoShowFewer]);
 
   // The dialog is mounted once for the whole app, so it survives the feed behind this overlay
   // reloading when the mute lands.

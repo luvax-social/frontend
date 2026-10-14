@@ -13,6 +13,7 @@ import {
 } from '@/features/luvax/store/useDismissedPostsStore';
 import * as feedbackService from '@/services/postFeedback.service';
 import * as safetyService from '@/services/safety.service';
+import { useAuthStore } from '@/store/useAuthStore';
 import { postFixture } from '../../fixtures/domain';
 
 vi.mock('@/services/postFeedback.service');
@@ -48,6 +49,7 @@ const invalidatedKeys = (invalidate: ReturnType<typeof setup>['invalidate']) =>
 
 beforeEach(() => {
   vi.resetAllMocks();
+  useAuthStore.setState({ user: null } as never);
   useDismissedPostsStore.setState({ byPostId: {} });
 });
 
@@ -157,6 +159,29 @@ describe('dismissal focus request', () => {
   });
 });
 
+describe('a failure that lands after the signed-in account changed', () => {
+  it('does not put the previous account dismissal back', async () => {
+    let fail: (error: Error) => void = () => {};
+    feedback.undoNotInterested.mockReturnValue(new Promise<void>((_, reject) => (fail = reject)));
+    act(() => useAuthStore.setState({ user: { id: 'user-a', username: 'a' } } as never));
+    useDismissedPostsStore.setState({ byPostId: { p1: hidden } });
+    const { wrapper } = setup();
+    const onError = vi.fn();
+    const { result } = renderHook(() => useNotInterested({ onError }), { wrapper });
+
+    act(() => {
+      result.current.undo.mutate({ postId: 'p1' });
+    });
+    await waitFor(() => expect(dismissalOf('p1')).toBeUndefined());
+
+    act(() => useAuthStore.setState({ user: { id: 'user-b', username: 'b' } } as never));
+    await act(async () => fail(new Error('refused')));
+
+    expect(dismissalOf('p1')).toBeUndefined();
+    expect(onError).not.toHaveBeenCalled();
+  });
+});
+
 describe('useShowFewer', () => {
   it('records a show fewer dismissal and posts the author id', async () => {
     safety.showFewer.mockResolvedValue(undefined);
@@ -236,7 +261,7 @@ describe('DismissedPostRow', () => {
 
   it('says the post is hidden and offers undo', () => {
     renderRow(hidden);
-    expect(screen.getByText('post hidden')).toBeInTheDocument();
+    expect(screen.getByText('Post hidden')).toBeInTheDocument();
     expect(screen.getByText("We'll show you fewer posts like this.")).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'undo' })).toBeInTheDocument();
   });
@@ -311,7 +336,7 @@ describe('FeedInjectedList dismissals', () => {
     renderList('for-you');
 
     expect(screen.queryByTestId('post-p1')).toBeNull();
-    expect(screen.getByText('post hidden')).toBeInTheDocument();
+    expect(screen.getByText('Post hidden')).toBeInTheDocument();
     expect(screen.getByTestId('post-p2')).toBeInTheDocument();
   });
 
@@ -336,7 +361,7 @@ describe('FeedInjectedList dismissals', () => {
     renderList('following');
 
     expect(screen.queryByTestId('post-p1')).toBeNull();
-    expect(screen.getByText('post hidden')).toBeInTheDocument();
+    expect(screen.getByText('Post hidden')).toBeInTheDocument();
   });
 
   it('does not move focus to a row that was already there when the list mounted', () => {

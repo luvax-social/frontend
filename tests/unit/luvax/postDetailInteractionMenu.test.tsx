@@ -142,7 +142,7 @@ describe('post detail menu: not interested and show fewer', () => {
     renderDetail({ feedSurface: 'following' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Not interested' }));
-    const undo = await screen.findByRole('button', { name: 'undo' });
+    const undo = await screen.findByRole('button', { name: 'Undo' });
     expect(screen.getByRole('status')).toHaveTextContent('Post hidden');
     fireEvent.click(undo);
 
@@ -159,7 +159,7 @@ describe('post detail menu: not interested and show fewer', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       "You'll see fewer posts from @linh.ng"
     );
-    fireEvent.click(screen.getByRole('button', { name: 'undo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
 
     await waitFor(() => expect(safety.undoShowFewer).toHaveBeenCalledWith('author-1'));
     expect(useDismissedPostsStore.getState().byPostId['p1']).toBeUndefined();

@@ -38,4 +38,5 @@ export const useMuteDialogStore = create<MuteDialogState>()((set) => ({
 
 // The dialog belongs to the account that opened it; it closes when that account signs out or
 // another one signs in.
-resetOnUserChange(() => useMuteDialogStore.setState({ target: null }));
+const stopResetting = resetOnUserChange(() => useMuteDialogStore.setState({ target: null }));
+import.meta.hot?.dispose(stopResetting);

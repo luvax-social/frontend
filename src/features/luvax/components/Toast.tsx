@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
+import { useAuthStore } from '@/store/useAuthStore';
 
 // A small acknowledgement for an action whose result is not already on screen.
 // The design ships an imperative toast (chunk 9bffeb59, lines 13-24); this is the
@@ -45,27 +46,94 @@ export function toast(message: string, options: { action?: ToastAction } = {}) {
   listeners.forEach((listener) => listener({ id, message, action: options.action }));
 }
 
+interface Dwell {
+  timer: number | undefined;
+  remaining: number;
+  startedAt: number;
+  hovered: boolean;
+  focused: boolean;
+}
+
 export function ToastHost() {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const dwells = useRef(new Map<number, Dwell>());
   const leaveRef = useRef<(id: number) => void>(() => undefined);
+  const holdRef = useRef<(id: number, hold: Partial<Pick<Dwell, 'hovered' | 'focused'>>) => void>(
+    () => undefined
+  );
+  const exitTimers = useRef(new Set<number>());
 
   useEffect(() => {
-    const add = ({ id, message, action }: ToastItem) => {
-      setItems((current) => [...current, { id, message, action, leaving: false }]);
-      window.setTimeout(() => leave(id), action ? ACTION_DWELL_MS : DWELL_MS);
-    };
+    const track = dwells.current;
+    const exits = exitTimers.current;
     const leave = (id: number) => {
+      const dwell = track.get(id);
+      if (dwell) window.clearTimeout(dwell.timer);
+      track.delete(id);
       setItems((current) =>
         current.map((item) => (item.id === id ? { ...item, leaving: true } : item))
       );
-      window.setTimeout(() => {
+      const exit = window.setTimeout(() => {
+        exits.delete(exit);
         setItems((current) => current.filter((item) => item.id !== id));
       }, EXIT_MS);
+      exits.add(exit);
     };
+    const arm = (id: number, dwell: Dwell, wait: number) => {
+      dwell.remaining = wait;
+      dwell.startedAt = Date.now();
+      dwell.timer = window.setTimeout(() => leave(id), wait);
+    };
+    // The wait pauses while the pointer is over the toast or focus is inside it, and resumes with
+    // what was left, so a viewer reading it or reaching its button is not raced by the timer.
+    const hold = (id: number, change: Partial<Pick<Dwell, 'hovered' | 'focused'>>) => {
+      const dwell = track.get(id);
+      if (!dwell) return;
+      const wasHeld = dwell.hovered || dwell.focused;
+      Object.assign(dwell, change);
+      const isHeld = dwell.hovered || dwell.focused;
+      if (isHeld && !wasHeld) {
+        window.clearTimeout(dwell.timer);
+        dwell.remaining = Math.max(dwell.remaining - (Date.now() - dwell.startedAt), 0);
+      } else if (!isHeld && wasHeld) {
+        arm(id, dwell, dwell.remaining);
+      }
+    };
+    const add = ({ id, message, action }: ToastItem) => {
+      setItems((current) => [...current, { id, message, action, leaving: false }]);
+      const dwell: Dwell = {
+        timer: undefined,
+        remaining: 0,
+        startedAt: 0,
+        hovered: false,
+        focused: false,
+      };
+      track.set(id, dwell);
+      arm(id, dwell, action ? ACTION_DWELL_MS : DWELL_MS);
+    };
+    // A toast action belongs to the account that made the change. After another account signs
+    // in, pressing it would send the previous account's undo, so those toasts go with the account.
+    const stopWatchingAccount = useAuthStore.subscribe((state, previous) => {
+      if (state.user?.id === previous.user?.id) return;
+      setItems((current) => {
+        current.forEach((item) => {
+          if (!item.action) return;
+          window.clearTimeout(track.get(item.id)?.timer);
+          track.delete(item.id);
+        });
+        return current.filter((item) => !item.action);
+      });
+    });
     leaveRef.current = leave;
+    holdRef.current = hold;
     listeners.add(add);
     return () => {
       listeners.delete(add);
+      stopWatchingAccount();
+      track.forEach((dwell) => window.clearTimeout(dwell.timer));
+      track.clear();
+      exits.forEach((exit) => window.clearTimeout(exit));
+      exits.clear();
     };
   }, []);
 
@@ -90,6 +158,10 @@ export function ToastHost() {
         <div
           key={item.id}
           role="status"
+          onMouseEnter={() => holdRef.current(item.id, { hovered: true })}
+          onMouseLeave={() => holdRef.current(item.id, { hovered: false })}
+          onFocus={() => holdRef.current(item.id, { focused: true })}
+          onBlur={() => holdRef.current(item.id, { focused: false })}
           style={{
             background: v.ink,
             color: v.inkInverse,
@@ -112,7 +184,9 @@ export function ToastHost() {
           {item.action ? (
             <button
               type="button"
+              disabled={item.leaving}
               onClick={() => {
+                if (item.leaving) return;
                 item.action?.onClick();
                 leaveRef.current(item.id);
               }}
@@ -120,7 +194,7 @@ export function ToastHost() {
                 background: 'none',
                 border: 'none',
                 padding: 0,
-                cursor: 'pointer',
+                cursor: item.leaving ? 'default' : 'pointer',
                 fontFamily: v.fontBody,
                 fontSize: 13,
                 fontWeight: 600,

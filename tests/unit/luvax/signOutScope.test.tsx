@@ -73,12 +73,12 @@ describe('state scoped to the signed-in account', () => {
   it('shows no dismissed row and no mute dialog after signing out', async () => {
     mount();
     dismissAsA();
-    expect(screen.getByText('post hidden')).toBeInTheDocument();
+    expect(screen.getByText('Post hidden')).toBeInTheDocument();
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
     act(() => useAuthStore.getState().logout());
 
-    expect(screen.queryByText('post hidden')).toBeNull();
+    expect(screen.queryByText('Post hidden')).toBeNull();
     expect(screen.getByTestId('post-p1')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -91,7 +91,7 @@ describe('state scoped to the signed-in account', () => {
     signIn('user-b');
 
     expect(useDismissedPostsStore.getState().byPostId).toEqual({});
-    expect(screen.queryByText('post hidden')).toBeNull();
+    expect(screen.queryByText('Post hidden')).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

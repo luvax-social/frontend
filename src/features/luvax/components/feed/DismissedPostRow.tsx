@@ -39,7 +39,7 @@ export function DismissedPostRow({
   return (
     <div
       role="group"
-      aria-label={isFewer ? 'fewer posts from this account' : 'post hidden'}
+      aria-label={isFewer ? 'fewer posts from this account' : 'Post hidden'}
       style={{
         background: v.surface,
         borderRadius: 12,
@@ -52,7 +52,7 @@ export function DismissedPostRow({
     >
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: v.fontBody, fontSize: 15, fontWeight: 500, color: v.ink }}>
-          {isFewer ? `you'll see fewer posts from @${dismissal.authorHandle}` : 'post hidden'}
+          {isFewer ? `you'll see fewer posts from @${dismissal.authorHandle}` : 'Post hidden'}
         </div>
         <div style={{ fontFamily: v.fontBody, fontSize: 13, color: v.ink2, marginTop: 2 }}>
           {isFewer

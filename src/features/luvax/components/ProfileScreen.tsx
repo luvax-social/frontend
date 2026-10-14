@@ -25,6 +25,7 @@ import { useUserPosts, useLikedPosts } from '../hooks/usePosts';
 import { useUserProfile } from '../hooks/useUsers';
 import { useFollow, useUnfollow, useBlock, useUnblock, useBlockedUsers } from '../hooks/useSocial';
 import { useDrainEmptyPages } from '../hooks/useDrainEmptyPages';
+import { useMuteDialogStore } from '../store/useMuteDialogStore';
 import { useOverlayNavigate } from '../hooks/useOverlayNavigate';
 import { BlockConfirmDialog } from './BlockConfirmDialog';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
@@ -383,6 +384,23 @@ export function ProfileScreen() {
   // action that cannot succeed. The whole menu sits behind the !isSelf guard, so
   // neither block nor report can appear on the viewer's own profile.
   const menuItems = [
+    {
+      id: 'mute',
+      icon: 'bellOff',
+      label: `mute @${handle}`,
+      onClick: () => {
+        if (!user?.id) return;
+        useMuteDialogStore.getState().open({
+          user: {
+            id: user.id,
+            username: handle,
+            displayName: user.displayName ?? null,
+            avatarUrl: user.avatarUrl ?? null,
+          },
+          returnFocusTo: menuAnchor.current,
+        });
+      },
+    },
     {
       id: 'block-toggle',
       icon: 'close',

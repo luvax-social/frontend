@@ -607,6 +607,43 @@ export const SETTINGS_CSS = `
 .lx-limit-effects { padding-left: var(--space-5); margin: var(--space-4) 0 0; }
 .lx-limit-effects li + li { margin-top: var(--space-1); }
 
+/* Muted accounts: a person, a posts switch, a stories switch and an unmute button on one
+   grid, with the two column names above the rows. At phone width the names move into each
+   row, because the heading row can no longer sit above the switches it names. */
+.lx-mute-head,
+.lx-mute-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 56px auto;
+  align-items: center;
+  column-gap: var(--space-4);
+}
+.lx-mute-head {
+  padding-bottom: var(--space-1);
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--lx-ink-2);
+  text-align: center;
+}
+.lx-mute-head span:last-child { min-width: 64px; }
+.lx-mute-list { list-style: none; padding: 0; margin: 0; }
+.lx-mute-row {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--lx-border-subtle);
+}
+.lx-mute-row:last-child { border-bottom: none; }
+.lx-mute-who { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.lx-mute-cell { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.lx-mute-cell-label { display: none; font-size: 11px; color: var(--lx-ink-2); }
+@media (max-width: 520px) {
+  .lx-mute-head { display: none; }
+  .lx-mute-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    row-gap: var(--space-3);
+  }
+  .lx-mute-who { grid-column: 1 / -1; }
+  .lx-mute-cell-label { display: block; }
+}
+
 /* Below the split breakpoint the screen is not a split. Whichever region is not
    in play is removed, so the group list is the whole width until a category is
    opened and the category is the whole width afterwards, with a way back. That

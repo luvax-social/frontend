@@ -201,6 +201,24 @@ export interface ViewerRelationshipResponse {
   isFollowedBy: boolean;
   isBlocking: boolean;
   hasReported: boolean;
+  // The three flags below describe the viewer's own choices about this account.
+  isMutingPosts: boolean;
+  isMutingStories: boolean;
+  isShowingFewer: boolean;
+}
+
+// modules/social/dto/request/MuteRequest.java
+export interface MuteRequest {
+  mutePosts: boolean;
+  muteStories: boolean;
+}
+
+// modules/social/dto/response/MuteResponse.java
+export interface MuteResponse {
+  userId: string;
+  mutePosts: boolean;
+  muteStories: boolean;
+  user: UserSummaryResponse;
 }
 
 // modules/users/dto/response/UserSettingsResponse.java

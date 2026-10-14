@@ -11,14 +11,17 @@ import {
   SETTINGS_GROUPS,
 } from '@/features/luvax/components/settingsCatalog';
 import { ROUTES } from '@/config/constants';
+import * as safetyService from '@/services/safety.service';
 import * as userService from '@/services/user.service';
 
 import { envelope, settingsFixture } from './settingsFixtures';
-import { hiddenWordList, limitFixture } from './safetyFixtures';
+import { hiddenWordList, limitFixture, mutePage } from './safetyFixtures';
 
 vi.mock('@/services/user.service');
+vi.mock('@/services/safety.service');
 
 const service = vi.mocked(userService);
+const safety = vi.mocked(safetyService);
 
 const audience = () => SETTINGS_GROUPS.find((group) => group.id === 'audience')!;
 
@@ -44,6 +47,7 @@ beforeEach(() => {
   service.getMySettings.mockResolvedValue(envelope(settingsFixture()));
   service.getMyHiddenWords.mockResolvedValue(envelope(hiddenWordList(['idiot'])));
   service.getMyInteractionLimit.mockResolvedValue(envelope(limitFixture()));
+  safety.getMutes.mockResolvedValue(mutePage([]));
 });
 
 describe('settings catalog: interaction controls', () => {
@@ -83,5 +87,28 @@ describe('settings screen: interaction controls', () => {
       await screen.findByRole('heading', { name: 'limit interactions', level: 2 })
     ).toBeInTheDocument();
     expect(await screen.findByRole('radiogroup', { name: 'for how long' })).toBeInTheDocument();
+  });
+});
+
+describe('settings catalog: muted accounts', () => {
+  it('lists muted accounts in who can see your content, right after blocked accounts', () => {
+    const ids = audience().categories.map((category) => category.id);
+
+    expect(ids).toContain('muted');
+    expect(ids.indexOf('muted')).toBe(ids.indexOf('blocked') + 1);
+    expect(resolveCategory('muted')?.label).toBe('muted accounts');
+  });
+
+  it('files it at its route constant', () => {
+    expect(resolveCategory('muted')?.path).toBe(ROUTES.SETTINGS_MUTED);
+  });
+
+  it('renders the muted accounts category at its address', async () => {
+    renderAt(ROUTES.SETTINGS_MUTED);
+
+    expect(
+      await screen.findByRole('heading', { name: 'muted accounts', level: 2 })
+    ).toBeInTheDocument();
+    expect(await screen.findByText("You haven't muted anyone.")).toBeInTheDocument();
   });
 });

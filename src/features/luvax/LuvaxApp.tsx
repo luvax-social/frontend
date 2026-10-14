@@ -9,6 +9,7 @@ import { LxShell, LxAppBar, LxBottomNav, LxSideRail, RAIL_COLLAPSED_W } from './
 import { v } from '@/config/tokens';
 import { APP_SCREENS, DEFAULT_BASE_SCREEN } from '@/routes/appScreens';
 import { LuvaxTweaksProvider } from './LuvaxTweaksContext';
+import { MuteDialogHost } from './components/MuteDialog';
 import { ToastHost } from './components/Toast';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLiveNotifications } from './hooks/useNotifications';
@@ -318,6 +319,7 @@ export function LuvaxApp() {
           </div>
           <Outlet />
           <ToastHost />
+          <MuteDialogHost />
         </LuvaxTweaksProvider>
       );
     }
@@ -335,6 +337,7 @@ export function LuvaxApp() {
         </div>
         <Outlet />
         <ToastHost />
+        <MuteDialogHost />
       </LuvaxTweaksProvider>
     );
   }
@@ -347,6 +350,7 @@ export function LuvaxApp() {
         <Outlet />
       </LxShell>
       <ToastHost />
+      <MuteDialogHost />
     </LuvaxTweaksProvider>
   );
 }

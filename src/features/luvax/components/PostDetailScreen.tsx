@@ -55,6 +55,7 @@ import { routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
 import { offersShowFewer, surfaceFromState } from '../utils/feedSurface';
+import { useMuteDialogStore } from '../store/useMuteDialogStore';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 import { useQuery } from '@tanstack/react-query';
 import { getCommentContext } from '@/services/notification.service';
@@ -1011,6 +1012,21 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     toast(`you'll see fewer posts from @${authorHandle}`);
   }, [authorHandle, postId, showFewer.apply, targetUserId]);
 
+  // The dialog is mounted once for the whole app, so it survives the feed behind this overlay
+  // reloading when the mute lands.
+  const handleMuteOpen = useCallback(() => {
+    if (!targetUserId) return;
+    useMuteDialogStore.getState().open({
+      user: {
+        id: targetUserId,
+        username: authorHandle,
+        displayName: author.displayName ?? null,
+        avatarUrl: authorAvatarUrl ?? null,
+      },
+      returnFocusTo: menuButtonRef.current,
+    });
+  }, [author.displayName, authorAvatarUrl, authorHandle, targetUserId]);
+
   const handleBlockConfirm = () => {
     if (!targetUserId) return;
     block.mutate(targetUserId, {
@@ -1126,6 +1142,12 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
                 }
               : null,
             {
+              id: 'mute',
+              icon: 'bellOff',
+              label: `Mute @${authorHandle}`,
+              onClick: handleMuteOpen,
+            },
+            {
               id: 'view-profile',
               icon: 'profile',
               label: "View author's profile",
@@ -1180,6 +1202,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       handleEditOpen,
       handleFollowToggle,
       handleLikeToggle,
+      handleMuteOpen,
       handleNotInterested,
       handleShowFewer,
       isSelf,

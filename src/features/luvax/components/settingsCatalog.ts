@@ -99,6 +99,13 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         description: 'people you have blocked. they cannot see you, and you cannot see them.',
       },
       {
+        id: 'muted',
+        path: ROUTES.SETTINGS_MUTED,
+        label: 'muted accounts',
+        icon: 'bellOff',
+        description: "People you muted. They aren't told, and you can still visit their profile.",
+      },
+      {
         id: 'hidden-words',
         path: ROUTES.SETTINGS_HIDDEN_WORDS,
         label: 'hidden words',

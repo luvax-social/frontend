@@ -180,6 +180,9 @@ export const profileFixture = (
     isFollowedBy: false,
     isBlocking: false,
     hasReported: false,
+    isMutingPosts: false,
+    isMutingStories: false,
+    isShowingFewer: false,
   },
   ...overrides,
 });

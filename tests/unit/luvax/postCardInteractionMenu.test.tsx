@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { PostCard } from '@/features/luvax/components/PostCard';
 import { useDismissedPostsStore } from '@/features/luvax/store/useDismissedPostsStore';
+import { useMuteDialogStore } from '@/features/luvax/store/useMuteDialogStore';
 import * as feedbackService from '@/services/postFeedback.service';
 import * as safetyService from '@/services/safety.service';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -53,6 +54,7 @@ const item = (name: string) => screen.queryByRole('button', { name });
 beforeEach(() => {
   vi.resetAllMocks();
   useDismissedPostsStore.setState({ byPostId: {} });
+  useMuteDialogStore.setState({ target: null });
 });
 
 describe('post menu: not interested and show fewer', () => {
@@ -66,6 +68,7 @@ describe('post menu: not interested and show fewer', () => {
     expect(notInterested).toBeGreaterThan(-1);
     expect(showFewer).toBe(notInterested + 1);
     expect(viewProfile).toBeGreaterThan(showFewer);
+    expect(labels.indexOf('Mute @linh.ng')).toBe(showFewer + 1);
   });
 
   it('offers neither on the viewer’s own post', () => {
@@ -73,6 +76,7 @@ describe('post menu: not interested and show fewer', () => {
 
     expect(item('Not interested')).toBeNull();
     expect(item('Show fewer from @linh.ng')).toBeNull();
+    expect(item('Mute @linh.ng')).toBeNull();
   });
 
   it.each<[Surface, boolean]>([
@@ -115,5 +119,15 @@ describe('post menu: not interested and show fewer', () => {
 
     await waitFor(() => expect(safety.showFewer).toHaveBeenCalledWith('author-1'));
     expect(useDismissedPostsStore.getState().byPostId['post-1']?.kind).toBe('show-fewer');
+  });
+
+  it('opens the mute dialog for the author and hands it the menu button to return to', () => {
+    renderCard({ feedSurface: 'following' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mute @linh.ng' }));
+
+    const target = useMuteDialogStore.getState().target;
+    expect(target?.user).toMatchObject({ id: 'author-1', username: 'linh.ng' });
+    expect(target?.returnFocusTo).toBe(screen.getByRole('button', { name: 'post options' }));
   });
 });

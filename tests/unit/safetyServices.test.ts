@@ -46,3 +46,39 @@ describe('safety.service show fewer', () => {
     expect(deleteMock).toHaveBeenCalledWith('/social/show-fewer/u1');
   });
 });
+
+describe('safety.service mutes', () => {
+  it('puts absolute mute values and returns the envelope', async () => {
+    const body = { data: { userId: 'u1', mutePosts: true, muteStories: false } };
+    putMock.mockResolvedValue({ data: body });
+
+    const result = await safety.setMute('u1', { mutePosts: true, muteStories: false });
+
+    expect(putMock).toHaveBeenCalledWith('/social/mutes/u1', {
+      mutePosts: true,
+      muteStories: false,
+    });
+    expect(result).toBe(body);
+  });
+
+  it('deletes a mute', async () => {
+    await safety.unmute('u1');
+    expect(deleteMock).toHaveBeenCalledWith('/social/mutes/u1');
+  });
+
+  it('lists mutes with a limit and a cursor only when there is one', async () => {
+    getMock.mockResolvedValue({ data: { data: { content: [] } } });
+
+    await safety.getMutes({ limit: 20 });
+    await safety.getMutes({ cursor: 'c1', limit: 20 });
+
+    expect(getMock).toHaveBeenNthCalledWith(1, '/social/mutes', {
+      params: { limit: 20 },
+      signal: undefined,
+    });
+    expect(getMock).toHaveBeenNthCalledWith(2, '/social/mutes', {
+      params: { limit: 20, cursor: 'c1' },
+      signal: undefined,
+    });
+  });
+});

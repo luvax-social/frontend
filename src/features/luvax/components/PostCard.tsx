@@ -35,6 +35,7 @@ import { ROUTES, routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
 import { offersShowFewer } from '../utils/feedSurface';
+import { useMuteDialogStore } from '../store/useMuteDialogStore';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 const HEART_COLOR = 'var(--lx-error)';
@@ -228,6 +229,21 @@ export function PostCard({
     handleFollowConfirm();
   }, [following, handleFollowConfirm, targetUserId]);
 
+  // The dialog is mounted once for the whole app rather than here: muting reloads the feed, and a
+  // card whose post just left it would take the dialog down mid-change.
+  const handleMuteOpen = useCallback(() => {
+    if (!targetUserId) return;
+    useMuteDialogStore.getState().open({
+      user: {
+        id: targetUserId,
+        username: authorHandle,
+        displayName: author.displayName ?? null,
+        avatarUrl: avatarUrl ?? null,
+      },
+      returnFocusTo: menuButtonRef.current,
+    });
+  }, [author.displayName, authorHandle, avatarUrl, targetUserId]);
+
   const menuItems = useMemo(
     () => [
       {
@@ -295,6 +311,14 @@ export function PostCard({
         : null,
       !isOwner
         ? {
+            id: 'mute',
+            icon: 'bellOff',
+            label: `Mute @${authorHandle}`,
+            onClick: handleMuteOpen,
+          }
+        : null,
+      !isOwner
+        ? {
             id: 'view-profile',
             icon: 'profile',
             label: "View author's profile",
@@ -356,6 +380,7 @@ export function PostCard({
       handleEditOpen,
       handleFollowToggle,
       handleLikeToggle,
+      handleMuteOpen,
       isOwner,
       liked,
       navigate,

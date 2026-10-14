@@ -372,6 +372,7 @@ export type NotificationType =
   | 'comment_removed'
   | 'story_removed'
   | 'message_removed'
+  | 'reaction_removed'
   | 'report_post_removed'
   | 'post_restored'
   | 'report_dismissed';
@@ -627,7 +628,7 @@ export interface CreateReportRequest {
   turnstileToken: string;
 }
 
-export type ReportType = 'post' | 'comment' | 'user' | 'story' | 'message';
+export type ReportType = 'post' | 'comment' | 'user' | 'story' | 'message' | 'message_reaction';
 
 export type ReportReason =
   | 'spam'

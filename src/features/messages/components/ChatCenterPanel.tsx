@@ -36,6 +36,8 @@ interface Props {
   blockedHint?: string;
   /** Sets the viewer's reaction on a message, or removes it when the emoji is null. */
   onReact?: (messageId: string, emoji: string | null) => void;
+  /** Opens the report flow for someone else's reaction on a message. */
+  onReportReaction?: (reactionId: string) => void;
   /** Decision handlers for an incoming request; the bar replaces the composer for its recipient. */
   requestActions?: {
     onAccept: () => void;
@@ -241,6 +243,7 @@ export function ChatCenterPanel({
   isBlocked = false,
   blockedHint,
   onReact,
+  onReportReaction,
   requestActions,
 }: Props) {
   const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -525,6 +528,9 @@ export function ChatCenterPanel({
                     forceShowActions={rowHovered}
                     canReact={!isBlocked}
                     onReact={onReact}
+                    onReportReaction={
+                      onReportReaction ? (reactionId) => onReportReaction(reactionId) : undefined
+                    }
                   />
                 )}
               </MessageActionRow>

@@ -62,6 +62,8 @@ export type AdminActionType =
   | 'restore_story'
   | 'remove_message'
   | 'restore_message'
+  | 'remove_message_reaction'
+  | 'restore_message_reaction'
   | 'resolve_report'
   | 'dismiss_report'
   | 'change_user_role'
@@ -147,6 +149,8 @@ export interface AdminReportTargetResponse {
   mediaUrls: string[];
   removed: boolean;
   createdAt: string;
+  /** The emoji of a reported message reaction; null for every other type. */
+  emoji: string | null;
 }
 
 // modules/admin/dto/response/AdminStatsCurrentResponse.java

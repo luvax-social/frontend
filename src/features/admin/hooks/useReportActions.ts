@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../api/adminApi';
 
 /**
- * The four content types a reviewer can take down and put back, each mapped to
- * its endpoint pair. Stories and messages joined posts and comments when the
+ * The five content types a reviewer can take down and put back, each mapped to
+ * its endpoint pair. A message reaction joined the four content types with its own pair. Stories and messages joined posts and comments when the
  * backend added their four endpoints; before that a reported story or message
  * was rendered read-only.
  *
@@ -21,6 +21,8 @@ const REMOVE_BY_TYPE = {
     adminApi.removeStory(id, reason, reportId),
   message: (id: string, reason: string, reportId: string | null | undefined) =>
     adminApi.removeMessage(id, reason, reportId),
+  message_reaction: (id: string, reason: string, reportId: string | null | undefined) =>
+    adminApi.removeMessageReaction(id, reason, reportId),
 };
 
 const RESTORE_BY_TYPE = {
@@ -32,7 +34,11 @@ const RESTORE_BY_TYPE = {
     adminApi.restoreStory(id, reason, reportId),
   message: (id: string, reason: string, reportId: string | null | undefined) =>
     adminApi.restoreMessage(id, reason, reportId),
+  message_reaction: (id: string, reason: string, reportId: string | null | undefined) =>
+    adminApi.restoreMessageReaction(id, reason, reportId),
 };
+
+type ModeratedContentType = keyof typeof REMOVE_BY_TYPE;
 
 /**
  * The mutations a reviewer performs from the report detail screen.
@@ -85,7 +91,7 @@ export function useReportActions(reportId: string | null | undefined) {
       entityId,
       reason,
     }: {
-      targetType: 'post' | 'comment' | 'story' | 'message';
+      targetType: ModeratedContentType;
       entityId: string;
       reason: string;
     }) => REMOVE_BY_TYPE[targetType](entityId, reason, reportId),
@@ -95,14 +101,14 @@ export function useReportActions(reportId: string | null | undefined) {
   const restoreContent = useMutation<
     AdminActionResponse | AdminPostRestoreResponse,
     Error,
-    { targetType: 'post' | 'comment' | 'story' | 'message'; entityId: string; reason: string }
+    { targetType: ModeratedContentType; entityId: string; reason: string }
   >({
     mutationFn: ({
       targetType,
       entityId,
       reason,
     }: {
-      targetType: 'post' | 'comment' | 'story' | 'message';
+      targetType: ModeratedContentType;
       entityId: string;
       reason: string;
     }) => RESTORE_BY_TYPE[targetType](entityId, reason, reportId),

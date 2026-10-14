@@ -17,6 +17,8 @@ interface Props {
   canReact?: boolean;
   /** Sets the viewer's reaction on a message, or removes it when the emoji is null. */
   onReact?: (messageId: string, emoji: string | null) => void;
+  /** Opens the report flow for someone else's reaction on a message. */
+  onReportReaction?: (reactionId: string, messageId: string) => void;
 }
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -53,6 +55,7 @@ export function MessageBubble({
   forceShowActions = false,
   canReact = false,
   onReact,
+  onReportReaction,
 }: Props) {
   const navigate = useNavigate();
   const isMine = message.from === 'me';
@@ -282,6 +285,11 @@ export function MessageBubble({
             key={reaction.emoji}
             reaction={reaction}
             onRemoveMine={() => onReact?.(message.id, null)}
+            onReport={
+              onReportReaction
+                ? (reactionId) => onReportReaction(reactionId, message.id)
+                : undefined
+            }
           />
         ))}
       </div>

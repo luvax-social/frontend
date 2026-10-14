@@ -732,6 +732,16 @@ export function MessagesScreen() {
     });
   };
 
+  const handleReportReaction = (reactionId: string) => {
+    if (!activeThread) return;
+    setReportTarget({
+      entityType: REPORT_TYPES.MESSAGE_REACTION,
+      entityId: reactionId,
+      author: activeThread.name,
+      avatarUrl: activeThread.avatarUrl,
+    });
+  };
+
   const handleBlockConfirm = () => {
     if (!blockTarget) return;
     const target = blockTarget;
@@ -910,6 +920,7 @@ export function MessagesScreen() {
           isBlocked={isActiveThreadBlocked || isMessagingUnavailable}
           blockedHint={messageBlockHint}
           onReact={react}
+          onReportReaction={handleReportReaction}
           requestActions={{
             onAccept: handleAcceptRequest,
             onDelete: () => activeThread && setDeleteRequestTarget(activeThread),

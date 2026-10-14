@@ -9,16 +9,18 @@ const REPORT_API_PATH = '/reports';
  *
  * The `reportType` values the backend accepts, exactly as `ReportType` serialises them.
  * Verified against the live OpenAPI document at /api-docs, which lists the enum as
- * post, comment, user, story, and message.
+ * post, comment, user, story, message and message_reaction.
  *
- * Only the three used by this application are exposed here. Story and message reporting
- * have no entry point yet, so naming them would imply a capability that does not exist.
+ * Only the types this application can start a report for are exposed here. Message reporting
+ * has no entry point yet, so naming it would imply a capability that does not exist; a message
+ * reaction is reported from its chip on the message.
  */
 export const REPORT_TYPES = {
   POST: 'post',
   COMMENT: 'comment',
   USER: 'user',
   STORY: 'story',
+  MESSAGE_REACTION: 'message_reaction',
 } as const;
 
 /**

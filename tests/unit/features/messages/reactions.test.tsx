@@ -358,6 +358,28 @@ describe('ReactionChip', () => {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(HEART) }));
     expect(onRemoveMine).toHaveBeenCalledOnce();
   });
+
+  it('offers a report only for someone else reaction that carries an id', () => {
+    const onReport = vi.fn();
+    const { rerender } = render(
+      <ReactionChip
+        reaction={{ emoji: HEART, count: 1, mine: false, reactionId: 'r1' }}
+        onReport={onReport}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(HEART) }));
+    fireEvent.click(screen.getByRole('button', { name: 'report reaction' }));
+    expect(onReport).toHaveBeenCalledWith('r1');
+
+    rerender(
+      <ReactionChip
+        reaction={{ emoji: HEART, count: 1, mine: true, reactionId: null }}
+        onReport={onReport}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(HEART) }));
+    expect(screen.queryByRole('button', { name: 'report reaction' })).not.toBeInTheDocument();
+  });
 });
 
 describe('MessageBubble reactions', () => {
@@ -463,5 +485,31 @@ describe('MessageBubble reactions', () => {
       { participants, currentUserId: ME }
     );
     expect(view.replyText).toBe('trip to Sa Pa');
+  });
+
+  it("offers to report the other person's reaction when the server names it", () => {
+    const onReportReaction = vi.fn();
+    bubble(
+      other('m1', {
+        senderId: ME,
+        reactions: [{ id: 'r1', userId: THEM, emoji: LAUGH, reactedAt: '2026-10-01T10:00:00Z' }],
+      }),
+      { onReportReaction }
+    );
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(LAUGH) }));
+    fireEvent.click(screen.getByRole('button', { name: 'report reaction' }));
+    expect(onReportReaction).toHaveBeenCalledWith('r1', 'm1');
+  });
+
+  it('offers no report when the server sent no reaction id', () => {
+    bubble(
+      other('m1', {
+        senderId: ME,
+        reactions: [{ userId: THEM, emoji: LAUGH, reactedAt: '2026-10-01T10:00:00Z' }],
+      }),
+      { onReportReaction: vi.fn() }
+    );
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(LAUGH) }));
+    expect(screen.queryByRole('button', { name: 'report reaction' })).not.toBeInTheDocument();
   });
 });

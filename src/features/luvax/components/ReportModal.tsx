@@ -33,6 +33,8 @@ const ENTITY_LABELS: Record<string, string> = {
   comment: 'comment',
   user: 'account',
   story: 'story',
+  message: 'message',
+  message_reaction: 'reaction',
 };
 
 /**

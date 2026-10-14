@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- A reported message reaction now shows in the admin report detail with its emoji, who reacted and when, and the message it sits on, and a reviewer can remove or restore it with a recorded reason.
+- Message reaction is a report type in the admin queue filter, and the moderation actions for removing and restoring a reaction are part of the action vocabulary.
+- A removed reaction reaches the reactor as a system notice that carries the appeal route like any other removal.
+- The reaction chip menu offers to report someone else's reaction once the server names it.
 - Message reactions: a six-option picker plus an any-emoji field with your current reaction highlighted, reaction chips on each bubble, and live updates of the other person's reactions without reloading the thread.
 - A message that was deleted or removed shows no reaction chip and no picker.
 - Messages now has primary and requests tabs, a hidden requests folder reached from the requests tab, and accept, delete and block actions on an incoming request, each removing the request at once and restoring it if the server refuses.
@@ -190,6 +194,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Unit coverage for the reaction report type, its moderation copy and endpoints, the reported reaction view, the removal notice sentence and its appeal entry.
 - Unit coverage for the reaction cache patch, optimistic reactions with rollback, live reaction frames, the picker, the chips, tombstoned messages and reply quote resolution.
 - Unit coverage for inbox folders, request actions with rollback, the not-found notice, the tab counts, the sender notice, the locked composer and the live inbox subscription.
 - Nine regressions cover indexing configuration, generated documents, private metadata cleanup, rendering failures and authentication semantics, alongside an HTTP check for redirects, discovery, 404s, caching and gzip.

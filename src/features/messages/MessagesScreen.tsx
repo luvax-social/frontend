@@ -37,6 +37,7 @@ import {
 } from './hooks/useConversations';
 import { useMessages, useDeleteMessage, useSendMessage } from './hooks/useMessages';
 import { useLiveMessages } from './hooks/useLiveMessages';
+import { useReactions } from './hooks/useReactions';
 import { useAcceptRequest, useBlockRequester, useDeleteRequest } from './hooks/useMessageRequests';
 import { deleteRequestConfirm } from './utils/requestConfirm';
 import { UNAVAILABLE_NOTICE, isNotFoundError } from './utils/unavailable';
@@ -245,6 +246,7 @@ export function MessagesScreen() {
     : 'messaging is unavailable for this conversation.';
 
   useLiveMessages(activeConversation?.id);
+  const { react } = useReactions(activeConversation?.id, currentUserId);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -907,6 +909,7 @@ export function MessagesScreen() {
           isSending={isSending}
           isBlocked={isActiveThreadBlocked || isMessagingUnavailable}
           blockedHint={messageBlockHint}
+          onReact={react}
           requestActions={{
             onAccept: handleAcceptRequest,
             onDelete: () => activeThread && setDeleteRequestTarget(activeThread),

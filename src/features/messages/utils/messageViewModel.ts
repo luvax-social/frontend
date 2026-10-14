@@ -1,6 +1,14 @@
-import type { Message, MessageMedia, MessageView, ThreadRow, Conversation } from '../types';
+import type {
+  Message,
+  MessageMedia,
+  MessageView,
+  ReactionChipView,
+  ThreadRow,
+  Conversation,
+} from '../types';
 import type {
   LastReactionPreviewResponse,
+  MessageType,
   ParticipantResponse,
   StoryResponse,
   PublicUserProfileResponse,
@@ -22,6 +30,8 @@ import type {
  */
 
 const DELETED_PLACEHOLDER = 'this message was deleted';
+const UNAVAILABLE_QUOTE = 'message unavailable';
+const OWN_QUOTE_NAME = 'you';
 const UNKNOWN_PARTICIPANT = 'unknown';
 const TIME_SEPARATOR_GAP_MS = 60 * 60 * 1000;
 const STORY_MEDIA_CACHE_KEY = 'luvax:message-story-media';
@@ -148,6 +158,50 @@ const reactionPreviewOf = (
   return `${actor} reacted ${reaction.emoji} to ${reaction.onMyMessage ? 'your' : 'their'} message`;
 };
 
+/** What a quote shows for a replied-to message that has no text of its own. */
+const quoteLabelOf = (messageType: MessageType | null) => {
+  switch (messageType) {
+    case 'image':
+      return 'photo';
+    case 'video':
+      return 'video';
+    case 'post_share':
+      return 'shared post';
+    case 'story_share':
+      return 'shared story';
+    default:
+      return '';
+  }
+};
+
+/**
+ * One chip per distinct emoji, in the order the first person chose it.
+ *
+ * A message that is no longer shown carries none: the server sends an empty list for it, and this
+ * guards the optimistic and live paths the same way. Only a reaction by someone else can be
+ * reported, so the viewer's own never exposes an id.
+ */
+const reactionChipsOf = (message: Message, currentUserId: string | undefined) => {
+  if (message.isDeleted) return [];
+  const chips = new Map<string, ReactionChipView>();
+  (message.reactions || []).forEach((reaction) => {
+    const mine = reaction.userId === currentUserId;
+    const chip = chips.get(reaction.emoji) || {
+      emoji: reaction.emoji,
+      count: 0,
+      mine: false,
+      reactionId: null,
+    };
+    chips.set(reaction.emoji, {
+      ...chip,
+      count: chip.count + 1,
+      mine: chip.mine || mine,
+      reactionId: chip.reactionId ?? (!mine && reaction.id ? reaction.id : null),
+    });
+  });
+  return Array.from(chips.values());
+};
+
 /**
  * Which bubble treatment a message gets.
  *
@@ -213,11 +267,21 @@ export const toMessageView = (
     participant && participant.userId !== currentUserId
       ? nickname || nameOf(participant)
       : nameOf(participant);
-  // Resolved from the loaded page only. Fetching the referenced message per bubble would issue one
-  // request per reply while scrolling.
-  const repliedTo = message.replyToId
-    ? loadedMessages.find((candidate) => candidate.id === message.replyToId) || null
-    : null;
+  const quoteNameOf = (senderId: string | null) =>
+    senderId === null
+      ? null
+      : senderId === currentUserId
+        ? OWN_QUOTE_NAME
+        : displayNameOf(participantOf(participants, senderId));
+  // The server preview is authoritative. The loaded page is a fallback for a message that carries
+  // no preview, such as a just-sent reply, because fetching the referenced message per bubble would
+  // issue one request per reply while scrolling.
+  const preview = message.replyTo;
+  const repliedTo =
+    !preview && message.replyToId
+      ? loadedMessages.find((candidate) => candidate.id === message.replyToId) || null
+      : null;
+  const reactions = reactionChipsOf(message, currentUserId);
 
   return {
     id: message.id,
@@ -232,8 +296,23 @@ export const toMessageView = (
     sharedStoryMedia: message.sharedStory?.media || cachedStoryMediaOf(message.sharedStoryId),
     sharedPostId: message.sharedPostId || null,
     sharedStoryId: message.sharedStoryId || null,
-    replyTo: repliedTo ? displayNameOf(participantOf(participants, repliedTo.senderId)) : null,
-    replyText: repliedTo ? previewTextOf(repliedTo) : null,
+    replyTo: preview
+      ? preview.unavailable
+        ? null
+        : quoteNameOf(preview.senderId)
+      : repliedTo
+        ? quoteNameOf(repliedTo.senderId)
+        : null,
+    replyText: preview
+      ? preview.unavailable
+        ? UNAVAILABLE_QUOTE
+        : preview.snippet || quoteLabelOf(preview.messageType)
+      : repliedTo
+        ? previewTextOf(repliedTo)
+        : null,
+    replyUnavailable: Boolean(preview?.unavailable),
+    reactions,
+    myReaction: reactions.find((chip) => chip.mine)?.emoji ?? null,
     handle: sender?.username ? `@${sender.username}` : null,
     title: null,
     meta: message.sharedStoryId ? 'shared story' : message.sharedPostId ? 'shared post' : null,

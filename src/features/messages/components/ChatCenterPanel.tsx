@@ -34,6 +34,8 @@ interface Props {
   isSending: boolean;
   isBlocked?: boolean;
   blockedHint?: string;
+  /** Sets the viewer's reaction on a message, or removes it when the emoji is null. */
+  onReact?: (messageId: string, emoji: string | null) => void;
   /** Decision handlers for an incoming request; the bar replaces the composer for its recipient. */
   requestActions?: {
     onAccept: () => void;
@@ -238,6 +240,7 @@ export function ChatCenterPanel({
   isSending,
   isBlocked = false,
   blockedHint,
+  onReact,
   requestActions,
 }: Props) {
   const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -520,6 +523,8 @@ export function ChatCenterPanel({
                     onDeleteToggle={handleDeleteToggle}
                     onReplyMessage={setReplyingTo}
                     forceShowActions={rowHovered}
+                    canReact={!isBlocked}
+                    onReact={onReact}
                   />
                 )}
               </MessageActionRow>

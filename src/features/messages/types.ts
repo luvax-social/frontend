@@ -36,6 +36,14 @@ export type Conversation =
   | ConversationResponse
   | (Omit<ConversationSummaryResponse, 'lastMessage'> & { lastMessage: Message | null });
 export type MessageData = InfiniteData<ApiResponse<CursorPage<Message>>, string | null>;
+/** One emoji on a message, with how many people chose it and whether the viewer is one. */
+export interface ReactionChipView {
+  emoji: string;
+  count: number;
+  mine: boolean;
+  /** A reaction by someone else that can be reported; null when the server sent no id. */
+  reactionId: string | null;
+}
 export interface MessageView {
   id: string;
   conversationId: string;
@@ -51,6 +59,9 @@ export interface MessageView {
   sharedStoryId: string | null;
   replyTo: string | null;
   replyText: string | null;
+  replyUnavailable: boolean;
+  reactions: ReactionChipView[];
+  myReaction: string | null;
   handle: string | null;
   title: string | null;
   meta: string | null;

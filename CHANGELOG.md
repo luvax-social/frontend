@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Message reactions: a six-option picker plus an any-emoji field with your current reaction highlighted, reaction chips on each bubble, and live updates of the other person's reactions without reloading the thread.
+- A message that was deleted or removed shows no reaction chip and no picker.
 - Messages now has primary and requests tabs, a hidden requests folder reached from the requests tab, and accept, delete and block actions on an incoming request, each removing the request at once and restoring it if the server refuses.
 - The requests tab shows the number of pending requests, the hidden requests folder shows none, and the messages badge in the navigation counts unread messages in the primary inbox only.
 - A sender whose message request is unanswered sees a notice and a locked composer, worded the same whether the request is waiting or was deleted.
@@ -56,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Reply quotes now render from the server's preview of the replied-to message, labelling photos, videos and shares, and reading "message unavailable" when the original is gone; the loaded history is used only when no preview is sent.
 - Frontend source and tests now use TypeScript throughout; removed migration-only JS allowance and updated documentation, structural tooling and supported configuration/script paths.
 - Post interactions, realtime cache updates, media rendering and composer utilities now use typed query data and browser events.
 - Shared domain services, media upload, impression batching and realtime subscriptions now use explicit API contracts.
@@ -187,6 +190,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Unit coverage for the reaction cache patch, optimistic reactions with rollback, live reaction frames, the picker, the chips, tombstoned messages and reply quote resolution.
 - Unit coverage for inbox folders, request actions with rollback, the not-found notice, the tab counts, the sender notice, the locked composer and the live inbox subscription.
 - Nine regressions cover indexing configuration, generated documents, private metadata cleanup, rendering failures and authentication semantics, alongside an HTTP check for redirects, discovery, 404s, caching and gzip.
 - A regression test asserts that every request able to receive the session cookie is sent with credentials.

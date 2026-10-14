@@ -3,6 +3,7 @@ import type {
   ConversationFolder,
   ConversationSummaryResponse,
   ConversationResponse,
+  MessageReactionResponse,
   MessageResponse,
   SendMessageRequest,
   UnreadCountResponse,
@@ -275,6 +276,38 @@ export const blockRequester = async (conversationId: string) => {
   await axiosInstance.post(`${CONVERSATION_API_PATH}/${conversationId}/block`);
 };
 
+/**
+ * Sets or replaces the caller's emoji reaction to a message.
+ *
+ * Calls `PUT /conversations/{cid}/messages/{mid}/reaction`. The body carries exactly one emoji
+ * grapheme; the server rejects anything else with `MESSAGE_REACTION_INVALID_EMOJI`.
+ * @param {string} conversationId
+ * @param {string} messageId
+ * @param {string} emoji
+ * @returns {Promise<Object>} ApiResponse envelope wrapping the stored reaction.
+ */
+export const reactToMessage = async (conversationId: string, messageId: string, emoji: string) => {
+  const response = await axiosInstance.put<ApiResponse<MessageReactionResponse>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/messages/${messageId}/reaction`,
+    { emoji }
+  );
+  return response.data;
+};
+
+/**
+ * Removes the caller's reaction to a message; idempotent.
+ *
+ * Calls `DELETE /conversations/{cid}/messages/{mid}/reaction`, which answers 204 either way.
+ * @param {string} conversationId
+ * @param {string} messageId
+ * @returns {Promise<void>}
+ */
+export const removeMessageReaction = async (conversationId: string, messageId: string) => {
+  await axiosInstance.delete(
+    `${CONVERSATION_API_PATH}/${conversationId}/messages/${messageId}/reaction`
+  );
+};
+
 export const messageService = {
   listConversations,
   getConversation,
@@ -294,6 +327,8 @@ export const messageService = {
   acceptRequest,
   deleteRequest,
   blockRequester,
+  reactToMessage,
+  removeMessageReaction,
 };
 
 export default messageService;

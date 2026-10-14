@@ -771,6 +771,13 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   }, [commentEmojiSearch]);
 
   const { postId } = useParams();
+  // The route can change post without unmounting this screen. The panel is closed when the post
+  // changes, so coming back to the first post does not find it still open.
+  const [panelCheckedPostId, setPanelCheckedPostId] = useState(postId);
+  if (panelCheckedPostId !== postId) {
+    setPanelCheckedPostId(postId);
+    setHiddenPanelPostId(null);
+  }
   const { data: postResponse, isLoading, isError } = usePostDetail(postId);
 
   const currentUser = useAuthStore((state) => state.user);

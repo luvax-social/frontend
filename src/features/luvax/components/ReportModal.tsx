@@ -9,7 +9,6 @@ import { useTurnstile } from '@/hooks/useTurnstile';
 import { CAPTCHA_FAILURE_MESSAGE, isCaptchaFailure } from '@/utils/captchaErrors';
 import { LxAvatar } from '@/components/ui/lx-avatar';
 import { REPORT_REASONS, REPORT_DESCRIPTION_MAX_LENGTH } from '@/services/report.service';
-import { useEscapeKey } from '@/hooks/useEscapeKey';
 import {
   useSubmitReport,
   describeReportError,
@@ -77,7 +76,19 @@ export function ReportModal({
   );
   const challenge = useTurnstile(setChallengeToken);
 
-  useEscapeKey(Boolean(target), onClose);
+  // Escape closes this modal alone. The listener is on the window in the capture phase so it
+  // runs ahead of the Escape handling of an overlay the modal opened over, such as the post
+  // detail, which would otherwise close underneath it as well.
+  useEffect(() => {
+    if (!target) return undefined;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [target, onClose]);
 
   // Each newly opened target starts a fresh report. Without this the previous target's
   // reason and text would still be selected when the modal reopens.

@@ -411,6 +411,26 @@ describe('HiddenCommentsPanel', () => {
     );
   });
 
+  it('keeps focus on the unhide button of a row whose unhide failed', async () => {
+    service.getHiddenComments.mockResolvedValue(
+      page([hiddenComment('a'), hiddenComment('b'), hiddenComment('c')])
+    );
+    let refuse: (error: unknown) => void = () => {};
+    service.unhideComment.mockReturnValue(new Promise((_, reject) => (refuse = reject)));
+    renderPanel();
+    const unhideOf = (id: string) =>
+      within(screen.getByTestId(`hidden-comment-${id}`)).getByRole('button', { name: 'unhide' });
+    await screen.findByTestId('hidden-comment-a');
+
+    unhideOf('b').focus();
+    await click(unhideOf('b'));
+    await waitFor(() => expect(screen.queryByTestId('hidden-comment-b')).not.toBeInTheDocument());
+    await act(async () => refuse(apiError('INTERNAL_SERVER_ERROR', 500)));
+
+    await within(screen.getByTestId('hidden-comment-b')).findByRole('alert');
+    await waitFor(() => expect(unhideOf('b')).toHaveFocus());
+  });
+
   it('offers only the load more control while the first page is empty but more exist', async () => {
     service.getHiddenComments.mockResolvedValue(page([], 'cursor-1'));
     renderPanel();
@@ -560,6 +580,44 @@ describe('PostDetailScreen hidden comments entry', () => {
     await click(screen.getByRole('button', { name: 'jump' }));
 
     await waitFor(() => expect(screen.queryByTestId('hidden-comment-a')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'post options' })).toBeInTheDocument();
+  });
+
+  it('does not reopen the panel when the viewer comes back to the post it was opened on', async () => {
+    service.getHiddenComments.mockResolvedValue(page([hiddenComment('a')]));
+    asOwner();
+    function Jump() {
+      const navigate = useNavigate();
+      return (
+        <>
+          <button onClick={() => navigate('/app/p/p2')}>to other</button>
+          <button onClick={() => navigate(`/app/p/${POST_ID}`)}>to first</button>
+        </>
+      );
+    }
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={[`/app/p/${POST_ID}`]}>
+          <Routes>
+            <Route
+              path="/app/p/:postId"
+              element={
+                <>
+                  <PostDetailScreen />
+                  <Jump />
+                </>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    await openPanel();
+
+    await click(screen.getByRole('button', { name: 'to other' }));
+    await click(screen.getByRole('button', { name: 'to first' }));
+
+    expect(screen.queryByTestId('hidden-comment-a')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'post options' })).toBeInTheDocument();
   });
 

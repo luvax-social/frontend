@@ -139,13 +139,25 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
   const backRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const focusAfterRemoval = useRef<{ removedId: string; nextId: string | null } | null>(null);
+  // Where focus went when a row left, so a refused unhide can bring it back to that row.
+  const focusMovedTo = useRef<{ removedId: string; element: HTMLElement } | null>(null);
+  const refocusRow = useRef<{ rowId: string; from: HTMLElement } | null>(null);
 
   const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useHiddenComments(postId);
   const unhide = useUnhideComment(postId, {
     onError: (error, commentId) => {
-      // A failed unhide restores the row, so focus has nothing to move away from.
+      // A failed unhide restores the row. If focus had already moved on when the row left, it
+      // returns to the restored row's button once that button is back.
       if (focusAfterRemoval.current?.removedId === commentId) focusAfterRemoval.current = null;
+      const moved = focusMovedTo.current;
+      focusMovedTo.current = null;
+      if (
+        moved?.removedId === commentId &&
+        getErrorResponse(error)?.status !== HTTP_STATUS.NOT_FOUND
+      ) {
+        refocusRow.current = { rowId: commentId, from: moved.element };
+      }
       // A 404 refetches the list and the refetch decides whether the row stays, so a message
       // set here would flash on a row that is about to go.
       if (getErrorResponse(error)?.status === HTTP_STATUS.NOT_FOUND) return;
@@ -185,7 +197,23 @@ export function HiddenCommentsPanel({ postId, onBack }: { postId: string; onBack
     const next = pending.nextId
       ? panelRef.current?.querySelector<HTMLElement>(`[data-unhide-for="${pending.nextId}"]`)
       : null;
-    (next ?? backRef.current)?.focus();
+    const target = next ?? backRef.current;
+    target?.focus();
+    if (target) focusMovedTo.current = { removedId: pending.removedId, element: target };
+  }, [comments]);
+
+  // Runs once the restored row is back in the list. Focus is returned only while it still sits
+  // where the removal put it, so a viewer who has moved on is not pulled back.
+  useEffect(() => {
+    const pending = refocusRow.current;
+    if (!pending) return;
+    const button = panelRef.current?.querySelector<HTMLElement>(
+      `[data-unhide-for="${pending.rowId}"]`
+    );
+    if (!button) return;
+    refocusRow.current = null;
+    const focused = document.activeElement;
+    if (!focused || focused === document.body || focused === pending.from) button.focus();
   }, [comments]);
 
   const handleUnhide = (comment: HiddenCommentResponse) => {

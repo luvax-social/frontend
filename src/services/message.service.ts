@@ -1,5 +1,6 @@
 import type { ApiResponse, CursorParams, CursorPage } from '@/types/api';
 import type {
+  ConversationFolder,
   ConversationSummaryResponse,
   ConversationResponse,
   MessageResponse,
@@ -11,19 +12,26 @@ import axiosInstance from './axiosInstance';
 const CONVERSATION_API_PATH = '/conversations';
 
 /**
- * Lists the caller's conversations, most recent activity first.
+ * Lists the caller's conversations in one inbox folder, most recent activity first.
  *
- * Each row already carries `unreadCount` and an embedded `lastMessage`, so the list screen needs
- * this call alone and never one request per conversation.
+ * Calls `GET /conversations?folder=`. Each row already carries `unreadCount` and an embedded
+ * `lastMessage`, so the list screen needs this call alone and never one request per conversation.
+ * The folder defaults to `primary`; `requests` and `hidden_requests` hold the caller's incoming
+ * message requests.
  *
- * @param {{cursor?: string, limit?: number, signal?: AbortSignal}} params
+ * @param {{folder?: string, cursor?: string, limit?: number, signal?: AbortSignal}} params
  * @returns {Promise<Object>} ApiResponse envelope wrapping a cursor page of conversation summaries.
  */
-export const listConversations = async ({ cursor, limit = 20, signal }: CursorParams = {}) => {
+export const listConversations = async ({
+  folder = 'primary',
+  cursor,
+  limit = 20,
+  signal,
+}: CursorParams & { folder?: ConversationFolder } = {}) => {
   const response = await axiosInstance.get<ApiResponse<CursorPage<ConversationSummaryResponse>>>(
     CONVERSATION_API_PATH,
     {
-      params: { cursor, limit },
+      params: { folder, cursor, limit },
       signal,
     }
   );
@@ -230,6 +238,43 @@ export const setNickname = async (conversationId: string, nickname: string | nul
   return response.data;
 };
 
+/**
+ * Accepts a message request the caller received, moving it to the primary folder.
+ *
+ * Calls `POST /conversations/{id}/accept`. A `CONVERSATION_NOT_FOUND` answer covers every refusal,
+ * a block included, so the caller cannot tell why it failed.
+ * @param {string} conversationId
+ * @returns {Promise<Object>} ApiResponse envelope wrapping the accepted conversation.
+ */
+export const acceptRequest = async (conversationId: string) => {
+  const response = await axiosInstance.post<ApiResponse<ConversationResponse>>(
+    `${CONVERSATION_API_PATH}/${conversationId}/accept`
+  );
+  return response.data;
+};
+
+/**
+ * Deletes a message request the caller received. The sender is not told.
+ *
+ * Calls `DELETE /conversations/{id}/request`, which answers 204 with no body.
+ * @param {string} conversationId
+ * @returns {Promise<void>}
+ */
+export const deleteRequest = async (conversationId: string) => {
+  await axiosInstance.delete(`${CONVERSATION_API_PATH}/${conversationId}/request`);
+};
+
+/**
+ * Declines a message request and blocks its sender in one server transaction.
+ *
+ * Calls `POST /conversations/{id}/block`, which answers 204 with no body.
+ * @param {string} conversationId
+ * @returns {Promise<void>}
+ */
+export const blockRequester = async (conversationId: string) => {
+  await axiosInstance.post(`${CONVERSATION_API_PATH}/${conversationId}/block`);
+};
+
 export const messageService = {
   listConversations,
   getConversation,
@@ -246,6 +291,9 @@ export const messageService = {
   muteConversation,
   unmuteConversation,
   setNickname,
+  acceptRequest,
+  deleteRequest,
+  blockRequester,
 };
 
 export default messageService;

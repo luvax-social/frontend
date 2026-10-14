@@ -764,7 +764,14 @@ export interface ConversationResponse {
   createdAt: string;
   pinned: boolean;
   muted: boolean;
+  requestStatus: RequestStatus;
+  isRequestRecipient: boolean;
+  sendRestriction: SendRestriction;
 }
+
+/** A declined request reads as pending to its sender, so there is no declined value here. */
+export type RequestStatus = 'accepted' | 'pending';
+export type SendRestriction = 'none' | 'awaiting_acceptance';
 
 // modules/message/dto/response/ParticipantResponse.java
 export interface ParticipantResponse {
@@ -789,6 +796,39 @@ export interface ConversationSummaryResponse {
   pinned: boolean;
   muted: boolean;
   manuallyUnread: boolean;
+  requestStatus: RequestStatus;
+  isRequestRecipient: boolean;
+  /** Only ever true for the recipient; the sender's view never carries the hidden folder. */
+  requestHidden: boolean;
+  sendRestriction: SendRestriction;
+  lastReaction: LastReactionPreviewResponse | null;
+}
+
+// modules/message/dto/response/LastReactionPreviewResponse.java
+export interface LastReactionPreviewResponse {
+  userId: string;
+  emoji: string;
+  messageId: string;
+  reactedAt: string;
+  onMyMessage: boolean;
+}
+
+export type ConversationFolder = 'primary' | 'requests' | 'hidden_requests';
+
+// modules/message/dto/response/MessageReactionResponse.java
+export interface MessageReactionResponse {
+  userId: string;
+  emoji: string;
+  reactedAt: string;
+}
+
+// modules/message/dto/response/ReplyPreviewResponse.java
+export interface ReplyPreviewResponse {
+  messageId: string;
+  senderId: string | null;
+  messageType: MessageType | null;
+  snippet: string | null;
+  unavailable: boolean;
 }
 
 // modules/message/dto/response/MessageResponse.java
@@ -803,9 +843,13 @@ export interface MessageResponse {
   sharedPostId: string | null;
   sharedStoryId: string | null;
   replyToId: string | null;
+  /** Null when the message is not a reply or is itself no longer shown. */
+  replyTo: ReplyPreviewResponse | null;
   isDeleted: boolean;
   deletedAt: string | null;
   createdAt: string;
+  /** Oldest first; empty for a message that is no longer shown. */
+  reactions: MessageReactionResponse[];
 }
 
 export type MessageType = 'text' | 'image' | 'video' | 'post_share' | 'story_share';
@@ -833,7 +877,10 @@ export interface SendMessageRequest {
 
 // modules/message/dto/response/UnreadCountResponse.java
 export interface UnreadCountResponse {
+  /** Unread messages in the regular inbox only. */
   unreadCount: number;
+  /** Pending, visible incoming requests that carry a message; the hidden folder is never counted. */
+  requestCount: number;
 }
 
 // modules/admin/dto/response/UserWarningResponse.java

@@ -1,5 +1,10 @@
 import type { Message, MessageMedia, MessageView, ThreadRow, Conversation } from '../types';
-import type { ParticipantResponse, StoryResponse, PublicUserProfileResponse } from '@/types/domain';
+import type {
+  LastReactionPreviewResponse,
+  ParticipantResponse,
+  StoryResponse,
+  PublicUserProfileResponse,
+} from '@/types/domain';
 /**
  * Maps conversation API shapes onto the props the message components consume.
  *
@@ -130,6 +135,20 @@ const previewTextOf = (message: Message | null) => {
 };
 
 /**
+ * The conversation row's line for a reaction newer than the last message, such as
+ * "Minh reacted X to your message". The server only sends it when it is newer, so it replaces the
+ * message preview rather than sitting beside it.
+ */
+const reactionPreviewOf = (
+  reaction: LastReactionPreviewResponse,
+  currentUserId: string | undefined,
+  counterpartName: string
+) => {
+  const actor = reaction.userId === currentUserId ? 'You' : counterpartName;
+  return `${actor} reacted ${reaction.emoji} to ${reaction.onMyMessage ? 'your' : 'their'} message`;
+};
+
+/**
  * Which bubble treatment a message gets.
  *
  * Keyed on `replyToId` rather than on whether the quote resolved: a reply is still a reply when the
@@ -148,6 +167,7 @@ const kindOf = (message: Message): MessageView['kind'] => {
 export const toThreadSummary = (conversation: Conversation, currentUserId: string | undefined) => {
   const counterpart = counterpartOf(conversation, currentUserId);
   const nickname = myNicknameForCounterpart(conversation.participants, currentUserId);
+  const lastReaction = 'lastReaction' in conversation ? conversation.lastReaction : null;
 
   return {
     id: conversation.id,
@@ -157,7 +177,9 @@ export const toThreadSummary = (conversation: Conversation, currentUserId: strin
     isVerified: Boolean(counterpart?.isVerified),
     verifiedCategory: counterpart?.verifiedCategory ?? null,
     avatarUrl: counterpart?.avatarUrl || null,
-    preview: previewTextOf('lastMessage' in conversation ? conversation.lastMessage : null),
+    preview: lastReaction
+      ? reactionPreviewOf(lastReaction, currentUserId, nickname || nameOf(counterpart))
+      : previewTextOf('lastMessage' in conversation ? conversation.lastMessage : null),
     time: formatMessageTime(conversation.lastMessageAt),
     unread: ('unreadCount' in conversation ? conversation.unreadCount : 0) || 0,
     // A caller-set flag independent of unreadCount: clearing the read marker only changes the
@@ -168,6 +190,9 @@ export const toThreadSummary = (conversation: Conversation, currentUserId: strin
     pinned: conversation.pinned || false,
     muted: conversation.muted || false,
     nickname,
+    requestStatus: conversation.requestStatus,
+    isRequestRecipient: conversation.isRequestRecipient,
+    sendRestriction: conversation.sendRestriction,
   };
 };
 
@@ -390,6 +415,9 @@ export const toPendingThread = (targetUser: PublicUserProfileResponse) => ({
   pinned: false,
   muted: false,
   nickname: null,
+  requestStatus: 'accepted' as const,
+  isRequestRecipient: false,
+  sendRestriction: 'none' as const,
   counterpartId: targetUser.id,
   participants: [] as ParticipantResponse[],
   media: [] as (MessageMedia & { id: string })[],

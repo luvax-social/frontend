@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { MessageView, PendingAttachment, PreviewMedia } from './types';
 import type { ThreadSummary } from './utils/messageViewModel';
 import type { ReportTarget } from '@/types/report';
+import type { ConversationFolder } from '@/types/domain';
 type ThreadTarget = Omit<ThreadSummary, 'id'> & { id: string | null };
 declare global {
   interface Window {
@@ -24,6 +25,7 @@ import {
 import {
   conversationsKey,
   useConversations,
+  useInboxCounts,
   useMarkRead,
   useMarkUnread,
   useLeaveConversation,
@@ -35,6 +37,9 @@ import {
 } from './hooks/useConversations';
 import { useMessages, useDeleteMessage, useSendMessage } from './hooks/useMessages';
 import { useLiveMessages } from './hooks/useLiveMessages';
+import { useAcceptRequest, useBlockRequester, useDeleteRequest } from './hooks/useMessageRequests';
+import { deleteRequestConfirm } from './utils/requestConfirm';
+import { UNAVAILABLE_NOTICE, isNotFoundError } from './utils/unavailable';
 import { isVideoMessageMedia } from './utils/messageMedia';
 import { ConversationListPanel } from './components/ConversationListPanel';
 import { ChatCenterPanel } from './components/ChatCenterPanel';
@@ -122,7 +127,9 @@ export function MessagesScreen() {
     () => messagingUnavailableStorageKey(currentUserId),
     [currentUserId]
   );
-  const { conversations, isLoading: conversationsLoading } = useConversations();
+  const [folder, setFolder] = useState<ConversationFolder>('primary');
+  const { conversations, isLoading: conversationsLoading } = useConversations(folder);
+  const { requestCount } = useInboxCounts();
   // The adapter owns every mapping from the API shape onto what these panels render.
   const threads = useMemo(
     () => conversations.map((conversation) => toThreadSummary(conversation, currentUserId)),
@@ -146,6 +153,8 @@ export function MessagesScreen() {
   const [deleteThreadTarget, setDeleteThreadTarget] = useState<ThreadTarget | null>(null);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const [blockTarget, setBlockTarget] = useState<ThreadTarget | null>(null);
+  const [deleteRequestTarget, setDeleteRequestTarget] = useState<ThreadTarget | null>(null);
+  const [blockRequestTarget, setBlockRequestTarget] = useState<ThreadTarget | null>(null);
   const [locallyBlockedUserIds, setLocallyBlockedUserIds] = useState<string[]>([]);
   const [unavailableProbeTick, setUnavailableProbeTick] = useState(0);
   const [messagingUnavailableByStorageKey, setMessagingUnavailableByStorageKey] = useState(() => ({
@@ -370,7 +379,9 @@ export function MessagesScreen() {
   useEffect(() => {
     // A pending target is its own selection; the usual "pick something" fallback must not
     // steal it back to the first real thread while it's still waiting to resolve.
-    if (pendingTargetUserId) return;
+    // A request folder never opens a request on its own: opening one is the recipient's choice, and
+    // a request that disappears from the list simply leaves the panel empty.
+    if (pendingTargetUserId || folder !== 'primary') return;
     if (!activeThreadId && filteredThreads[0]) {
       if (viewport !== 'mobile') {
         // Reconciles the selected thread with the thread list after it changes.
@@ -380,16 +391,16 @@ export function MessagesScreen() {
     } else if (activeThreadId && !threads.some((thread) => thread.id === activeThreadId)) {
       setActiveThreadId(threads[0]?.id || null);
     }
-  }, [activeThreadId, filteredThreads, threads, viewport, pendingTargetUserId]);
+  }, [activeThreadId, filteredThreads, threads, viewport, pendingTargetUserId, folder]);
 
   useEffect(() => {
-    if (pendingTargetUserId) return;
+    if (pendingTargetUserId || folder !== 'primary') return;
     if (viewport !== 'mobile' && !activeThreadId && threads[0]) {
       // Selects a default thread once the viewport is wide enough to show one.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveThreadId(threads[0].id);
     }
-  }, [viewport, activeThreadId, threads, pendingTargetUserId]);
+  }, [viewport, activeThreadId, threads, pendingTargetUserId, folder]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -498,9 +509,11 @@ export function MessagesScreen() {
         sharedPostId: null,
         sharedStoryId: null,
         replyToId: activeReplyingTo?.id || null,
+        replyTo: null,
         isDeleted: false,
         deletedAt: null,
         createdAt: new Date().toISOString(),
+        reactions: [],
       },
     });
   };
@@ -547,9 +560,11 @@ export function MessagesScreen() {
         sharedPostId: null,
         sharedStoryId: null,
         replyToId: activeReplyingTo?.id || null,
+        replyTo: null,
         isDeleted: false,
         deletedAt: null,
         createdAt: new Date().toISOString(),
+        reactions: [],
       },
     });
   };
@@ -748,6 +763,63 @@ export function MessagesScreen() {
     setNicknameTarget(null);
   };
 
+  const acceptRequest = useAcceptRequest();
+  const deleteRequest = useDeleteRequest();
+  const blockRequester = useBlockRequester();
+  const requestBusy =
+    acceptRequest.isPending || deleteRequest.isPending || blockRequester.isPending;
+
+  const handleSelectFolder = (next: ConversationFolder) => {
+    if (next === folder) return;
+    setFolder(next);
+    setActiveThreadId(null);
+    setPendingTargetUserId(null);
+  };
+
+  // A not-found on a request action is answered with the same generic notice whatever caused it,
+  // a block included. The failed row is rolled back by the mutation and then re-read, so a request
+  // that really is gone drops out of the list without the client saying why.
+  const handleRequestFailure = (error: unknown) =>
+    toast(
+      isNotFoundError(error)
+        ? UNAVAILABLE_NOTICE
+        : getErrorMessage(error, "Couldn't update that request. Try again.")
+    );
+
+  const handleAcceptRequest = async () => {
+    const conversationId = activeConversation?.id;
+    if (!conversationId) return;
+    try {
+      await acceptRequest.mutateAsync(conversationId);
+      // The primary folder was refetched before the mutation settled, so the accepted
+      // conversation is already listed when the panel switches to it.
+      setFolder('primary');
+      setActiveThreadId(conversationId);
+    } catch (error) {
+      handleRequestFailure(error);
+    }
+  };
+
+  const handleDeleteRequestConfirm = () => {
+    if (!deleteRequestTarget?.id) return;
+    const conversationId = deleteRequestTarget.id;
+    setDeleteRequestTarget(null);
+    deleteRequest.mutate(conversationId, {
+      onSuccess: () => setActiveThreadId(null),
+      onError: handleRequestFailure,
+    });
+  };
+
+  const handleBlockRequestConfirm = () => {
+    if (!blockRequestTarget?.id) return;
+    const conversationId = blockRequestTarget.id;
+    setBlockRequestTarget(null);
+    blockRequester.mutate(conversationId, {
+      onSuccess: () => setActiveThreadId(null),
+      onError: handleRequestFailure,
+    });
+  };
+
   const showDetail = viewport !== 'mobile' || threadOpen;
   const showSidebar = viewport !== 'mobile' || listOnlyMobile;
   const isDesktop = viewport === 'desktop';
@@ -787,6 +859,10 @@ export function MessagesScreen() {
     >
       {showSidebar ? (
         <ConversationListPanel
+          folder={folder}
+          requestCount={requestCount}
+          onSelectFolder={handleSelectFolder}
+          loading={conversationsLoading}
           search={search}
           setSearch={setSearch}
           filteredThreads={filteredThreads}
@@ -831,6 +907,12 @@ export function MessagesScreen() {
           isSending={isSending}
           isBlocked={isActiveThreadBlocked || isMessagingUnavailable}
           blockedHint={messageBlockHint}
+          requestActions={{
+            onAccept: handleAcceptRequest,
+            onDelete: () => activeThread && setDeleteRequestTarget(activeThread),
+            onBlock: () => activeThread && setBlockRequestTarget(activeThread),
+            busy: requestBusy,
+          }}
         />
       ) : null}
 
@@ -1212,7 +1294,24 @@ export function MessagesScreen() {
         onClose={() => setDeleteThreadTarget(null)}
       />
 
+      <ConfirmModal
+        config={
+          deleteRequestTarget
+            ? deleteRequestConfirm(deleteRequestTarget.name, handleDeleteRequestConfirm)
+            : null
+        }
+        onClose={() => setDeleteRequestTarget(null)}
+      />
+
       <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />
+
+      <BlockConfirmDialog
+        open={Boolean(blockRequestTarget)}
+        handle={blockRequestTarget?.username ?? ''}
+        pending={blockRequester.isPending}
+        onCancel={() => setBlockRequestTarget(null)}
+        onConfirm={handleBlockRequestConfirm}
+      />
 
       <BlockConfirmDialog
         open={Boolean(blockTarget)}

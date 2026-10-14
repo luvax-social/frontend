@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Messages now has primary and requests tabs, a hidden requests folder reached from the requests tab, and accept, delete and block actions on an incoming request, each removing the request at once and restoring it if the server refuses.
+- The requests tab shows the number of pending requests, the hidden requests folder shows none, and the messages badge in the navigation counts unread messages in the primary inbox only.
+- A sender whose message request is unanswered sees a notice and a locked composer, worded the same whether the request is waiting or was deleted.
+- The inbox updates live from a per-session subscription, refreshing the folder a new message landed in and both counters.
+- A conversation row shows a reaction newer than the last message, such as the other person reacting to your message.
 - Regression coverage for empty conversation subtitles and preserved legacy payload fallback assertions after TypeScript fixture conversion.
 - Strict TypeScript coverage for every unit/live/E2E test and typed domain fixtures, preserving test discovery and existing assertions.
 - TypeScript entry points, route factories, Vite/Vitest/Playwright configurations and native Node scripts.
@@ -182,6 +187,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Unit coverage for inbox folders, request actions with rollback, the not-found notice, the tab counts, the sender notice, the locked composer and the live inbox subscription.
 - Nine regressions cover indexing configuration, generated documents, private metadata cleanup, rendering failures and authentication semantics, alongside an HTTP check for redirects, discovery, 404s, caching and gzip.
 - A regression test asserts that every request able to receive the session cookie is sent with credentials.
 - A Playwright end-to-end project covering the anonymous appeal paths, run with `npm run test:e2e`: the lost-link recovery form submits and reaches its one success state, the challenge is re-armed after a refusal so a retry succeeds, and the status screen renders a known appeal, persists no token and answers every dead link identically.

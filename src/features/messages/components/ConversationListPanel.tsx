@@ -1,7 +1,13 @@
 import type { ThreadSummary } from '../utils/messageViewModel';
 import type { Viewport } from '@/features/luvax/LuvaxTweaksContext';
+import type { ConversationFolder } from '@/types/domain';
 
 interface Props {
+  folder: ConversationFolder;
+  requestCount: number;
+  onSelectFolder: (folder: ConversationFolder) => void;
+  /** True until the folder's first page arrives, so an empty folder is not announced early. */
+  loading?: boolean;
   search: string;
   setSearch: (value: string) => void;
   filteredThreads: ThreadSummary[];
@@ -24,8 +30,13 @@ import { useState } from 'react';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
 import { ConvRow } from './ConvRow';
+import { InboxTabs } from './InboxTabs';
 
 export function ConversationListPanel({
+  folder,
+  requestCount,
+  onSelectFolder,
+  loading = false,
   search,
   setSearch,
   filteredThreads,
@@ -45,6 +56,7 @@ export function ConversationListPanel({
   onRenameThread,
 }: Props) {
   const [revealedThreadId, setRevealedThreadId] = useState<string | null>(null);
+  const isRequestFolder = folder !== 'primary';
 
   return (
     <aside
@@ -94,16 +106,32 @@ export function ConversationListPanel({
         </div>
       </div>
 
+      <InboxTabs folder={folder} requestCount={requestCount} onSelectFolder={onSelectFolder} />
+
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {isRequestFolder && !loading && filteredThreads.length === 0 ? (
+          <div
+            style={{
+              padding: '22px 14px',
+              fontFamily: v.fontBody,
+              fontSize: 13,
+              color: v.ink3,
+            }}
+          >
+            {folder === 'hidden_requests' ? 'No hidden requests.' : 'No message requests.'}
+          </div>
+        ) : null}
         {filteredThreads.map((thread) => {
           const isActive = thread.id === activeThreadId;
           const isBlocked = Boolean(isThreadBlocked?.(thread));
           return (
             <ConvRow
               key={thread.id}
-              thread={thread}
+              // A request row carries no unread marker: requests never add to an unread count.
+              thread={isRequestFolder ? { ...thread, unread: 0, manuallyUnread: false } : thread}
               viewport={viewport}
               revealedOptions={revealedThreadId === thread.id}
+              optionsEnabled={!isRequestFolder}
               onRevealOptions={() => setRevealedThreadId(thread.id)}
               onHideOptions={() => setRevealedThreadId(null)}
               isActive={isActive}
@@ -124,6 +152,20 @@ export function ConversationListPanel({
             />
           );
         })}
+        {isRequestFolder && filteredThreads.length > 0 ? (
+          <div
+            style={{
+              padding: '16px 14px',
+              fontFamily: v.fontBody,
+              fontSize: 12,
+              lineHeight: 1.4,
+              color: v.ink3,
+            }}
+          >
+            Requests don&apos;t add to your unread count. They aren&apos;t told you&apos;ve seen
+            them.
+          </div>
+        ) : null}
       </div>
     </aside>
   );

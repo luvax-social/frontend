@@ -6,6 +6,8 @@ interface Props {
   isActive: boolean;
   viewport: Viewport;
   revealedOptions?: boolean;
+  /** False for an incoming request, whose row offers no pin, mute, delete or similar actions. */
+  optionsEnabled?: boolean;
   onSelect?: (() => void) | null;
   onMarkRead?: (() => void) | null;
   onMarkUnread?: (() => void) | null;
@@ -50,6 +52,7 @@ export function ConvRow({
   onRename,
   viewport,
   revealedOptions = false,
+  optionsEnabled = true,
   onRevealOptions,
   onHideOptions,
 }: Props) {
@@ -61,7 +64,7 @@ export function ConvRow({
   const swipedRef = useRef(false);
   const thresholdNotifiedRef = useRef(false);
   const isMobile = viewport === 'mobile';
-  const showOptions = (isMobile && revealedOptions) || hovered || menuOpen;
+  const showOptions = optionsEnabled && ((isMobile && revealedOptions) || hovered || menuOpen);
   const openingProgress =
     isMobile && dragX < 0 ? Math.min(Math.max(Math.abs(dragX) / 74, 0), 1) : 0;
   const closingProgress =
@@ -178,14 +181,14 @@ export function ConvRow({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onPointerDown={(event) => {
-        if (isMobile) {
+        if (isMobile && optionsEnabled) {
           dragStartRef.current = { x: event.clientX, y: event.clientY };
           swipedRef.current = false;
           thresholdNotifiedRef.current = false;
         }
       }}
       onPointerMove={(event) => {
-        if (!isMobile || !dragStartRef.current) return;
+        if (!isMobile || !optionsEnabled || !dragStartRef.current) return;
         const dx = event.clientX - dragStartRef.current.x;
         const dy = Math.abs(event.clientY - dragStartRef.current.y);
         if (dy > 24) {
@@ -216,7 +219,7 @@ export function ConvRow({
         }
       }}
       onPointerUp={() => {
-        if (isMobile) {
+        if (isMobile && optionsEnabled) {
           if (revealedOptions && dragX > 28) {
             swipedRef.current = true;
             onHideOptions?.();

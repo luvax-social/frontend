@@ -13,6 +13,7 @@ import { MuteDialogHost } from './components/MuteDialog';
 import { ToastHost } from './components/Toast';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useLiveNotifications } from './hooks/useNotifications';
+import { useInboxLive } from '@/features/messages/hooks/useInboxLive';
 import { useUserProfile } from './hooks/useUsers';
 
 /**
@@ -94,6 +95,9 @@ export function LuvaxApp() {
   // from the profile once, so the viewer's avatar is consistent everywhere.
   const currentUser = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
+  // One inbox subscription per session keeps the folder lists and both counters live on every
+  // screen, not only inside messages.
+  useInboxLive(currentUser?.id);
   const { data: myProfileResponse } = useUserProfile(currentUser?.id, Boolean(currentUser?.id));
   useEffect(() => {
     if (!currentUser?.id) return;

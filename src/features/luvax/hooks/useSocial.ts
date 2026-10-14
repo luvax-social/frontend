@@ -136,22 +136,30 @@ export const useUnfollow = () => {
 // The blocked list is server state. It is read back from GET /social/blocked
 // rather than mirrored into client storage, so a rejected mutation must reach
 // the caller instead of being reported as a success.
+/**
+ * Drops every cache that can still show a blocked account.
+ *
+ * Shared by the profile block action and the message request block action, which reach the same
+ * server-side block through different endpoints.
+ */
+export const invalidateAfterBlock = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
+  queryClient.invalidateQueries({ queryKey: ['users'] });
+  queryClient.invalidateQueries({ queryKey: socialKeys.following() });
+  queryClient.invalidateQueries({ queryKey: socialKeys.followers() });
+  queryClient.invalidateQueries({ queryKey: ['post'] });
+  refreshAccountSurfaces(queryClient);
+  queryClient.resetQueries({ queryKey: ['feed'] });
+  queryClient.resetQueries({ queryKey: ['recommendedFeed'] });
+  queryClient.resetQueries({ queryKey: ['explore'] });
+  queryClient.resetQueries({ queryKey: ['userPosts'] });
+};
+
 export const useBlock = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (targetUserId: string) => socialService.blockUser(targetUserId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: socialKeys.following() });
-      queryClient.invalidateQueries({ queryKey: socialKeys.followers() });
-      queryClient.invalidateQueries({ queryKey: ['post'] });
-      refreshAccountSurfaces(queryClient);
-      queryClient.resetQueries({ queryKey: ['feed'] });
-      queryClient.resetQueries({ queryKey: ['recommendedFeed'] });
-      queryClient.resetQueries({ queryKey: ['explore'] });
-      queryClient.resetQueries({ queryKey: ['userPosts'] });
-    },
+    onSuccess: () => invalidateAfterBlock(queryClient),
   });
 };
 

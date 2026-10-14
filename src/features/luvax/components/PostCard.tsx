@@ -3,6 +3,7 @@ import type { Post, SocialUser } from '@/types/social';
 import type { PublicUserProfileResponse } from '@/types/domain';
 import type { ReportTarget } from '@/types/report';
 import type { Viewport } from '../LuvaxTweaksContext';
+import type { FeedSurface } from '../utils/feedSurface';
 import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ import {
 import { PostMedia } from './PostMedia';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { useDeletePost, useLikePost, useSavePost, useUpdatePost } from '../hooks/usePosts';
+import { useNotInterested, useShowFewer } from '../hooks/useFeedPreferences';
 import { useBlock, useFollow, useFollowing, useUnfollow } from '../hooks/useSocial';
 import { useUserProfile } from '../hooks/useUsers';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -32,6 +34,7 @@ import { REPORT_TYPES } from '@/services/report.service';
 import { ROUTES, routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
+import { offersShowFewer } from '../utils/feedSurface';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 const HEART_COLOR = 'var(--lx-error)';
@@ -42,6 +45,7 @@ export function PostCard({
   showTags = true,
   viewport = 'desktop',
   surface,
+  feedSurface = 'other',
   assumeFollowing = false,
 }: {
   post: Post;
@@ -49,6 +53,11 @@ export function PostCard({
   showTags?: boolean;
   viewport?: Viewport;
   surface?: 'feed' | 'explore' | 'search';
+  /**
+   * The list the card sits in. It decides whether the menu offers show fewer, which steers For
+   * You and Explore only, and it travels to post detail so the same menu is offered there.
+   */
+  feedSurface?: FeedSurface;
   assumeFollowing?: boolean;
 }) {
   const navigate = useNavigate();
@@ -82,6 +91,10 @@ export function PostCard({
   const follow = useFollow();
   const unfollow = useUnfollow();
   const block = useBlock();
+  const notInterested = useNotInterested({
+    onError: () => toast("couldn't hide that post. try again."),
+  });
+  const showFewer = useShowFewer({ onError: () => toast("couldn't save that. try again.") });
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const { data: myFollowingData } = useFollowing(currentUser?.id);
@@ -107,7 +120,7 @@ export function PostCard({
   const handleCardClick = (event: MouseEvent<HTMLDivElement>) => {
     if (isMobile) return;
     if (event.target instanceof Element && event.target.closest('[data-lxtap]')) return;
-    openOverlay(routeTo.postDetail(post.id));
+    openOverlay(routeTo.postDetail(post.id), { feedSurface });
   };
 
   // Double-tap to like on mobile, in the manner of Instagram. A double-tap always
@@ -261,9 +274,31 @@ export function PostCard({
         : null,
       !isOwner
         ? {
+            id: 'not-interested',
+            icon: 'close',
+            label: 'Not interested',
+            separator: true,
+            onClick: () =>
+              targetUserId &&
+              notInterested.apply.mutate({ postId: post.id, authorId: targetUserId, authorHandle }),
+          }
+        : null,
+      !isOwner && offersShowFewer(feedSurface)
+        ? {
+            id: 'show-fewer',
+            icon: 'filter',
+            label: `Show fewer from @${authorHandle}`,
+            onClick: () =>
+              targetUserId &&
+              showFewer.apply.mutate({ postId: post.id, authorId: targetUserId, authorHandle }),
+          }
+        : null,
+      !isOwner
+        ? {
             id: 'view-profile',
             icon: 'profile',
             label: "View author's profile",
+            separator: true,
             onClick: () => targetUserId && navigate(routeTo.userProfile(targetUserId)),
           }
         : null,
@@ -275,7 +310,6 @@ export function PostCard({
             icon: following ? 'userMinus' : 'profile',
             label: `${following ? 'Unfollow' : 'Follow'} @${authorHandle}`,
             tone: following ? 'danger' : undefined,
-            separator: true,
             onClick: handleFollowToggle,
             disabled: follow.isPending || unfollow.isPending,
           }
@@ -316,6 +350,7 @@ export function PostCard({
       authorHandle,
       authorName,
       avatarUrl,
+      feedSurface,
       follow.isPending,
       following,
       handleEditOpen,
@@ -324,9 +359,11 @@ export function PostCard({
       isOwner,
       liked,
       navigate,
+      notInterested.apply,
       post.caption,
       post.hasReported,
       post.id,
+      showFewer.apply,
       targetUserId,
       unfollow.isPending,
     ]
@@ -382,6 +419,7 @@ export function PostCard({
             ref={menuButtonRef}
             type="button"
             data-lxtap="1"
+            aria-label="post options"
             onClick={() => setMenuOpen((open) => !open)}
             style={{
               background: 'transparent',
@@ -474,7 +512,7 @@ export function PostCard({
           <button
             type="button"
             data-lxtap="1"
-            onClick={() => openOverlay(routeTo.postDetail(post.id))}
+            onClick={() => openOverlay(routeTo.postDetail(post.id), { feedSurface })}
             style={{
               background: 'none',
               border: 'none',

@@ -39,6 +39,7 @@ import {
   useToggleCommentLike,
 } from '../hooks/usePosts';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useNotInterested, useShowFewer } from '../hooks/useFeedPreferences';
 import { useBlock, useFollow, useFollowing, useUnfollow } from '../hooks/useSocial';
 import { useUserProfile } from '../hooks/useUsers';
 import { useRelativeTime } from '../hooks/useRelativeTime';
@@ -53,6 +54,7 @@ import { REPORT_TYPES } from '@/services/report.service';
 import { routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
+import { offersShowFewer, surfaceFromState } from '../utils/feedSurface';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 import { useQuery } from '@tanstack/react-query';
 import { getCommentContext } from '@/services/notification.service';
@@ -774,6 +776,10 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const follow = useFollow();
   const unfollow = useUnfollow();
   const block = useBlock();
+  const notInterested = useNotInterested({
+    onError: () => toast("couldn't hide that post. try again."),
+  });
+  const showFewer = useShowFewer({ onError: () => toast("couldn't save that. try again.") });
   const { data: myFollowingData } = useFollowing(currentUser?.id);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
@@ -803,6 +809,9 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const authorHandle = author.username || location.state?.fallbackAuthorUsername || 'unknown';
   const authorAvatarUrl = author.avatarUrl;
   const isSelf = currentUser?.id === targetUserId;
+  // The list this post was opened from, recorded by the card or tile that opened it. A post opened
+  // from a link has no list behind it, so show fewer is not offered there.
+  const feedSurface = surfaceFromState(location.state);
   const { data: authorProfileResponse } = useUserProfile(
     targetUserId,
     Boolean(targetUserId && !isSelf)
@@ -987,6 +996,21 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     setDeleteConfirmOpen(false);
   };
 
+  // Both feedback signals record the dismissal in the dismissed-posts store, which the feed behind
+  // this overlay reads, so the card there is already an undo row when the overlay closes.
+  const handleNotInterested = useCallback(() => {
+    if (!targetUserId || !postId) return;
+    notInterested.apply.mutate({ postId, authorId: targetUserId, authorHandle });
+    toast('post hidden');
+    navigate(-1);
+  }, [authorHandle, navigate, notInterested.apply, postId, targetUserId]);
+
+  const handleShowFewer = useCallback(() => {
+    if (!targetUserId || !postId) return;
+    showFewer.apply.mutate({ postId, authorId: targetUserId, authorHandle });
+    toast(`you'll see fewer posts from @${authorHandle}`);
+  }, [authorHandle, postId, showFewer.apply, targetUserId]);
+
   const handleBlockConfirm = () => {
     if (!targetUserId) return;
     block.mutate(targetUserId, {
@@ -1087,9 +1111,25 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
         ? []
         : [
             {
+              id: 'not-interested',
+              icon: 'close',
+              label: 'Not interested',
+              separator: true,
+              onClick: handleNotInterested,
+            },
+            offersShowFewer(feedSurface)
+              ? {
+                  id: 'show-fewer',
+                  icon: 'filter',
+                  label: `Show fewer from @${authorHandle}`,
+                  onClick: handleShowFewer,
+                }
+              : null,
+            {
               id: 'view-profile',
               icon: 'profile',
               label: "View author's profile",
+              separator: true,
               onClick: () => targetUserId && navigate(routeTo.userProfile(targetUserId)),
             },
             {
@@ -1097,7 +1137,6 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               icon: following ? 'userMinus' : 'profile',
               label: `${following ? 'Unfollow' : 'Follow'} @${authorHandle}`,
               tone: following ? 'danger' : undefined,
-              separator: true,
               onClick: handleFollowToggle,
               disabled: follow.isPending || unfollow.isPending,
             },
@@ -1134,12 +1173,15 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       authorAvatarUrl,
       authorHandle,
       authorName,
+      feedSurface,
       follow.isPending,
       following,
       handleDeleteRequest,
       handleEditOpen,
       handleFollowToggle,
       handleLikeToggle,
+      handleNotInterested,
+      handleShowFewer,
       isSelf,
       liked,
       navigate,

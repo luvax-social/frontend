@@ -46,7 +46,14 @@ export function SearchResultPost({
     <button
       type="button"
       ref={impressionRef}
-      onClick={() => openOverlay(routeTo.postDetail(post.id))}
+      // The detail records which list it was opened from, because its menu offers show fewer only
+      // where the post belongs to a recommendation list. Explore is one; search is not.
+      onClick={() =>
+        openOverlay(
+          routeTo.postDetail(post.id),
+          surface === 'explore' ? { feedSurface: 'explore' } : undefined
+        )
+      }
       style={{
         width: fluid ? '100%' : 210,
         background: v.surface,

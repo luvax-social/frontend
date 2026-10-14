@@ -67,6 +67,19 @@ async function signIn(page: Page) {
       }),
     });
   });
+  // The app shell reads the messages badge counters for every signed-in screen.
+  await page.route('**/api/v1/conversations/unread-count', async (route) => {
+    await route.fulfill({ status: 200, json: envelope({ unreadCount: 0, requestCount: 0 }) });
+  });
+  // The shell also opens the live inbox topic, which first asks for a one-time handshake ticket.
+  // Refusing it keeps the live tier idle, so no socket is opened against a backend that is not
+  // there and the notification scenarios stay deterministic.
+  await page.route('**/api/v1/auth/ws-ticket', async (route) => {
+    await route.fulfill({
+      status: 503,
+      json: { success: false, code: 'SERVICE_UNAVAILABLE', message: 'unavailable', data: null },
+    });
+  });
 }
 
 /** Registers the baseline notification API stubs common to every scenario below. */

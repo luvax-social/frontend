@@ -617,7 +617,20 @@ export type UserEventType =
   | 'message_send'
   | 'session_start'
   | 'session_end'
-  | 'app_open';
+  | 'app_open'
+  | 'post_not_interested'
+  | 'post_not_interested_undo'
+  | 'account_show_fewer'
+  | 'account_show_fewer_undo'
+  | 'account_mute'
+  | 'account_unmute'
+  | 'message_reaction'
+  | 'message_reaction_remove'
+  | 'message_request_accept'
+  | 'message_request_delete'
+  | 'comment_hidden'
+  | 'comment_unhide'
+  | 'interaction_limit_change';
 
 // modules/report/dto/request/CreateReportRequest.java
 export interface CreateReportRequest {

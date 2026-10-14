@@ -1,12 +1,13 @@
 /**
- * Hidden Words text normalisation, mirroring the backend `TextMatchNormalizer`.
+ * Hidden Words text normalisation, written to follow the backend `TextMatchNormalizer`.
  *
  * The contract is the "Text match normalisation" section of the backend's
  * `docs/modules/GLOBAL_RULES.md`. The Hidden Words settings screen previews the normalised form of
- * what is typed and refuses a duplicate entry with these functions, so a divergence shows the user
- * a form the server will not match on, or the reverse.
- * The shared cases are `tests/unit/fixtures/text-match-vectors.json`, a byte copy of the backend
- * file; change the contract, the backend normaliser and both vector files together.
+ * what is typed and refuses a duplicate entry with these functions.
+ * `tests/unit/fixtures/text-match-vectors.json` holds the cases both normalisers are checked
+ * against; the tests run them here, and the backend runs its copy of the same file. The file
+ * guarantees only that those cases agree, so a change to the contract, either normaliser or the
+ * vectors has to be made to all of them together.
  */
 const LEET: Readonly<Record<string, string>> = {
   '0': 'o',

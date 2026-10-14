@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { resetOnUserChange } from './resetOnUserChange';
+
 /** The account being muted, as much of it as the dialog's header needs. */
 export interface MuteDialogUser {
   id: string;
@@ -33,3 +35,7 @@ export const useMuteDialogStore = create<MuteDialogState>()((set) => ({
   open: (target) => set({ target }),
   close: () => set({ target: null }),
 }));
+
+// The dialog belongs to the account that opened it; it closes when that account signs out or
+// another one signs in.
+resetOnUserChange(() => useMuteDialogStore.setState({ target: null }));

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { v } from '@/config/tokens';
 
@@ -14,8 +14,8 @@ const UNDO_FAILED = "We couldn't undo that just now. Try again in a moment.";
  * It takes the card's place in the list, so nothing around it is reordered, and stays until the
  * next fetch leaves the post out. Undo calls the matching DELETE and clears the dismissal, which
  * brings the card back from the list data it never left. A refused undo keeps the row and says
- * so. Focus lands on undo when the row appears, because the menu item that dismissed the post
- * left the page with the card.
+ * so. Moving focus onto undo when a card turns into this row is the feed list's job, because only
+ * it knows whether the viewer just dismissed the card.
  */
 export function DismissedPostRow({
   postId,
@@ -28,11 +28,6 @@ export function DismissedPostRow({
   const onError = () => setFailure(UNDO_FAILED);
   const notInterested = useNotInterested({ onError });
   const showFewer = useShowFewer({ onError });
-  const rowRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    rowRef.current?.querySelector('button')?.focus({ preventScroll: true });
-  }, []);
 
   const isFewer = dismissal.kind === 'show-fewer';
   const undo = () => {
@@ -43,7 +38,6 @@ export function DismissedPostRow({
 
   return (
     <div
-      ref={rowRef}
       role="group"
       aria-label={isFewer ? 'fewer posts from this account' : 'post hidden'}
       style={{

@@ -24,13 +24,20 @@ const users = vi.mocked(userService);
 const social = vi.mocked(socialService);
 const posts = vi.mocked(postService);
 
-const renderProfile = (viewerId: string) => {
+const renderProfile = (viewerId: string, blocking = false) => {
   useAuthStore.setState({
     user: { id: viewerId, username: 'viewer' },
     isAuthenticated: true,
   } as never);
   users.getUserProfile.mockResolvedValue(
-    envelope(profileFixture({ id: 'u1', username: 'an.pham', displayName: 'An Pham' }))
+    envelope(
+      profileFixture({
+        id: 'u1',
+        username: 'an.pham',
+        displayName: 'An Pham',
+        viewerState: { ...profileFixture().viewerState, isBlocking: blocking },
+      })
+    )
   );
   social.getBlockedUsers.mockResolvedValue(mutePage([]) as never);
   posts.getUserPosts.mockResolvedValue({
@@ -70,6 +77,16 @@ describe('profile menu: mute', () => {
       displayName: 'An Pham',
     });
     expect(target?.returnFocusTo).toBe(trigger);
+  });
+
+  it('leaves mute out while the account is blocked, because muting it would be refused', async () => {
+    renderProfile('viewer', true);
+    const trigger = await screen.findByRole('button', { name: 'more options for @an.pham' });
+
+    fireEvent.click(trigger);
+
+    expect(screen.getByRole('button', { name: 'unblock @an.pham' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'mute @an.pham' })).toBeNull();
   });
 
   it('offers no menu, so no mute, on the viewer’s own profile', async () => {

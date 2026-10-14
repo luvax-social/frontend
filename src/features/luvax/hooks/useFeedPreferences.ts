@@ -5,21 +5,19 @@ import * as feedbackService from '@/services/postFeedback.service';
 import * as safetyService from '@/services/safety.service';
 
 import { useDismissedPostsStore } from '../store/useDismissedPostsStore';
+import { RECOMMENDED_FEED_KEYS } from '../utils/feedCacheKeys';
 
 interface DismissVariables {
   postId: string;
   authorId: string;
   authorHandle: string;
+  /** The viewer used the card's own menu, so the undo row that replaces it takes focus. */
+  focusUndo?: boolean;
 }
 
 interface Options {
   onError?: (error: unknown) => void;
 }
-
-const RECOMMENDED_KEYS = [
-  ['recommendedFeed', false],
-  ['recommendedFeed', true],
-];
 
 // Marked stale rather than refetched. The viewer is still looking at the undo row, and a refetch
 // would drop the post, and the row with it, before the undo could be used. The next mount, focus
@@ -48,11 +46,11 @@ export const useNotInterested = (options: Options = {}) => {
   const apply = useMutation({
     scope: FEEDBACK_SCOPE,
     mutationFn: ({ postId }: DismissVariables) => feedbackService.markNotInterested(postId),
-    onMutate: ({ postId, authorId, authorHandle }) => {
+    onMutate: ({ postId, authorId, authorHandle, focusUndo }) => {
       const previous = dismissed(postId);
       useDismissedPostsStore
         .getState()
-        .set(postId, { kind: 'not-interested', authorId, authorHandle });
+        .set(postId, { kind: 'not-interested', authorId, authorHandle, focusUndo });
       return { previous };
     },
     // Rolls back to the dismissal the post had before this change, which is none for a new one.
@@ -60,7 +58,7 @@ export const useNotInterested = (options: Options = {}) => {
       useDismissedPostsStore.getState().restore(postId, context?.previous);
       options.onError?.(error);
     },
-    onSuccess: () => markStale(queryClient, [['feed'], ...RECOMMENDED_KEYS]),
+    onSuccess: () => markStale(queryClient, [['feed'], ...RECOMMENDED_FEED_KEYS]),
   });
   const undo = useMutation({
     scope: FEEDBACK_SCOPE,
@@ -75,7 +73,7 @@ export const useNotInterested = (options: Options = {}) => {
       useDismissedPostsStore.getState().restore(postId, context?.previous);
       options.onError?.(error);
     },
-    onSuccess: () => markStale(queryClient, [['feed'], ...RECOMMENDED_KEYS]),
+    onSuccess: () => markStale(queryClient, [['feed'], ...RECOMMENDED_FEED_KEYS]),
   });
   return { apply, undo };
 };
@@ -92,9 +90,11 @@ export const useShowFewer = (options: Options = {}) => {
   const apply = useMutation({
     scope: FEEDBACK_SCOPE,
     mutationFn: ({ authorId }: DismissVariables) => safetyService.showFewer(authorId),
-    onMutate: ({ postId, authorId, authorHandle }) => {
+    onMutate: ({ postId, authorId, authorHandle, focusUndo }) => {
       const previous = dismissed(postId);
-      useDismissedPostsStore.getState().set(postId, { kind: 'show-fewer', authorId, authorHandle });
+      useDismissedPostsStore
+        .getState()
+        .set(postId, { kind: 'show-fewer', authorId, authorHandle, focusUndo });
       return { previous };
     },
     // Rolls back to the dismissal the post had before this change, which is none for a new one.
@@ -102,7 +102,7 @@ export const useShowFewer = (options: Options = {}) => {
       useDismissedPostsStore.getState().restore(postId, context?.previous);
       options.onError?.(error);
     },
-    onSuccess: () => markStale(queryClient, RECOMMENDED_KEYS),
+    onSuccess: () => markStale(queryClient, RECOMMENDED_FEED_KEYS),
   });
   const undo = useMutation({
     scope: FEEDBACK_SCOPE,
@@ -118,7 +118,7 @@ export const useShowFewer = (options: Options = {}) => {
       useDismissedPostsStore.getState().restore(postId, context?.previous);
       options.onError?.(error);
     },
-    onSuccess: () => markStale(queryClient, RECOMMENDED_KEYS),
+    onSuccess: () => markStale(queryClient, RECOMMENDED_FEED_KEYS),
   });
   return { apply, undo };
 };

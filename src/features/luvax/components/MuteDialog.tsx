@@ -1,6 +1,7 @@
 import type { KeyboardEvent } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 
 import { LxToggle } from '@/components/ui/lx-toggle';
 import { v } from '@/config/tokens';
@@ -8,6 +9,7 @@ import { v } from '@/config/tokens';
 import { useMuteState, useSetMute } from '../hooks/useMutes';
 import { useMuteDialogStore, type MuteDialogTarget } from '../store/useMuteDialogStore';
 import { LxAvatar, LxBtn } from './primitives';
+import { toast } from './Toast';
 
 const SAVE_FAILED = "We couldn't save that just now. Try again in a moment.";
 const LOAD_FAILED = "We couldn't load this. Try again in a moment.";
@@ -63,7 +65,13 @@ export function MuteDialog({ target, onClose }: { target: MuteDialogTarget; onCl
   const { user } = target;
   const [failure, setFailure] = useState('');
   const { status, mutePosts, muteStories } = useMuteState(user.id);
-  const setMute = useSetMute({ onError: () => setFailure(SAVE_FAILED) });
+  const stillOpen = useRef(true);
+  // A save can fail after Done has closed the dialog. The rollback has happened by then, so say
+  // so in a toast rather than into a dialog nobody can see.
+  const setMute = useSetMute({
+    onError: () =>
+      stillOpen.current ? setFailure(SAVE_FAILED) : toast("Couldn't save that. Try again."),
+  });
   const panelRef = useRef<HTMLDivElement | null>(null);
   const titleId = useId();
 
@@ -79,6 +87,13 @@ export function MuteDialog({ target, onClose }: { target: MuteDialogTarget; onCl
     window.addEventListener('keydown', closeOnEscape, true);
     return () => window.removeEventListener('keydown', closeOnEscape, true);
   }, [onClose]);
+
+  useEffect(() => {
+    stillOpen.current = true;
+    return () => {
+      stillOpen.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const before = document.activeElement;
@@ -251,5 +266,16 @@ export function MuteDialog({ target, onClose }: { target: MuteDialogTarget; onCl
 export function MuteDialogHost() {
   const target = useMuteDialogStore((state) => state.target);
   const close = useMuteDialogStore((state) => state.close);
+  const { key } = useLocation();
+  const seenKey = useRef(key);
+
+  // History navigation, back included, closes the dialog instead of leaving it over a screen that
+  // is not the one it was opened from.
+  useEffect(() => {
+    if (seenKey.current === key) return;
+    seenKey.current = key;
+    close();
+  }, [key, close]);
+
   return target ? <MuteDialog key={target.user.id} target={target} onClose={close} /> : null;
 }

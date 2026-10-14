@@ -22,7 +22,15 @@ const UNMUTE_FAILED = "We couldn't unmute them just now. Try again in a moment."
  * else the empty message, so it is never left on a control that has gone.
  */
 export function MutedAccountsCategory() {
-  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useMutes();
+  const {
+    data,
+    isLoading,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+  } = useMutes();
   const [failure, setFailure] = useState('');
   const setMute = useSetMute({ onError: () => setFailure(SAVE_FAILED) });
   const unmute = useUnmute({ onError: () => setFailure(UNMUTE_FAILED) });
@@ -68,7 +76,9 @@ export function MutedAccountsCategory() {
     });
   };
 
-  if (error) {
+  // A page that fails to load after the first leaves what is already loaded on screen; only a
+  // list that never loaded is replaced by the failure block.
+  if (error && !data) {
     return (
       <StateBlock
         icon="alert"
@@ -166,7 +176,19 @@ export function MutedAccountsCategory() {
           );
         })}
       </ul>
-      {hasNextPage ? (
+      {isFetchNextPageError ? (
+        <div className="lx-settings-error" role="alert" style={{ marginTop: 16 }}>
+          {"We couldn't load more. "}
+          <button
+            type="button"
+            className="lx-settings-textlink"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            try again
+          </button>
+        </div>
+      ) : hasNextPage ? (
         <div style={{ marginTop: 16 }}>
           <LxBtn
             variant="secondary"

@@ -778,9 +778,9 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const unfollow = useUnfollow();
   const block = useBlock();
   const notInterested = useNotInterested({
-    onError: () => toast("couldn't hide that post. try again."),
+    onError: () => toast("Couldn't hide that post. Try again."),
   });
-  const showFewer = useShowFewer({ onError: () => toast("couldn't save that. try again.") });
+  const showFewer = useShowFewer({ onError: () => toast("Couldn't save that. Try again.") });
   const { data: myFollowingData } = useFollowing(currentUser?.id);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
@@ -1002,15 +1002,24 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const handleNotInterested = useCallback(() => {
     if (!targetUserId || !postId) return;
     notInterested.apply.mutate({ postId, authorId: targetUserId, authorHandle });
-    toast('post hidden');
+    // The overlay closes with the post, so undo lives on the toast; the dismissal itself is in the
+    // store, where the feed behind this overlay shows it as an undo row too.
+    toast('Post hidden', {
+      action: { label: 'undo', onClick: () => notInterested.undo.mutate({ postId }) },
+    });
     navigate(-1);
-  }, [authorHandle, navigate, notInterested.apply, postId, targetUserId]);
+  }, [authorHandle, navigate, notInterested, postId, targetUserId]);
 
   const handleShowFewer = useCallback(() => {
     if (!targetUserId || !postId) return;
     showFewer.apply.mutate({ postId, authorId: targetUserId, authorHandle });
-    toast(`you'll see fewer posts from @${authorHandle}`);
-  }, [authorHandle, postId, showFewer.apply, targetUserId]);
+    toast(`You'll see fewer posts from @${authorHandle}`, {
+      action: {
+        label: 'undo',
+        onClick: () => showFewer.undo.mutate({ postId, authorId: targetUserId }),
+      },
+    });
+  }, [authorHandle, postId, showFewer, targetUserId]);
 
   // The dialog is mounted once for the whole app, so it survives the feed behind this overlay
   // reloading when the mute lands.

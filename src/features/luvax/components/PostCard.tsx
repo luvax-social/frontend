@@ -93,9 +93,9 @@ export function PostCard({
   const unfollow = useUnfollow();
   const block = useBlock();
   const notInterested = useNotInterested({
-    onError: () => toast("couldn't hide that post. try again."),
+    onError: () => toast("Couldn't hide that post. Try again."),
   });
-  const showFewer = useShowFewer({ onError: () => toast("couldn't save that. try again.") });
+  const showFewer = useShowFewer({ onError: () => toast("Couldn't save that. Try again.") });
   const likeMutation = useLikePost();
   const saveMutation = useSavePost();
   const { data: myFollowingData } = useFollowing(currentUser?.id);
@@ -296,7 +296,12 @@ export function PostCard({
             separator: true,
             onClick: () =>
               targetUserId &&
-              notInterested.apply.mutate({ postId: post.id, authorId: targetUserId, authorHandle }),
+              notInterested.apply.mutate({
+                postId: post.id,
+                authorId: targetUserId,
+                authorHandle,
+                focusUndo: true,
+              }),
           }
         : null,
       !isOwner && offersShowFewer(feedSurface)
@@ -306,7 +311,12 @@ export function PostCard({
             label: `Show fewer from @${authorHandle}`,
             onClick: () =>
               targetUserId &&
-              showFewer.apply.mutate({ postId: post.id, authorId: targetUserId, authorHandle }),
+              showFewer.apply.mutate({
+                postId: post.id,
+                authorId: targetUserId,
+                authorHandle,
+                focusUndo: true,
+              }),
           }
         : null,
       !isOwner

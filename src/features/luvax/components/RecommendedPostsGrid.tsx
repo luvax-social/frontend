@@ -14,6 +14,7 @@ import { LxAvatar } from './primitives';
 import { MediaThumb } from './MediaThumb';
 import { useExplore } from '../hooks/usePosts';
 import { useOverlayNavigate } from '../hooks/useOverlayNavigate';
+import { useDismissedPostsStore } from '../store/useDismissedPostsStore';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import { useImpressionTracking } from '@/hooks/useImpressionTracking';
 import { routeTo } from '@/config/constants';
@@ -130,9 +131,12 @@ export function RecommendedPostsGrid({ surface }: { surface: 'explore' | 'search
     }
   }, [isError, error, start]);
 
-  const posts = (data?.pages?.flatMap((page) => extractPageContent(page)) || []).filter(
-    canViewerSeePost
-  );
+  // A post the viewer dismissed from post detail leaves the grid at once and shows nothing in its
+  // place: a tile has no room for an undo row, and the toast that offered undo is the way back.
+  const dismissed = useDismissedPostsStore((state) => state.byPostId);
+  const posts = (data?.pages?.flatMap((page) => extractPageContent(page)) || [])
+    .filter(canViewerSeePost)
+    .filter((post) => !dismissed[post.id]);
 
   if (isLoading) {
     return (

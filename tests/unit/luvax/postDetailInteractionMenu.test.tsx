@@ -5,6 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { PostDetailScreen } from '@/features/luvax/components/PostDetailScreen';
+import { ToastHost } from '@/features/luvax/components/Toast';
 import { useDismissedPostsStore } from '@/features/luvax/store/useDismissedPostsStore';
 import { useMuteDialogStore } from '@/features/luvax/store/useMuteDialogStore';
 import * as feedbackService from '@/services/postFeedback.service';
@@ -72,6 +73,7 @@ const renderDetail = (options: { feedSurface?: Surface; owned?: boolean } = {}) 
           <Route path="/app" element={<div>feed screen</div>} />
           <Route path="/app/p/:postId" element={<PostDetailScreen overlay />} />
         </Routes>
+        <ToastHost />
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -132,6 +134,35 @@ describe('post detail menu: not interested and show fewer', () => {
     await waitFor(() => expect(feedback.markNotInterested).toHaveBeenCalledWith('p1'));
     expect(useDismissedPostsStore.getState().byPostId['p1']?.kind).toBe('not-interested');
     expect(await screen.findByText('feed screen')).toBeInTheDocument();
+  });
+
+  it('offers an undo for not interested that deletes the signal and restores the dismissal', async () => {
+    feedback.markNotInterested.mockResolvedValue(undefined);
+    feedback.undoNotInterested.mockResolvedValue(undefined);
+    renderDetail({ feedSurface: 'following' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Not interested' }));
+    const undo = await screen.findByRole('button', { name: 'undo' });
+    expect(screen.getByRole('status')).toHaveTextContent('Post hidden');
+    fireEvent.click(undo);
+
+    await waitFor(() => expect(feedback.undoNotInterested).toHaveBeenCalledWith('p1'));
+    expect(useDismissedPostsStore.getState().byPostId['p1']).toBeUndefined();
+  });
+
+  it('offers an undo for show fewer that deletes it for the author', async () => {
+    safety.showFewer.mockResolvedValue(undefined);
+    safety.undoShowFewer.mockResolvedValue(undefined);
+    renderDetail({ feedSurface: 'for-you' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show fewer from @linh.ng' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      "You'll see fewer posts from @linh.ng"
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'undo' }));
+
+    await waitFor(() => expect(safety.undoShowFewer).toHaveBeenCalledWith('author-1'));
+    expect(useDismissedPostsStore.getState().byPostId['p1']).toBeUndefined();
   });
 
   it('asks for fewer posts from the author and stays on the post', async () => {

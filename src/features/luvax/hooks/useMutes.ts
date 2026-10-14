@@ -9,6 +9,7 @@ import { getNextCursor } from '@/utils/helpers';
 import { unwrapApiResponse } from '@/utils/unwrapApiResponse';
 
 import { socialKeys } from './useSocial';
+import { RECOMMENDED_FEED_KEYS } from '../utils/feedCacheKeys';
 import { userKeys } from './useUsers';
 
 type MutesCache = InfiniteData<ApiResponse<CursorPage<MuteResponse>>>;
@@ -39,10 +40,6 @@ const mutesKey = [...socialKeys.all, 'mutes'];
 // Both mutation keys start with the list key, so one prefix counts every mute write in flight.
 const muteWritesKey = [...mutesKey, 'write'];
 const NOT_MUTED: MuteFlags = { mutePosts: false, muteStories: false };
-const RECOMMENDED_KEYS = [
-  ['recommendedFeed', false],
-  ['recommendedFeed', true],
-];
 const PAGE_SIZE = 20;
 
 /**
@@ -158,7 +155,7 @@ const restore = (queryClient: QueryClient, userId: string, snapshots?: Snapshots
 const refreshAffectedSurfaces = (queryClient: QueryClient, was: MuteFlags, now: MuteFlags) => {
   if (was.mutePosts !== now.mutePosts) {
     queryClient.invalidateQueries({ queryKey: ['feed'] });
-    RECOMMENDED_KEYS.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+    RECOMMENDED_FEED_KEYS.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
   }
   if (was.muteStories !== now.muteStories) {
     queryClient.invalidateQueries({ queryKey: ['storyFeed'] });

@@ -15,6 +15,8 @@ vi.mock('@/services/postFeedback.service');
 vi.mock('@/services/safety.service');
 vi.mock('@/services/user.service');
 vi.mock('@/services/social.service');
+const toastMock = vi.hoisted(() => vi.fn());
+vi.mock('@/features/luvax/components/Toast', () => ({ toast: toastMock, ToastHost: () => null }));
 vi.mock('@/hooks/useImpressionTracking', () => ({
   useImpressionTracking: () => ({ ref: vi.fn() }),
 }));
@@ -108,6 +110,7 @@ describe('post menu: not interested and show fewer', () => {
       kind: 'not-interested',
       authorId: 'author-1',
       authorHandle: 'linh.ng',
+      focusUndo: true,
     });
   });
 
@@ -119,6 +122,27 @@ describe('post menu: not interested and show fewer', () => {
 
     await waitFor(() => expect(safety.showFewer).toHaveBeenCalledWith('author-1'));
     expect(useDismissedPostsStore.getState().byPostId['post-1']?.kind).toBe('show-fewer');
+  });
+
+  it('says so in a sentence when not interested is refused, and puts the card back', async () => {
+    feedback.markNotInterested.mockRejectedValue(new Error('boom'));
+    renderCard({ feedSurface: 'for-you' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Not interested' }));
+
+    await waitFor(() =>
+      expect(toastMock).toHaveBeenCalledWith("Couldn't hide that post. Try again.")
+    );
+    expect(useDismissedPostsStore.getState().byPostId['post-1']).toBeUndefined();
+  });
+
+  it('says so in a sentence when show fewer is refused', async () => {
+    safety.showFewer.mockRejectedValue(new Error('boom'));
+    renderCard({ feedSurface: 'for-you' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show fewer from @linh.ng' }));
+
+    await waitFor(() => expect(toastMock).toHaveBeenCalledWith("Couldn't save that. Try again."));
   });
 
   it('opens the mute dialog for the author and hands it the menu button to return to', () => {

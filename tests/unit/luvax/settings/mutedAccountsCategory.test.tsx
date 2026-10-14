@@ -88,6 +88,27 @@ describe('muted accounts: the list', () => {
     expect(screen.getByRole('button', { name: 'unmute Deleted user' })).toBeInTheDocument();
   });
 
+  it('keeps the loaded list and offers a retry when the next page cannot be loaded', async () => {
+    safety.getMutes.mockResolvedValueOnce(
+      mutePage([muteFixture('u1', 'an.pham', true, false)], 'c1')
+    );
+    safety.getMutes.mockRejectedValueOnce(apiError('INTERNAL_SERVER_ERROR', 500));
+    safety.getMutes.mockResolvedValueOnce(mutePage([muteFixture('u2', 'quang.do', true, true)]));
+    renderCategory();
+    await screen.findByText('@an.pham');
+
+    fireEvent.click(screen.getByRole('button', { name: 'show more' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't load more.");
+    expect(screen.getByText('@an.pham')).toBeInTheDocument();
+    expect(screen.queryByText('we could not load this')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'try again' }));
+
+    expect(await screen.findByText('@quang.do')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('says so when nothing is muted', async () => {
     safety.getMutes.mockResolvedValue(mutePage([]));
     renderCategory();

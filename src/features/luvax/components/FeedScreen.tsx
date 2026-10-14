@@ -206,8 +206,9 @@ const MAX_PEOPLE_CARDS = 3;
  *
  * The row replaces the card without leaving the list, so the order and the scroll position of
  * everything around it stay put. Not interested shows on both tabs. Show fewer steers For You
- * and Explore only, so Following keeps showing the card. When the dismissal is undone, focus
- * moves to this wrapper, because the undo button it was on has left the page.
+ * and Explore only, so Following keeps showing the card. Focus follows the change: when the
+ * viewer dismisses the card from its own menu it moves to undo, because the menu item left with the
+ * card, and when the dismissal is undone it moves to this wrapper, because undo has left the page.
  */
 function FeedPost({
   post,
@@ -228,12 +229,18 @@ function FeedPost({
   const showRow =
     dismissal !== undefined && (dismissal.kind === 'not-interested' || feedSurface === 'for-you');
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const wasShowingRow = useRef(false);
+  // Starts at the current value, so a row already there when the list mounts is not a change.
+  const wasShowingRow = useRef(showRow);
+  const focusUndo = dismissal?.focusUndo;
 
   useEffect(() => {
-    if (wasShowingRow.current && !showRow) wrapperRef.current?.focus({ preventScroll: true });
+    if (showRow && !wasShowingRow.current && focusUndo) {
+      wrapperRef.current?.querySelector('button')?.focus({ preventScroll: true });
+    } else if (!showRow && wasShowingRow.current) {
+      wrapperRef.current?.focus({ preventScroll: true });
+    }
     wasShowingRow.current = showRow;
-  }, [showRow]);
+  }, [showRow, focusUndo]);
 
   return (
     <div ref={wrapperRef} tabIndex={-1} style={{ outline: 'none' }}>

@@ -138,6 +138,25 @@ describe('useNotInterested', () => {
   });
 });
 
+describe('dismissal focus request', () => {
+  it('records that the viewer asked for focus on the undo row', async () => {
+    feedback.markNotInterested.mockResolvedValue(undefined);
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useNotInterested(), { wrapper });
+
+    await act(async () => {
+      await result.current.apply.mutateAsync({
+        postId: 'p1',
+        authorId: 'a1',
+        authorHandle: 'minh.tran',
+        focusUndo: true,
+      });
+    });
+
+    expect(dismissalOf('p1')).toEqual({ ...hidden, focusUndo: true });
+  });
+});
+
 describe('useShowFewer', () => {
   it('records a show fewer dismissal and posts the author id', async () => {
     safety.showFewer.mockResolvedValue(undefined);
@@ -318,6 +337,29 @@ describe('FeedInjectedList dismissals', () => {
 
     expect(screen.queryByTestId('post-p1')).toBeNull();
     expect(screen.getByText('post hidden')).toBeInTheDocument();
+  });
+
+  it('does not move focus to a row that was already there when the list mounted', () => {
+    useDismissedPostsStore.setState({ byPostId: { p1: { ...hidden, focusUndo: true } } });
+    renderList('for-you');
+
+    expect(screen.getByRole('button', { name: 'undo' })).not.toHaveFocus();
+  });
+
+  it('moves focus to undo when a card is dismissed from its own menu', () => {
+    renderList('for-you');
+
+    act(() => useDismissedPostsStore.getState().set('p1', { ...hidden, focusUndo: true }));
+
+    expect(screen.getByRole('button', { name: 'undo' })).toHaveFocus();
+  });
+
+  it('leaves focus alone when the post was dismissed from somewhere else', () => {
+    renderList('for-you');
+
+    act(() => useDismissedPostsStore.getState().set('p1', hidden));
+
+    expect(screen.getByRole('button', { name: 'undo' })).not.toHaveFocus();
   });
 
   it('passes the surface down to each card', () => {

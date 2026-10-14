@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { MuteDialogHost } from '@/features/luvax/components/MuteDialog';
+import { ToastHost } from '@/features/luvax/components/Toast';
 import {
   useMuteDialogStore,
   type MuteDialogTarget,
@@ -48,6 +50,15 @@ const target = (returnFocusTo: HTMLElement | null = null): MuteDialogTarget => (
   returnFocusTo,
 });
 
+function GoElsewhere() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" data-testid="go" onClick={() => navigate('/elsewhere')}>
+      go
+    </button>
+  );
+}
+
 const renderHost = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -55,7 +66,14 @@ const renderHost = () => {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return render(<MuteDialogHost />, { wrapper });
+  return render(
+    <MemoryRouter>
+      <MuteDialogHost />
+      <ToastHost />
+      <GoElsewhere />
+    </MemoryRouter>,
+    { wrapper }
+  );
 };
 
 const open = (returnFocusTo: HTMLElement | null = null) =>
@@ -204,6 +222,35 @@ describe('MuteDialog', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(behind).not.toHaveBeenCalled();
     document.removeEventListener('keydown', behind);
+  });
+
+  it('closes when the route changes, so back never leaves it over another screen', async () => {
+    users.getUserProfile.mockResolvedValue(profileWith(false, false));
+    renderHost();
+    open();
+    await screen.findByRole('switch', { name: 'posts' });
+
+    fireEvent.click(screen.getByTestId('go'));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(useMuteDialogStore.getState().target).toBeNull();
+  });
+
+  it('says so with a toast when a save fails after the dialog was closed', async () => {
+    users.getUserProfile.mockResolvedValue(profileWith(false, false));
+    let refuse: (error: unknown) => void = () => {};
+    safety.setMute.mockReturnValue(new Promise((_resolve, reject) => (refuse = reject)));
+    renderHost();
+    open();
+    await screen.findByRole('switch', { name: 'posts' });
+
+    fireEvent.click(posts());
+    await waitFor(() => expect(safety.setMute).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await act(async () => refuse(apiError('INTERNAL_SERVER_ERROR', 500)));
+
+    expect(await screen.findByRole('status')).toHaveTextContent("Couldn't save that. Try again.");
   });
 
   it('moves focus into the dialog and keeps Tab and Shift+Tab inside it', async () => {

@@ -41,7 +41,7 @@ export interface ReactionChipView {
   emoji: string;
   count: number;
   mine: boolean;
-  /** A reaction by someone else that can be reported; null when the server sent no id. */
+  /** The id of a reaction by someone else on this chip, which a report names; null when every reaction on it is the viewer's own. */
   reactionId: string | null;
 }
 export interface MessageView {

@@ -831,11 +831,8 @@ export type ConversationFolder = 'primary' | 'requests' | 'hidden_requests';
 
 // modules/message/dto/response/MessageReactionResponse.java
 export interface MessageReactionResponse {
-  /**
-   * The reaction's own identifier, which is what a report of it names. The backend does not send
-   * it yet, so reporting a reaction is only offered when it is present.
-   */
-  id?: string;
+  /** The reaction's own identifier, which is what a report of it names. */
+  id: string;
   userId: string;
   emoji: string;
   reactedAt: string;

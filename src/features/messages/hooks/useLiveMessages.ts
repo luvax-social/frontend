@@ -14,6 +14,7 @@ interface ThreadFrame {
   eventType?: string;
   data?: {
     messageId?: string;
+    reactionId?: string;
     userId?: string;
     emoji?: string | null;
     reactedAt?: string;
@@ -32,10 +33,11 @@ interface ThreadFrame {
  * per event. Conversations arrive one message at a time, so that cost is bounded by how fast a
  * person types.
  *
- * A reaction frame is the exception: it names the message, the reactor and the emoji (absent for a
- * removal), so it is patched into the cached history instead of refetching it. The patch is the
- * same one the optimistic update applies, so a frame that echoes the caller's own change is a
- * no-op.
+ * A reaction frame is the exception: it names the message, the reactor, the reaction's id and the
+ * emoji (absent for a removal), so it is patched into the cached history instead of refetching it.
+ * A set frame without a reaction id cannot be patched into a reportable reaction, so it falls
+ * through to the refetch. The patch is the same one the optimistic update applies, so a frame that
+ * echoes the caller's own change is a no-op.
  */
 export const useLiveMessages = (conversationId: string | null | undefined) => {
   const queryClient = useQueryClient();
@@ -51,15 +53,17 @@ export const useLiveMessages = (conversationId: string | null | undefined) => {
           frame?.eventType === REACTION_CHANGED &&
           change?.messageId &&
           change.userId &&
-          change.reactedAt
+          change.reactedAt &&
+          (!change.emoji || change.reactionId)
         ) {
+          const { messageId, userId, reactedAt, reactionId, emoji } = change;
           queryClient.setQueryData<MessageData>(messagesKey(conversationId), (old) =>
-            applyReactionChange(old, {
-              messageId: change.messageId!,
-              userId: change.userId!,
-              emoji: change.emoji ?? null,
-              reactedAt: change.reactedAt!,
-            })
+            applyReactionChange(
+              old,
+              emoji && reactionId
+                ? { messageId, userId, reactedAt, emoji, reactionId }
+                : { messageId, userId, reactedAt, emoji: null }
+            )
           );
           return;
         }

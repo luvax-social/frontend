@@ -196,7 +196,7 @@ const reactionChipsOf = (message: Message, currentUserId: string | undefined) =>
       ...chip,
       count: chip.count + 1,
       mine: chip.mine || mine,
-      reactionId: chip.reactionId ?? (!mine && reaction.id ? reaction.id : null),
+      reactionId: chip.reactionId ?? (mine ? null : reaction.id),
     });
   });
   return Array.from(chips.values());

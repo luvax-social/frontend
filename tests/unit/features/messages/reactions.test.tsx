@@ -81,12 +81,20 @@ beforeEach(() => {
 });
 
 describe('applyReactionChange', () => {
-  const change = { messageId: 'm1', userId: ME, emoji: HEART, reactedAt: '2026-10-01T10:00:00Z' };
+  const change = {
+    messageId: 'm1',
+    userId: ME,
+    reactionId: 'rx-me',
+    emoji: HEART,
+    reactedAt: '2026-10-01T10:00:00Z',
+  };
 
   it('adds the reaction to the named message only', () => {
     const next = applyReactionChange(data([other('m1'), other('m2')]), change)!;
     const [m1, m2] = next.pages[0].data.content;
-    expect(m1.reactions).toEqual([{ userId: ME, emoji: HEART, reactedAt: change.reactedAt }]);
+    expect(m1.reactions).toEqual([
+      { id: 'rx-me', userId: ME, emoji: HEART, reactedAt: change.reactedAt },
+    ]);
     expect(m2.reactions).toEqual([]);
   });
 
@@ -94,23 +102,26 @@ describe('applyReactionChange', () => {
     const start = data([
       other('m1', {
         reactions: [
-          { userId: THEM, emoji: LAUGH, reactedAt: '2026-10-01T09:00:00Z' },
-          { userId: ME, emoji: HEART, reactedAt: '2026-10-01T09:30:00Z' },
+          { id: 'rx-them', userId: THEM, emoji: LAUGH, reactedAt: '2026-10-01T09:00:00Z' },
+          { id: 'rx-me', userId: ME, emoji: HEART, reactedAt: '2026-10-01T09:30:00Z' },
         ],
       }),
     ]);
     const next = applyReactionChange(start, { ...change, emoji: THUMBS_UP })!;
-    expect(next.pages[0].data.content[0].reactions.map((r) => [r.userId, r.emoji])).toEqual([
-      [THEM, LAUGH],
-      [ME, THUMBS_UP],
+    expect(next.pages[0].data.content[0].reactions.map((r) => [r.id, r.userId, r.emoji])).toEqual([
+      ['rx-them', THEM, LAUGH],
+      ['rx-me', ME, THUMBS_UP],
     ]);
   });
 
   it('removes the reaction when the frame carries no emoji', () => {
     const start = data([
-      other('m1', { reactions: [{ userId: ME, emoji: HEART, reactedAt: change.reactedAt }] }),
+      other('m1', {
+        reactions: [{ id: 'rx-me', userId: ME, emoji: HEART, reactedAt: change.reactedAt }],
+      }),
     ]);
-    const next = applyReactionChange(start, { ...change, emoji: null })!;
+    const { reactionId: _removed, ...removal } = change;
+    const next = applyReactionChange(start, { ...removal, emoji: null })!;
     expect(next.pages[0].data.content[0].reactions).toEqual([]);
   });
 
@@ -131,7 +142,12 @@ describe('applyReactionChange', () => {
 describe('useReactions', () => {
   it('shows the caller reaction at once and keeps it when the server accepts', async () => {
     service.reactToMessage.mockResolvedValue(
-      envelope({ userId: ME, emoji: HEART, reactedAt: '2026-10-01T10:00:00Z' }) as never
+      envelope({
+        id: 'rx-stored',
+        userId: ME,
+        emoji: HEART,
+        reactedAt: '2026-10-01T10:00:00Z',
+      }) as never
     );
     const { queryClient, wrapper } = setup();
     queryClient.setQueryData(KEY, data([other('m1')]));
@@ -142,7 +158,9 @@ describe('useReactions', () => {
     });
 
     expect(service.reactToMessage).toHaveBeenCalledWith(CONVERSATION, 'm1', HEART);
-    expect(reactionsOn(queryClient, 'm1')?.map((r) => [r.userId, r.emoji])).toEqual([[ME, HEART]]);
+    expect(reactionsOn(queryClient, 'm1')?.map((r) => [r.id, r.userId, r.emoji])).toEqual([
+      ['rx-stored', ME, HEART],
+    ]);
   });
 
   it('restores the snapshot when adding a reaction fails', async () => {
@@ -178,7 +196,9 @@ describe('useReactions', () => {
     const { queryClient, wrapper } = setup();
     queryClient.setQueryData(
       KEY,
-      data([other('m1', { reactions: [{ userId: ME, emoji: HEART, reactedAt: 'x' }] })])
+      data([
+        other('m1', { reactions: [{ id: 'rx-me', userId: ME, emoji: HEART, reactedAt: 'x' }] }),
+      ])
     );
     const { result } = renderHook(() => useReactions(CONVERSATION, ME), { wrapper });
 
@@ -215,6 +235,7 @@ describe('live reaction frames', () => {
     data: {
       conversationId: CONVERSATION,
       messageId: 'm1',
+      reactionId: 'rx-live',
       userId: THEM,
       emoji: LAUGH,
       reactedAt: '2026-10-01T10:05:00Z',
@@ -230,17 +251,31 @@ describe('live reaction frames', () => {
 
     act(() => handler(frame()));
 
-    expect(reactionsOn(queryClient, 'm1')?.map((r) => [r.userId, r.emoji])).toEqual([
-      [THEM, LAUGH],
+    expect(reactionsOn(queryClient, 'm1')?.map((r) => [r.id, r.userId, r.emoji])).toEqual([
+      ['rx-live', THEM, LAUGH],
     ]);
     expect(keysOf(invalidate)).not.toContain(JSON.stringify(KEY));
+  });
+
+  it('re-reads the thread instead of patching a set frame that names no reaction id', () => {
+    const { queryClient, invalidate, wrapper } = setup();
+    queryClient.setQueryData(KEY, data([other('m1')]));
+    renderHook(() => useLiveMessages(CONVERSATION), { wrapper });
+    const handler = subscribe.mock.calls[0][1] as (payload: unknown) => void;
+
+    act(() => handler(frame({ reactionId: undefined })));
+
+    expect(reactionsOn(queryClient, 'm1')).toEqual([]);
+    expect(keysOf(invalidate)).toContain(JSON.stringify(KEY));
   });
 
   it('removes the reaction when the frame has no emoji', () => {
     const { queryClient, wrapper } = setup();
     queryClient.setQueryData(
       KEY,
-      data([other('m1', { reactions: [{ userId: THEM, emoji: LAUGH, reactedAt: 'x' }] })])
+      data([
+        other('m1', { reactions: [{ id: 'rx-live', userId: THEM, emoji: LAUGH, reactedAt: 'x' }] }),
+      ])
     );
     renderHook(() => useLiveMessages(CONVERSATION), { wrapper });
     const handler = subscribe.mock.calls[0][1] as (payload: unknown) => void;
@@ -359,7 +394,7 @@ describe('ReactionChip', () => {
     expect(onRemoveMine).toHaveBeenCalledOnce();
   });
 
-  it('offers a report only for someone else reaction that carries an id', () => {
+  it('offers a report for someone else reaction and never for the viewer own', () => {
     const onReport = vi.fn();
     const { rerender } = render(
       <ReactionChip
@@ -417,7 +452,9 @@ describe('MessageBubble reactions', () => {
   it('renders a chip for each reaction on the bubble', () => {
     bubble(
       other('m1', {
-        reactions: [{ userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' }],
+        reactions: [
+          { id: 'rx-me', userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' },
+        ],
       })
     );
     expect(screen.getByRole('button', { name: new RegExp(THUMBS_UP) })).toBeInTheDocument();
@@ -427,7 +464,9 @@ describe('MessageBubble reactions', () => {
     const onReact = vi.fn();
     bubble(
       other('m1', {
-        reactions: [{ userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' }],
+        reactions: [
+          { id: 'rx-me', userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' },
+        ],
       }),
       { onReact }
     );
@@ -444,7 +483,9 @@ describe('MessageBubble reactions', () => {
     const onReact = vi.fn();
     bubble(
       other('m1', {
-        reactions: [{ userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' }],
+        reactions: [
+          { id: 'rx-me', userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' },
+        ],
       }),
       { onReact }
     );
@@ -458,7 +499,9 @@ describe('MessageBubble reactions', () => {
       other('m1', {
         isDeleted: true,
         content: null,
-        reactions: [{ userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' }],
+        reactions: [
+          { id: 'rx-me', userId: ME, emoji: THUMBS_UP, reactedAt: '2026-10-01T10:00:00Z' },
+        ],
       })
     );
     expect(screen.queryByRole('button', { name: 'react to message' })).not.toBeInTheDocument();
@@ -487,7 +530,7 @@ describe('MessageBubble reactions', () => {
     expect(view.replyText).toBe('trip to Sa Pa');
   });
 
-  it("offers to report the other person's reaction when the server names it", () => {
+  it("offers to report the other person's reaction from its chip menu", () => {
     const onReportReaction = vi.fn();
     bubble(
       other('m1', {
@@ -499,17 +542,5 @@ describe('MessageBubble reactions', () => {
     fireEvent.click(screen.getByRole('button', { name: new RegExp(LAUGH) }));
     fireEvent.click(screen.getByRole('button', { name: 'report reaction' }));
     expect(onReportReaction).toHaveBeenCalledWith('r1', 'm1');
-  });
-
-  it('offers no report when the server sent no reaction id', () => {
-    bubble(
-      other('m1', {
-        senderId: ME,
-        reactions: [{ userId: THEM, emoji: LAUGH, reactedAt: '2026-10-01T10:00:00Z' }],
-      }),
-      { onReportReaction: vi.fn() }
-    );
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(LAUGH) }));
-    expect(screen.queryByRole('button', { name: 'report reaction' })).not.toBeInTheDocument();
   });
 });

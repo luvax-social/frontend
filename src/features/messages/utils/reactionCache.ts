@@ -2,21 +2,30 @@ import type { MessageReactionResponse } from '@/types/domain';
 
 import type { Message, MessageData } from '../types';
 
-export interface ReactionChange {
+interface ReactionChangeBase {
   messageId: string;
   userId: string;
-  /** Null removes the user's reaction. */
-  emoji: string | null;
   reactedAt: string;
 }
 
-const withReaction = (
-  reactions: MessageReactionResponse[],
-  { userId, emoji, reactedAt }: ReactionChange
-) => {
-  const others = reactions.filter((reaction) => reaction.userId !== userId);
+/** A set reaction names its own id; a removal needs none, because it matches on the user. */
+export type ReactionChange =
+  | (ReactionChangeBase & { emoji: string; reactionId: string })
+  | (ReactionChangeBase & { emoji: null });
+
+const withReaction = (reactions: MessageReactionResponse[], change: ReactionChange) => {
+  const others = reactions.filter((reaction) => reaction.userId !== change.userId);
+  if (change.emoji === null) return others;
   // Oldest first, matching the server: a changed reaction is newer than the one it replaces.
-  return emoji === null ? others : [...others, { userId, emoji, reactedAt }];
+  return [
+    ...others,
+    {
+      id: change.reactionId,
+      userId: change.userId,
+      emoji: change.emoji,
+      reactedAt: change.reactedAt,
+    },
+  ];
 };
 
 /**

@@ -11,7 +11,7 @@ interface Props {
   reaction: ReactionChipView;
   /** Tapping the viewer's own chip removes their reaction. */
   onRemoveMine?: () => void;
-  /** Reports someone else's reaction; only offered when the server sent its id. */
+  /** Reports someone else's reaction from the chip menu. */
   onReport?: (reactionId: string) => void;
 }
 
@@ -20,7 +20,7 @@ interface Props {
  * highlight when the viewer is one of them.
  *
  * Tapping the viewer's own chip removes it. Tapping someone else's opens a menu with the report
- * action when the reaction can be named, so a chip never offers an action it cannot complete.
+ * action; the viewer's own reaction is never offered for a report.
  */
 export function ReactionChip({ reaction, onRemoveMine, onReport }: Props) {
   const anchorRef = useRef<HTMLButtonElement | null>(null);

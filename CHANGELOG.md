@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A reported message reaction now shows in the admin report detail with its emoji, who reacted and when, and the message it sits on, and a reviewer can remove or restore it with a recorded reason.
 - Message reaction is a report type in the admin queue filter, and the moderation actions for removing and restoring a reaction are part of the action vocabulary.
 - A removed reaction reaches the reactor as a system notice that carries the appeal route like any other removal.
-- The reaction chip menu offers to report someone else's reaction once the server names it.
+- The reaction chip menu always offers to report someone else's reaction, never your own; the reaction id now arrives with every reaction and with the live reaction frame, and a live frame without one re-reads the thread instead of patching it.
 - Message reactions: a six-option picker plus an any-emoji field with your current reaction highlighted, reaction chips on each bubble, and live updates of the other person's reactions without reloading the thread.
 - A message that was deleted or removed shows no reaction chip and no picker.
 - Messages now has primary and requests tabs, a hidden requests folder reached from the requests tab, and accept, delete and block actions on an incoming request, each removing the request at once and restoring it if the server refuses.

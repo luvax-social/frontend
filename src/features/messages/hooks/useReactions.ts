@@ -52,12 +52,20 @@ export const useReactions = (
       const previous = queryClient.getQueryData<MessageData>(key);
       if (currentUserId) {
         queryClient.setQueryData<MessageData>(key, (old) =>
-          applyReactionChange(old, {
-            messageId,
-            userId: currentUserId,
-            emoji,
-            reactedAt: new Date().toISOString(),
-          })
+          applyReactionChange(
+            old,
+            emoji === null
+              ? { messageId, userId: currentUserId, emoji, reactedAt: new Date().toISOString() }
+              : {
+                  messageId,
+                  userId: currentUserId,
+                  emoji,
+                  // The caller's own reaction is never reportable, so the placeholder is never
+                  // sent anywhere; onSuccess replaces it with the stored id.
+                  reactionId: `pending:${messageId}`,
+                  reactedAt: new Date().toISOString(),
+                }
+          )
         );
       }
       return { previous, key };
@@ -78,6 +86,7 @@ export const useReactions = (
         applyReactionChange(old, {
           messageId,
           userId: currentUserId,
+          reactionId: stored.id,
           emoji: stored.emoji,
           reactedAt: stored.reactedAt,
         })

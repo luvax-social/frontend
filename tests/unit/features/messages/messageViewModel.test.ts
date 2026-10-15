@@ -90,7 +90,7 @@ describe('reactions on a message view', () => {
       messageFixture({
         reactions: [
           { id: 'r1', userId: THEM, emoji: LAUGH, reactedAt: '2026-10-01T10:00:00Z' },
-          { userId: ME, emoji: LAUGH, reactedAt: '2026-10-01T10:01:00Z' },
+          { id: 'r2', userId: ME, emoji: LAUGH, reactedAt: '2026-10-01T10:01:00Z' },
           { id: 'r3', userId: THEM, emoji: HEART, reactedAt: '2026-10-01T10:02:00Z' },
         ],
       }),
@@ -118,7 +118,7 @@ describe('reactions on a message view', () => {
       messageFixture({
         isDeleted: true,
         content: null,
-        reactions: [{ userId: THEM, emoji: HEART, reactedAt: 'x' }],
+        reactions: [{ id: 'r9', userId: THEM, emoji: HEART, reactedAt: 'x' }],
       }),
       ctx
     );

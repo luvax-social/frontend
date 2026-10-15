@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Post menus offer "not interested" and, on For You and Explore, "show fewer from this account", and the post collapses in place into an undo row that restores it.
+- Muting an account asks for posts and stories as two independent switches in one dialog, and turning both off is the unmute; Settings gains a muted accounts list with the same controls.
+- Settings gains hidden words, where each phrase shows the normalised form it will match, a system word filter switch, and a list capped at the server's limit.
+- Settings gains limit interactions, which restricts comments from non-followers, recent followers or both for 1, 3, 7, 14 or 28 days, shows the end time in the viewer's timezone and can be switched off early.
+- Privacy settings gain who can message you, with everyone, people you follow or no one, and say where messages from each group land.
+- A post owner can review comments hidden by hidden words or interaction limits in the post detail side column, with the reason for each, and approve them one at a time.
+- The admin panel gains a system hidden word registry where an administrator adds, edits and removes platform-wide phrases, each write asking for a reason that goes to the audit log.
+- Interaction control and direct message wireframes, with the decisions they encode, are stored under the documentation folder for this feature.
 - A reported message reaction now shows in the admin report detail with its emoji, who reacted and when, and the message it sits on, and a reviewer can remove or restore it with a recorded reason.
 - Message reaction is a report type in the admin queue filter, and the moderation actions for removing and restoring a reaction are part of the action vocabulary.
 - A removed reaction reaches the reactor as a system notice that carries the appeal route like any other removal.
@@ -203,6 +211,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Unit coverage for not interested and show fewer with rollback, mutes, hidden words, interaction limits, hidden comments, the message permission setting and the shared text match contract.
+- Unit coverage for the hidden word registry form, list and stale delete handling.
 - Unit coverage for the reaction report type, its moderation copy and endpoints, the reported reaction view, the removal notice sentence and its appeal entry.
 - Unit coverage for the reaction cache patch, optimistic reactions with rollback, live reaction frames, the picker, the chips, tombstoned messages and reply quote resolution.
 - Unit coverage for inbox folders, request actions with rollback, the not-found notice, the tab counts, the sender notice, the locked composer and the live inbox subscription.

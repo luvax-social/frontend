@@ -33,7 +33,7 @@ Run it and paste the section back rather than editing a number by hand.
 | Testing | Vitest 3 + Testing Library, jsdom |
 | Language | TypeScript 6 with strict checking; `tsconfig.json` provides path resolution |
 
-There is no icon-set dependency. The declared packages contain no `lucide-react`, no
+There is no icon-set dependency. The 43 declared packages (18 runtime, 25 dev) contain no `lucide-react`, no
 `react-icons` and no `@heroicons`; icons are the local `src/components/ui/lx-icon.tsx`.
 
 ---
@@ -56,7 +56,9 @@ src/
 │   │   ├── NotFoundPage.tsx           # 404 page
 │   │   ├── PageLoader.tsx             # Full-page loading spinner
 │   │   ├── ProtectedRoute.tsx         # Redirects unauthenticated users to /login
-│   │   └── RouterErrorPage.tsx        # Error fallback for router-level errors
+│   │   ├── RouteMetadata.tsx          # Per-route document title, description and robots head entries
+│   │   ├── RouterErrorPage.tsx        # Error fallback for router-level errors
+│   │   └── TurnstileWidget.tsx        # Cloudflare Turnstile challenge shared by the forms that need it
 │   └── ui/                    # shadcn/ui primitives plus Luvax-specific shared UI
 │       ├── button.tsx
 │       ├── card.tsx
@@ -66,48 +68,61 @@ src/
 │       ├── lx-dropdown-menu.tsx
 │       ├── lx-icon.tsx
 │       ├── lx-toggle.tsx
-│       └── lx-verified-badge.tsx
+│       ├── lx-verified-badge.tsx
+│       └── menuPlacement.ts   # Picks which side an options menu opens toward from the space around its trigger
 ├── config/
-│   ├── constants.ts           # ROUTES, API_URL, STALE_TIME, HTTP_STATUS, CHAR_LIMITS, APP_NAME
+│   ├── constants.ts           # ROUTES, routeTo, STALE_TIME, HTTP_STATUS, CHAR_LIMITS, APP_NAME
 │   ├── roles.ts               # ROLES, normalizeRole, isPanelRole, isAdminRole, landingPathForRole
+│   ├── seo.ts                 # Canonical origin, indexing switch and the head entries each route declares
 │   └── tokens.ts              # `v` design-token object consumed by the luvax screens
 ├── context/                   # Reserved - empty
 ├── features/                  # Six slices; sizes are measured, not estimated
 │   ├── admin/                 # Moderation panel
 │   │   ├── adminRoutes.tsx    # The /admin route subtree
-│   │   ├── api/               # Panel-specific API modules
-│   │   ├── components/
+│   │   ├── api/               # Panel-specific API modules; hiddenWords.ts is the platform word registry
+│   │   ├── components/        # HiddenWordForm.tsx, ReportedReaction.tsx and the shared panel pieces
 │   │   ├── guards/            # Role gates for the panel
-│   │   ├── hooks/
-│   │   ├── lib/
-│   │   └── screens/           # One file per panel screen
+│   │   ├── hooks/             # useHiddenWords.ts for the registry list and its writes
+│   │   ├── lib/               # hiddenWordPhrase.ts previews the matched form of a phrase
+│   │   └── screens/           # One file per panel screen, including HiddenWordRegistryScreen.tsx
 │   ├── auth/
 │   │   ├── components/        # AuthField.tsx, AuthPage.tsx/.css
 │   │   ├── services/          # authService.ts
 │   │   ├── store/             # Reserved - empty
 │   │   └── utils/             # authSchemas.ts — Zod schemas mirroring backend validation
 │   ├── luvax/                 # Authenticated application shell and screens
-│   │   ├── components/        # shell.tsx, primitives.tsx, and one file per screen
+│   │   ├── components/        # shell.tsx, primitives.tsx, and one file per screen; also
+│   │   │                      # HiddenCommentsPanel.tsx, MuteDialog.tsx, feed/DismissedPostRow.tsx
+│   │   │                      # and settings/ (hidden words, interaction limits, muted accounts,
+│   │   │                      # message permission and the shared radio group)
 │   │   ├── constants/
-│   │   ├── hooks/
-│   │   ├── utils/
+│   │   ├── hooks/             # includes useMutes, useHiddenWords, useInteractionLimits,
+│   │   │                      # useHiddenComments and useFeedPreferences
+│   │   ├── notifications/     # The notifications screen and its per-type sentence, section,
+│   │   │                      # badge and cache-reducer modules
+│   │   ├── store/             # useDismissedPostsStore, useMuteDialogStore and resetOnUserChange,
+│   │   │                      # which empties both when the signed-in account changes
+│   │   ├── utils/             # includes feedCacheKeys, feedSurface and interactionLimitFormat
 │   │   ├── LuvaxApp.tsx       # Feature root; renders the shell around the routed screen
 │   │   └── LuvaxTweaksContext.tsx
 │   ├── messages/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   ├── utils/
+│   │   ├── components/        # InboxTabs, RequestActionBar, PendingRequestNotice, ReactionChip,
+│   │   │                      # ReactionPicker, ReplyQuote and the thread and list panels
+│   │   ├── hooks/             # useInboxLive, useMessageRequests and useReactions beside the
+│   │   │                      # conversation and message hooks
+│   │   ├── utils/             # emoji, reactionCache, reactionOptions, requestConfirm, unavailable
 │   │   └── MessagesScreen.tsx
 │   ├── search/
 │   │   ├── components/
 │   │   └── hooks/
 │   └── support/               # Help centre, tickets, appeals, verification requests
-│       ├── components/
+│       ├── components/        # includes the anonymous appeal landing, status and resend screens
 │       ├── hooks/
 │       ├── services/
 │       └── utils/
-├── hooks/                     # Shared hooks: useCommon, useCountdown, useEscapeKey,
-│                              # useImpressionTracking, useRateLimitCooldown, useThemeChoice
+├── hooks/                     # Shared hooks: useBodyScrollLock, useCommon, useCountdown,
+│                              # useEscapeKey, useImpressionTracking, useRateLimitCooldown,
+│                              # useThemeChoice, useTurnstile
 ├── pages/
 │   ├── auth/
 │   │   ├── EmailVerificationPage.tsx
@@ -128,9 +143,11 @@ src/
 │   ├── message.service.ts
 │   ├── notification.service.ts
 │   ├── post.service.ts
+│   ├── postFeedback.service.ts   # Not interested and its undo
 │   ├── realtime/stompConnection.ts
 │   ├── recommendation.service.ts
 │   ├── report.service.ts
+│   ├── safety.service.ts         # Show fewer, mutes and their undo
 │   ├── search.service.ts
 │   ├── social.service.ts
 │   ├── story.service.ts
@@ -139,9 +156,14 @@ src/
 ├── store/
 │   └── useAuthStore.ts        # Zustand; persists user + isAuthenticated only, never tokens
 ├── utils/
+│   ├── appealEntry.ts         # Builds the in-product appeal address for one moderation decision
+│   ├── captchaErrors.ts       # Recognises the backend captcha failure codes
 │   ├── cn.ts
+│   ├── errors.ts
 │   ├── helpers.ts
 │   ├── requestContract.ts
+│   ├── textMatch.ts           # Mirrors the backend hidden word matching contract
+│   ├── unwrapApiResponse.ts
 │   └── validationFields.ts
 ├── types/                     # Shared API/domain/auth contracts and runtime declarations
 ├── App.tsx
@@ -156,14 +178,14 @@ Generated by `./scripts/regenerate_struct_figures.sh slices`; tracked files only
 
 | Slice | Files | Lines |
 |-------|-------|-------|
-| `admin` | 80 | 14811 |
+| `admin` | 86 | 15687 |
 | `auth` | 8 | 1791 |
-| `luvax` | 74 | 19361 |
-| `messages` | 17 | 5266 |
+| `luvax` | 94 | 22689 |
+| `messages` | 31 | 6683 |
 | `search` | 4 | 1050 |
 | `support` | 14 | 3607 |
 
-Total tracked lines under `src/`: 56713.
+Total tracked lines under `src/`: 62877.
 
 ---
 
@@ -240,6 +262,9 @@ every `navigate()` call read it back. Regenerate with
 | `SETTINGS_PRIVACY` | `/app/settings/privacy` |
 | `SETTINGS_ACCOUNT` | `/app/settings/account` |
 | `SETTINGS_REQUESTS` | `/app/settings/requests` |
+| `SETTINGS_MUTED` | `/app/settings/muted` |
+| `SETTINGS_HIDDEN_WORDS` | `/app/settings/hidden-words` |
+| `SETTINGS_LIMITS` | `/app/settings/limits` |
 | `SETTINGS_SUPPORT` | `/app/settings/support` |
 | `CHANGE_PASSWORD` | `/app/settings/password` |
 | `BLOCKED_USERS` | `/app/settings/blocked` |
@@ -249,6 +274,8 @@ every `navigate()` call read it back. Regenerate with
 | `SUPPORT_APPEAL` | `/support/appeal` |
 | `SUPPORT_CONFIRM` | `/support/confirm` |
 | `SUPPORT_PUBLIC` | `/support/new` |
+| `SUPPORT_APPEAL_STATUS` | `/support/appeal/status` |
+| `SUPPORT_APPEAL_RESEND` | `/support/appeal/resend` |
 | `ONBOARDING` | `/app/onboarding` |
 | `STORY_COMPOSE` | `/app/stories/new` |
 | `PROFILE` | `/app/profile` |
@@ -267,15 +294,22 @@ every `navigate()` call read it back. Regenerate with
 | `ADMIN_USERS` | `/admin/users` |
 | `ADMIN_USER` | `/admin/users/:userId` |
 | `ADMIN_HASHTAGS` | `/admin/hashtags` |
+| `ADMIN_HIDDEN_WORDS` | `/admin/hidden-words` |
 | `ADMIN_SUPPORT` | `/admin/support` |
 | `ADMIN_STATISTICS` | `/admin/statistics` |
 | `ADMIN_ACTIVITY` | `/admin/activity` |
 | `NOT_FOUND` | `*` |
 
-The three `/support/*` addresses sit outside the authenticated tree on purpose: a banned or
+The five `/support/*` addresses sit outside the authenticated tree on purpose: a banned or
 suspended account is refused a session by design, and that is exactly the population an appeal
-exists for. Two of them are already built into moderation and confirmation mail that has been
-sent, so their shapes are fixed by messages already in inboxes.
+exists for.
+`SUPPORT_APPEAL` and `SUPPORT_CONFIRM` are already built into moderation and confirmation mail that
+has been sent, so their shapes are fixed by messages already in inboxes.
+`SUPPORT_PUBLIC` is the anonymous support form.
+`SUPPORT_APPEAL_STATUS` is where a status link lands, because the appeal token is spent by the
+submission that created the ticket and the status token is the only thing that can reach it
+afterwards.
+`SUPPORT_APPEAL_RESEND` asks for a replacement appeal link when the moderation notice never arrived.
 
 ---
 
@@ -330,6 +364,8 @@ All FE environment variables must use the `VITE_` prefix (required by Vite for c
 | `VITE_GOOGLE_REDIRECT_PATH` | FE route BE redirects back to after OAuth |
 | `VITE_APP_NAME` | Application name displayed in UI |
 | `VITE_APP_ENV` | Environment tag (development / production) |
+| `VITE_SITE_URL` | Canonical public HTTPS origin for canonical links, robots.txt and the sitemap; required when indexing is on |
+| `VITE_SEO_INDEXABLE` | Set to `true` to let a build be indexed; any other value keeps it noindex |
 | `VITE_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key for the auth forms, the report dialog and the public support form |
 
 Reference: `.env.example` at the repository root.

@@ -135,6 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- The undo toast offered after hiding a post from its detail view now appears when the detail closes; it was dropped with the toast host the closing view unmounted.
 - The notification end-to-end scenarios stub the messages unread counters and refuse the live inbox handshake ticket, so the app shell's new requests do not depend on a running backend.
 - The user event type union lists the thirteen interaction control and message event types the backend defines.
 - The hidden comments panel no longer reopens when the viewer leaves a post and comes back to it, returns focus to a row's unhide button when that unhide is refused, and pressing Escape with the report modal open closes only the modal and not the post behind it.

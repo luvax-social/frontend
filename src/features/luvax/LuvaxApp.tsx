@@ -322,8 +322,8 @@ export function LuvaxApp() {
             ) : null}
           </div>
           <Outlet />
-          <ToastHost />
-          <MuteDialogHost />
+          <ToastHost key="toast-host" />
+          <MuteDialogHost key="mute-dialog-host" />
         </LuvaxTweaksProvider>
       );
     }
@@ -340,8 +340,8 @@ export function LuvaxApp() {
           </LxShell>
         </div>
         <Outlet />
-        <ToastHost />
-        <MuteDialogHost />
+        <ToastHost key="toast-host" />
+        <MuteDialogHost key="mute-dialog-host" />
       </LuvaxTweaksProvider>
     );
   }
@@ -353,8 +353,8 @@ export function LuvaxApp() {
       <LxShell screen={screen} navigate={navigate} showRightRail={showRail}>
         <Outlet />
       </LxShell>
-      <ToastHost />
-      <MuteDialogHost />
+      <ToastHost key="toast-host" />
+      <MuteDialogHost key="mute-dialog-host" />
     </LuvaxTweaksProvider>
   );
 }

@@ -678,16 +678,15 @@ export function MessageBubble({
                   text={message.replyText}
                   unavailable={message.replyUnavailable}
                 />
-                <strong
+                <span
                   style={{
-                    fontWeight: 600,
                     minWidth: 0,
                     overflowWrap: 'anywhere',
                     wordBreak: 'break-word',
                   }}
                 >
                   {message.text}
-                </strong>
+                </span>
               </div>
             ) : (
               message.text

@@ -7,6 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Post menus offer "not interested" and, on For You and Explore, "show fewer from this account", and the post collapses in place into an undo row that restores it.
+- Muting an account asks for posts and stories as two independent switches in one dialog, and turning both off is the unmute; Settings gains a muted accounts list with the same controls.
+- Settings gains hidden words, where each phrase shows the normalised form it will match, a system word filter switch, and a list capped at the server's limit.
+- Settings gains limit interactions, which restricts comments from non-followers, recent followers or both for 1, 3, 7, 14 or 28 days, shows the end time in the viewer's timezone and can be switched off early.
+- Privacy settings gain who can message you, with everyone, people you follow or no one, and say where messages from each group land.
+- A post owner can review comments hidden by hidden words or interaction limits in the post detail side column, with the reason for each, and approve them one at a time.
+- The admin panel gains a system hidden word registry where an administrator adds, edits and removes platform-wide phrases, each write asking for a reason that goes to the audit log.
+- Interaction control and direct message wireframes, with the decisions they encode, are stored under the documentation folder for this feature.
+- A reported message reaction now shows in the admin report detail with its emoji, who reacted and when, and the message it sits on, and a reviewer can remove or restore it with a recorded reason.
+- Message reaction is a report type in the admin queue filter, and the moderation actions for removing and restoring a reaction are part of the action vocabulary.
+- A removed reaction reaches the reactor as a system notice that carries the appeal route like any other removal.
+- The reaction chip menu always offers to report someone else's reaction, never your own; the reaction id now arrives with every reaction and with the live reaction frame, and a live frame without one re-reads the thread instead of patching it.
+- Message reactions: a six-option picker plus an any-emoji field with your current reaction highlighted, reaction chips on each bubble, and live updates of the other person's reactions without reloading the thread.
+- A message that was deleted or removed shows no reaction chip and no picker.
+- Messages now has primary and requests tabs, a hidden requests folder reached from the requests tab, and accept, delete and block actions on an incoming request, each removing the request at once and restoring it if the server refuses.
+- The requests tab shows the number of pending requests, the hidden requests folder shows none, and the messages badge in the navigation counts unread messages in the primary inbox only.
+- A sender whose message request is unanswered sees a notice and a locked composer, worded the same whether the request is waiting or was deleted.
+- The inbox updates live from a per-session subscription, refreshing the folder a new message landed in and both counters.
+- A conversation row shows a reaction newer than the last message, such as the other person reacting to your message.
 - Regression coverage for empty conversation subtitles and preserved legacy payload fallback assertions after TypeScript fixture conversion.
 - Strict TypeScript coverage for every unit/live/E2E test and typed domain fixtures, preserving test discovery and existing assertions.
 - TypeScript entry points, route factories, Vite/Vitest/Playwright configurations and native Node scripts.
@@ -51,6 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- Reply quotes now render from the server's preview of the replied-to message, labelling photos, videos and shares, and reading "message unavailable" when the original is gone; the loaded history is used only when no preview is sent.
 - Frontend source and tests now use TypeScript throughout; removed migration-only JS allowance and updated documentation, structural tooling and supported configuration/script paths.
 - Post interactions, realtime cache updates, media rendering and composer utilities now use typed query data and browser events.
 - Shared domain services, media upload, impression batching and realtime subscriptions now use explicit API contracts.
@@ -115,6 +135,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- The recipient of a pending message request can no longer react to its messages, because a reaction would tell the sender the request was seen.
+- A requests folder that fails to load now says so and offers a retry, instead of claiming there are no message requests.
+- On a phone, deleting or blocking a request returns to the request list, and accepting one keeps the decision bar on screen until the server answers.
+- Quick reactions in one conversation are sent in order, and a failed reaction re-reads the thread, so a late rollback no longer erases a newer reaction.
+- The way back from the hidden requests folder is labelled "back to requests".
+- The unread message count pill no longer announces every change to screen readers.
+- Hidden words and limit interactions keep showing the last loaded settings when a background refresh fails, instead of replacing them with a full error page.
+- The text of a reply is shown at the weight of any other message instead of in bold.
+- An unanswered message request no longer greets either person with "you're now connected on luvax", because nothing is connected until the recipient accepts.
+- Options menus now wrap a long account handle inside the row and keep every icon, instead of running past the menu edge and squeezing the icon away.
+- The undo toast offered after hiding a post from its detail view now appears when the detail closes; it was dropped with the toast host the closing view unmounted.
+- The notification end-to-end scenarios stub the messages unread counters and refuse the live inbox handshake ticket, so the app shell's new requests do not depend on a running backend.
+- The user event type union lists the thirteen interaction control and message event types the backend defines.
+- The hidden comments panel no longer reopens when the viewer leaves a post and comes back to it, returns focus to a row's unhide button when that unhide is refused, and pressing Escape with the report modal open closes only the modal and not the post behind it.
+- A toast with an action now pauses while the pointer is over it or focus is on its button, its action is disabled while it fades out, and it disappears with the account that made the change so another account cannot send that account's undo.
+- A not interested or show fewer request that fails after another account signed in no longer restores the previous account's hidden-post row.
+- The toast action and the hidden-post row read "Undo" and "Post hidden" in sentence case like the other toasts.
+- Limit interactions no longer pulls focus back after the user moved to another control while a change was saving, keeps asking the server when it still reports a limit after its end, and shows an empty form when a limit ends while the change form is open.
+- The hidden word registry reloads its list when an edit or delete finds the word already removed, and it counts a phrase's length in characters the way the server does.
+- The hidden word form moves focus to the first field with an error, links each error to its field, announces the matched form politely, and the registry has an icon of its own in the sidebar instead of sharing the statistics eye.
+- Options menus now open to the right of their trigger when space permits, flip left near the viewport edge, and keep their opening animation anchored to the chosen side.
 - Operational screens and rendering errors no longer retain homepage indexing metadata, unknown paths return real 404s, proxy redirects preserve HTTPS and mutable assets require cache revalidation.
 - Anonymous support pages now contain their primary heading and content in a main landmark.
 - The account filter on the activity log no longer cuts its placeholder text off at the edge of the field.
@@ -181,6 +222,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- The live end-to-end specs for this work are named for the behavior they cover, and the feature documentation maps each requirement identifier to its behavior and spec.
+- The live end-to-end suite now covers message reactions, reply quotes, message requests, the inbox live topic and the two message send fixes against the running stack.
+- Live-stack end-to-end specs cover not interested, show fewer, mute, hidden words, limit interactions, the interaction policy and hidden comment review against the real backend; run them with `npm run test:e2e:live` while the stack is up and seeded.
+- Unit coverage for not interested and show fewer with rollback, mutes, hidden words, interaction limits, hidden comments, the message permission setting and the shared text match contract.
+- Unit coverage for the hidden word registry form, list and stale delete handling.
+- Unit coverage for the reaction report type, its moderation copy and endpoints, the reported reaction view, the removal notice sentence and its appeal entry.
+- Unit coverage for the reaction cache patch, optimistic reactions with rollback, live reaction frames, the picker, the chips, tombstoned messages and reply quote resolution.
+- Unit coverage for inbox folders, request actions with rollback, the not-found notice, the tab counts, the sender notice, the locked composer and the live inbox subscription.
 - Nine regressions cover indexing configuration, generated documents, private metadata cleanup, rendering failures and authentication semantics, alongside an HTTP check for redirects, discovery, 404s, caching and gzip.
 - A regression test asserts that every request able to receive the session cookie is sent with credentials.
 - A Playwright end-to-end project covering the anonymous appeal paths, run with `npm run test:e2e`: the lost-link recovery form submits and reaches its one success state, the challenge is re-armed after a refusal so a retry succeeds, and the status screen renders a known appeal, persists no token and answers every dead link identically.

@@ -137,6 +137,14 @@ export interface CommentResponse {
   pinned: boolean;
 }
 
+// modules/comment/dto/response/HiddenCommentResponse.java
+export type HiddenCommentReason = 'hidden_words' | 'limited_interaction' | 'hidden_parent';
+
+export interface HiddenCommentResponse extends Omit<CommentResponse, 'pinned'> {
+  pinned: false;
+  hiddenReason: HiddenCommentReason;
+}
+
 // modules/comment/dto/response/CommentContextResponse.java
 export interface CommentContextResponse {
   postId: string;
@@ -193,6 +201,24 @@ export interface ViewerRelationshipResponse {
   isFollowedBy: boolean;
   isBlocking: boolean;
   hasReported: boolean;
+  // The three flags below describe the viewer's own choices about this account.
+  isMutingPosts: boolean;
+  isMutingStories: boolean;
+  isShowingFewer: boolean;
+}
+
+// modules/social/dto/request/MuteRequest.java
+export interface MuteRequest {
+  mutePosts: boolean;
+  muteStories: boolean;
+}
+
+// modules/social/dto/response/MuteResponse.java
+export interface MuteResponse {
+  userId: string;
+  mutePosts: boolean;
+  muteStories: boolean;
+  user: UserSummaryResponse;
 }
 
 // modules/users/dto/response/UserSettingsResponse.java
@@ -235,6 +261,47 @@ export interface UpdateSettingsRequest {
   messagePermission?: MessagePermission | null;
   suggestible?: boolean | null;
   hiddenWordsSystemEnabled?: boolean | null;
+}
+
+// modules/social/dto/response/HiddenWordEntryResponse.java
+export interface HiddenWordEntryResponse {
+  id: string;
+  /** The phrase as the account typed it, not its normalised matching form. */
+  phrase: string;
+  createdAt: string;
+}
+
+// modules/social/dto/response/HiddenWordListResponse.java
+export interface HiddenWordListResponse {
+  /** Newest first. */
+  entries: HiddenWordEntryResponse[];
+  /** The most entries one account may keep. */
+  limit: number;
+}
+
+// modules/social/dto/request/CreateHiddenWordRequest.java
+export interface CreateHiddenWordRequest {
+  phrase: string;
+}
+
+/** The durations `PUT /users/me/interaction-limits` accepts, in days. */
+export type InteractionLimitDuration = 1 | 3 | 7 | 14 | 28;
+
+// modules/social/dto/response/InteractionLimitResponse.java
+export interface InteractionLimitResponse {
+  limitNonFollowers: boolean;
+  limitRecentFollowers: boolean;
+  /** Null when no limit was ever set. */
+  expiresAt: string | null;
+  /** True only while `expiresAt` is in the future. */
+  active: boolean;
+}
+
+// modules/social/dto/request/UpdateInteractionLimitRequest.java
+export interface UpdateInteractionLimitRequest {
+  limitNonFollowers: boolean;
+  limitRecentFollowers: boolean;
+  durationDays: InteractionLimitDuration;
 }
 
 // common/response/UserListItemResponse.java
@@ -305,6 +372,7 @@ export type NotificationType =
   | 'comment_removed'
   | 'story_removed'
   | 'message_removed'
+  | 'reaction_removed'
   | 'report_post_removed'
   | 'post_restored'
   | 'report_dismissed';
@@ -549,7 +617,20 @@ export type UserEventType =
   | 'message_send'
   | 'session_start'
   | 'session_end'
-  | 'app_open';
+  | 'app_open'
+  | 'post_not_interested'
+  | 'post_not_interested_undo'
+  | 'account_show_fewer'
+  | 'account_show_fewer_undo'
+  | 'account_mute'
+  | 'account_unmute'
+  | 'message_reaction'
+  | 'message_reaction_remove'
+  | 'message_request_accept'
+  | 'message_request_delete'
+  | 'comment_hidden'
+  | 'comment_unhide'
+  | 'interaction_limit_change';
 
 // modules/report/dto/request/CreateReportRequest.java
 export interface CreateReportRequest {
@@ -560,7 +641,7 @@ export interface CreateReportRequest {
   turnstileToken: string;
 }
 
-export type ReportType = 'post' | 'comment' | 'user' | 'story' | 'message';
+export type ReportType = 'post' | 'comment' | 'user' | 'story' | 'message' | 'message_reaction';
 
 export type ReportReason =
   | 'spam'
@@ -697,7 +778,14 @@ export interface ConversationResponse {
   createdAt: string;
   pinned: boolean;
   muted: boolean;
+  requestStatus: RequestStatus;
+  isRequestRecipient: boolean;
+  sendRestriction: SendRestriction;
 }
+
+/** A declined request reads as pending to its sender, so there is no declined value here. */
+export type RequestStatus = 'accepted' | 'pending';
+export type SendRestriction = 'none' | 'awaiting_acceptance';
 
 // modules/message/dto/response/ParticipantResponse.java
 export interface ParticipantResponse {
@@ -722,6 +810,41 @@ export interface ConversationSummaryResponse {
   pinned: boolean;
   muted: boolean;
   manuallyUnread: boolean;
+  requestStatus: RequestStatus;
+  isRequestRecipient: boolean;
+  /** Only ever true for the recipient; the sender's view never carries the hidden folder. */
+  requestHidden: boolean;
+  sendRestriction: SendRestriction;
+  lastReaction: LastReactionPreviewResponse | null;
+}
+
+// modules/message/dto/response/LastReactionPreviewResponse.java
+export interface LastReactionPreviewResponse {
+  userId: string;
+  emoji: string;
+  messageId: string;
+  reactedAt: string;
+  onMyMessage: boolean;
+}
+
+export type ConversationFolder = 'primary' | 'requests' | 'hidden_requests';
+
+// modules/message/dto/response/MessageReactionResponse.java
+export interface MessageReactionResponse {
+  /** The reaction's own identifier, which is what a report of it names. */
+  id: string;
+  userId: string;
+  emoji: string;
+  reactedAt: string;
+}
+
+// modules/message/dto/response/ReplyPreviewResponse.java
+export interface ReplyPreviewResponse {
+  messageId: string;
+  senderId: string | null;
+  messageType: MessageType | null;
+  snippet: string | null;
+  unavailable: boolean;
 }
 
 // modules/message/dto/response/MessageResponse.java
@@ -736,9 +859,13 @@ export interface MessageResponse {
   sharedPostId: string | null;
   sharedStoryId: string | null;
   replyToId: string | null;
+  /** Null when the message is not a reply or is itself no longer shown. */
+  replyTo: ReplyPreviewResponse | null;
   isDeleted: boolean;
   deletedAt: string | null;
   createdAt: string;
+  /** Oldest first; empty for a message that is no longer shown. */
+  reactions: MessageReactionResponse[];
 }
 
 export type MessageType = 'text' | 'image' | 'video' | 'post_share' | 'story_share';
@@ -766,7 +893,10 @@ export interface SendMessageRequest {
 
 // modules/message/dto/response/UnreadCountResponse.java
 export interface UnreadCountResponse {
+  /** Unread messages in the regular inbox only. */
   unreadCount: number;
+  /** Pending, visible incoming requests that carry a message; the hidden folder is never counted. */
+  requestCount: number;
 }
 
 // modules/admin/dto/response/UserWarningResponse.java

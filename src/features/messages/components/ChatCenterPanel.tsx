@@ -34,6 +34,17 @@ interface Props {
   isSending: boolean;
   isBlocked?: boolean;
   blockedHint?: string;
+  /** Sets the viewer's reaction on a message, or removes it when the emoji is null. */
+  onReact?: (messageId: string, emoji: string | null) => void;
+  /** Opens the report flow for someone else's reaction on a message. */
+  onReportReaction?: (reactionId: string) => void;
+  /** Decision handlers for an incoming request; the bar replaces the composer for its recipient. */
+  requestActions?: {
+    onAccept: () => void;
+    onDelete: () => void;
+    onBlock: () => void;
+    busy?: boolean;
+  };
 }
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
@@ -43,6 +54,8 @@ import { AvatarVisual } from './AvatarVisual';
 import { ConversationGreeting } from './ConversationGreeting';
 import { MessageAlbum } from './MessageAlbum';
 import { MessageBubble } from './MessageBubble';
+import { PendingRequestNotice } from './PendingRequestNotice';
+import { RequestActionBar } from './RequestActionBar';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 
 // Matches MessageBubble's own avatar column - albums sit in the same left/right rail and need to
@@ -229,6 +242,9 @@ export function ChatCenterPanel({
   isSending,
   isBlocked = false,
   blockedHint,
+  onReact,
+  onReportReaction,
+  requestActions,
 }: Props) {
   const draftInputRef = useRef<HTMLTextAreaElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
@@ -236,9 +252,12 @@ export function ChatCenterPanel({
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [emojiSearch, setEmojiSearch] = useState('');
   const [recentIcons, setRecentIcons] = useState(DEFAULT_RECENT_MESSAGE_ICONS);
+  // The server states the restriction; the client never works it out from message counts.
+  const awaitingAcceptance = activeThread?.sendRestriction === 'awaiting_acceptance';
+  const composerLocked = isBlocked || awaitingAcceptance;
 
   const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (isBlocked) {
+    if (composerLocked) {
       event.target.value = '';
       return;
     }
@@ -249,7 +268,7 @@ export function ChatCenterPanel({
   };
 
   const handleDraftPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    if (isBlocked) {
+    if (composerLocked) {
       event.preventDefault();
       return;
     }
@@ -272,7 +291,7 @@ export function ChatCenterPanel({
   };
 
   const hasDraftContent = Boolean(draft.trim() || pendingAttachments?.length);
-  const canSend = hasDraftContent && !isSending && !isBlocked;
+  const canSend = hasDraftContent && !isSending && !composerLocked;
   const normalizedEmojiSearch = emojiSearch.trim().toLowerCase();
   const visibleEmojiGroups = useMemo(() => {
     const recents = {
@@ -306,6 +325,10 @@ export function ChatCenterPanel({
   // hook count between renders, which React resolves by binding state to the wrong slot.
   if (!activeThread) return null;
 
+  // Reacting to a pending request would tell the sender it was seen before the recipient accepts.
+  const isPendingRequestRecipient =
+    activeThread.requestStatus === 'pending' && Boolean(activeThread.isRequestRecipient);
+  const isRequestRecipient = isPendingRequestRecipient && requestActions;
   const blockedHandle = activeThread.username ? `@${activeThread.username}` : activeThread.name;
   const blockedMessage =
     blockedHint || `you blocked ${blockedHandle}. messaging is paused until you unblock them.`;
@@ -412,7 +435,9 @@ export function ChatCenterPanel({
         >
           <ConversationGreeting
             messageCount={activeThread.messages.length}
-            pending={!activeThread.id}
+            // An unanswered request is not a connection yet, so it gets the same neutral
+            // greeting as a thread that has no conversation behind it.
+            pending={!activeThread.id || activeThread.requestStatus === 'pending'}
             name={activeThread.name}
             username={activeThread.username}
             avatarUrl={activeThread.avatarUrl}
@@ -505,458 +530,480 @@ export function ChatCenterPanel({
                     onDeleteToggle={handleDeleteToggle}
                     onReplyMessage={setReplyingTo}
                     forceShowActions={rowHovered}
+                    canReact={!isBlocked && !isPendingRequestRecipient}
+                    onReact={onReact}
+                    onReportReaction={
+                      onReportReaction ? (reactionId) => onReportReaction(reactionId) : undefined
+                    }
                   />
                 )}
               </MessageActionRow>
             );
           })}
+          {awaitingAcceptance ? <PendingRequestNotice name={activeThread.name} /> : null}
         </div>
       </div>
 
-      <div
-        style={{
-          borderTop: `1px solid ${v.border}`,
-          padding: '10px 18px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-          minWidth: 0,
-          position: 'relative',
-        }}
-      >
-        {isBlocked ? (
-          <div
-            style={{
-              borderTop: `1px solid ${v.borderSubtle}`,
-              borderBottom: `1px solid ${v.borderSubtle}`,
-              background: v.surface,
-              color: v.ink2,
-              fontFamily: v.fontBody,
-              fontSize: 12.5,
-              lineHeight: 1.35,
-              padding: '9px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
-            <LxIcon name="ban" size={14} color={v.error} />
-            <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{blockedMessage}</span>
-          </div>
-        ) : null}
-
-        {replyingTo ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 10,
-              padding: '0 2px',
-              fontFamily: v.fontMono,
-              fontSize: 10.5,
-              color: v.accentText,
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                minWidth: 0,
-                flex: 1,
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 6,
-              }}
-            >
-              <span style={{ flexShrink: 0 }}>
-                ↩ replying to {replyingTo.from === 'me' ? 'you' : activeThread.name}
-              </span>
-              <span
-                style={{
-                  color: v.ink2,
-                  minWidth: 0,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {replyingTo.text}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setReplyingTo(null)}
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: '50%',
-                background: 'rgba(0,0,0,0.14)',
-                border: 'none',
-                color: v.ink3,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: 10,
-                lineHeight: 1,
-              }}
-            >
-              ×
-            </button>
-          </div>
-        ) : null}
-
-        {pendingAttachments?.length ? (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 2px' }}>
-            {pendingAttachments.map((item) => (
-              <div key={item.id} style={{ position: 'relative', flexShrink: 0 }}>
-                {item.isVideo ? (
-                  <video
-                    src={item.previewUrl}
-                    muted
-                    style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
-                  />
-                ) : (
-                  <img
-                    src={item.previewUrl}
-                    alt=""
-                    style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => onRemovePendingAttachment?.(item.id)}
-                  aria-label="remove attachment"
-                  style={{
-                    position: 'absolute',
-                    top: -6,
-                    right: -6,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    border: `1px solid ${v.border}`,
-                    background: v.base,
-                    color: v.ink2,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
+      {isRequestRecipient ? (
+        <RequestActionBar
+          name={activeThread.name}
+          busy={requestActions.busy}
+          onAccept={requestActions.onAccept}
+          onDelete={requestActions.onDelete}
+          onBlock={requestActions.onBlock}
+        />
+      ) : (
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '32px minmax(0, 1fr) 32px',
-            alignItems: 'end',
-            gap: 6,
+            borderTop: `1px solid ${v.border}`,
+            padding: '10px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
             minWidth: 0,
-            minHeight: 42,
-            borderRadius: 22,
-            border: `1px solid ${v.borderSubtle}`,
-            background: v.surfaceSunken,
-            padding: '4px 7px',
-            boxSizing: 'border-box',
+            position: 'relative',
           }}
         >
-          <input
-            ref={attachmentInputRef}
-            type="file"
-            accept={ACCEPTED_ATTACHMENT_TYPES}
-            multiple
-            onChange={handleAttachmentChange}
-            style={{ display: 'none' }}
-          />
-          <button
-            type="button"
-            onClick={() => setIconPickerOpen((open) => !open)}
-            disabled={isSending || isBlocked}
-            aria-label="choose message icon"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              border: 'none',
-              background: 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: isSending ? 'wait' : isBlocked ? 'default' : 'pointer',
-              opacity: isSending || isBlocked ? 0.6 : 1,
-              flexShrink: 0,
-            }}
-          >
-            <LxIcon name="smile" size={15} color={v.ink3} />
-          </button>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 32,
-              borderRadius: 0,
-              background: 'transparent',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '7px 4px',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
-            }}
-          >
-            <textarea
-              ref={draftInputRef}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onPaste={handleDraftPaste}
-              maxLength={CHAR_LIMITS.message}
-              disabled={isBlocked}
-              onKeyDown={(event) => {
-                if (isBlocked) return;
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder={isBlocked ? 'blocked' : replyingTo ? 'write a reply...' : 'Message...'}
-              rows={1}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                width: '100%',
-                minHeight: 16,
-                maxHeight: DRAFT_MAX_HEIGHT,
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: isBlocked ? v.ink3 : v.ink,
-                fontFamily: v.fontBody,
-                fontSize: 13.5,
-                lineHeight: 1.4,
-                resize: 'none',
-                overflowY: 'auto',
-                overflowWrap: 'anywhere',
-                wordBreak: 'break-word',
-                padding: 0,
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => (hasDraftContent ? handleSend() : attachmentInputRef.current?.click())}
-            disabled={hasDraftContent ? !canSend : isSending || isBlocked}
-            aria-label={hasDraftContent ? 'send message' : 'attach a photo, video, or gif'}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              border: 'none',
-              background: hasDraftContent ? v.accent : 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: hasDraftContent ? (canSend ? 'pointer' : 'default') : 'pointer',
-              opacity: hasDraftContent ? (canSend ? 1 : 0.5) : isSending || isBlocked ? 0.6 : 1,
-              flexShrink: 0,
-            }}
-          >
-            <LxIcon
-              name={hasDraftContent ? 'send' : 'image'}
-              size={14}
-              color={hasDraftContent ? v.ink : v.ink3}
-            />
-          </button>
-        </div>
-        {iconPickerOpen && !isBlocked ? (
-          <div
-            style={{
-              position: 'absolute',
-              left: 58,
-              bottom: 'calc(100% + 8px)',
-              width: 'min(340px, calc(100% - 80px))',
-              border: `1px solid ${v.borderSubtle}`,
-              borderRadius: 8,
-              background: v.surface,
-              boxShadow: `0 18px 46px ${v.shadow25}`,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'visible',
-              zIndex: 20,
-            }}
-          >
-            <div
-              aria-hidden="true"
-              style={{
-                position: 'absolute',
-                left: 154,
-                bottom: -7,
-                width: 14,
-                height: 14,
-                background: v.surface,
-                borderRight: `1px solid ${v.borderSubtle}`,
-                borderBottom: `1px solid ${v.borderSubtle}`,
-                transform: 'rotate(45deg)',
-              }}
-            />
-            <div style={{ padding: 10, borderBottom: `1px solid ${v.borderSubtle}` }}>
-              <div
-                style={{
-                  height: 34,
-                  borderRadius: 8,
-                  background: v.surfaceSunken,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '0 10px',
-                }}
-              >
-                <LxIcon name="explore" size={14} color={v.ink3} />
-                <input
-                  type="search"
-                  value={emojiSearch}
-                  onChange={(event) => setEmojiSearch(event.target.value)}
-                  placeholder="search emoji"
-                  aria-label="search emoji"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    border: 'none',
-                    outline: 'none',
-                    background: 'transparent',
-                    color: v.ink,
-                    fontFamily: v.fontBody,
-                    fontSize: 13,
-                  }}
-                />
-              </div>
-            </div>
-            <div
-              style={{
-                maxHeight: 242,
-                overflowY: 'auto',
-                padding: '10px 12px 12px',
-              }}
-            >
-              {visibleEmojiGroups.length ? (
-                visibleEmojiGroups.map((group) => (
-                  <section
-                    key={group.label}
-                    ref={(node) => {
-                      emojiGroupRefs.current[group.label] = node;
-                    }}
-                    style={{ marginBottom: 14 }}
-                  >
-                    <div
-                      style={{
-                        fontFamily: v.fontBody,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: v.ink3,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {group.label}
-                    </div>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(8, 1fr)',
-                        gap: 3,
-                      }}
-                    >
-                      {group.icons.map(([icon]) => (
-                        <button
-                          key={`${group.label}-${icon}`}
-                          type="button"
-                          onClick={() => appendMessageIcon(icon)}
-                          aria-label={`insert ${icon}`}
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 6,
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontFamily: MESSAGE_EMOJI_FONT,
-                            fontSize: 24,
-                            lineHeight: 1,
-                            padding: 0,
-                          }}
-                        >
-                          {icon}
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ))
-              ) : (
-                <div
-                  style={{
-                    padding: '22px 8px',
-                    textAlign: 'center',
-                    fontFamily: v.fontBody,
-                    fontSize: 13,
-                    color: v.ink3,
-                  }}
-                >
-                  no emoji found
-                </div>
-              )}
-            </div>
+          {isBlocked ? (
             <div
               style={{
                 borderTop: `1px solid ${v.borderSubtle}`,
-                display: 'grid',
-                gridTemplateColumns: `repeat(${MESSAGE_ICON_GROUPS.length}, 1fr)`,
+                borderBottom: `1px solid ${v.borderSubtle}`,
                 background: v.surface,
+                color: v.ink2,
+                fontFamily: v.fontBody,
+                fontSize: 12.5,
+                lineHeight: 1.35,
+                padding: '9px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                minWidth: 0,
               }}
             >
-              {MESSAGE_ICON_GROUPS.map((group) => (
-                <button
-                  key={group.label}
-                  type="button"
-                  onClick={() => {
-                    setEmojiSearch('');
-                    window.requestAnimationFrame(() => {
-                      emojiGroupRefs.current[group.label]?.scrollIntoView({
-                        block: 'nearest',
-                      });
-                    });
-                  }}
-                  aria-label={group.label}
+              <LxIcon name="ban" size={14} color={v.error} />
+              <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{blockedMessage}</span>
+            </div>
+          ) : null}
+
+          {replyingTo ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                padding: '0 2px',
+                fontFamily: v.fontMono,
+                fontSize: 10.5,
+                color: v.accentText,
+                minWidth: 0,
+              }}
+            >
+              <div
+                style={{
+                  minWidth: 0,
+                  flex: 1,
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: 6,
+                }}
+              >
+                <span style={{ flexShrink: 0 }}>
+                  ↩ replying to {replyingTo.from === 'me' ? 'you' : activeThread.name}
+                </span>
+                <span
                   style={{
-                    height: 38,
-                    border: 'none',
-                    borderRight: `1px solid ${v.borderSubtle}`,
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    fontFamily: MESSAGE_EMOJI_FONT,
-                    fontSize: 17,
-                    padding: 0,
+                    color: v.ink2,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {group.categoryIcon}
-                </button>
+                  {replyingTo.text}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.14)',
+                  border: 'none',
+                  color: v.ink3,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  fontSize: 10,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ) : null}
+
+          {pendingAttachments?.length ? (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 2px' }}>
+              {pendingAttachments.map((item) => (
+                <div key={item.id} style={{ position: 'relative', flexShrink: 0 }}>
+                  {item.isVideo ? (
+                    <video
+                      src={item.previewUrl}
+                      muted
+                      style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
+                    />
+                  ) : (
+                    <img
+                      src={item.previewUrl}
+                      alt=""
+                      style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onRemovePendingAttachment?.(item.id)}
+                    aria-label="remove attachment"
+                    style={{
+                      position: 'absolute',
+                      top: -6,
+                      right: -6,
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      border: `1px solid ${v.border}`,
+                      background: v.base,
+                      color: v.ink2,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 11,
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
+          ) : null}
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '32px minmax(0, 1fr) 32px',
+              alignItems: 'end',
+              gap: 6,
+              minWidth: 0,
+              minHeight: 42,
+              borderRadius: 22,
+              border: `1px solid ${v.borderSubtle}`,
+              background: v.surfaceSunken,
+              padding: '4px 7px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              accept={ACCEPTED_ATTACHMENT_TYPES}
+              multiple
+              onChange={handleAttachmentChange}
+              style={{ display: 'none' }}
+            />
+            <button
+              type="button"
+              onClick={() => setIconPickerOpen((open) => !open)}
+              disabled={isSending || composerLocked}
+              aria-label="choose message icon"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: isSending ? 'wait' : composerLocked ? 'default' : 'pointer',
+                opacity: isSending || composerLocked ? 0.6 : 1,
+                flexShrink: 0,
+              }}
+            >
+              <LxIcon name="smile" size={15} color={v.ink3} />
+            </button>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 32,
+                borderRadius: 0,
+                background: 'transparent',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '7px 4px',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+              }}
+            >
+              <textarea
+                ref={draftInputRef}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onPaste={handleDraftPaste}
+                maxLength={CHAR_LIMITS.message}
+                disabled={composerLocked}
+                onKeyDown={(event) => {
+                  if (composerLocked) return;
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={isBlocked ? 'blocked' : replyingTo ? 'write a reply...' : 'Message...'}
+                rows={1}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  width: '100%',
+                  minHeight: 16,
+                  maxHeight: DRAFT_MAX_HEIGHT,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: composerLocked ? v.ink3 : v.ink,
+                  fontFamily: v.fontBody,
+                  fontSize: 13.5,
+                  lineHeight: 1.4,
+                  resize: 'none',
+                  overflowY: 'auto',
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  padding: 0,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => (hasDraftContent ? handleSend() : attachmentInputRef.current?.click())}
+              disabled={hasDraftContent ? !canSend : isSending || composerLocked}
+              aria-label={hasDraftContent ? 'send message' : 'attach a photo, video, or gif'}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: 'none',
+                background: hasDraftContent ? v.accent : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: hasDraftContent ? (canSend ? 'pointer' : 'default') : 'pointer',
+                opacity: hasDraftContent
+                  ? canSend
+                    ? 1
+                    : 0.5
+                  : isSending || composerLocked
+                    ? 0.6
+                    : 1,
+                flexShrink: 0,
+              }}
+            >
+              <LxIcon
+                name={hasDraftContent ? 'send' : 'image'}
+                size={14}
+                color={hasDraftContent ? v.ink : v.ink3}
+              />
+            </button>
           </div>
-        ) : null}
-      </div>
+          {iconPickerOpen && !composerLocked ? (
+            <div
+              style={{
+                position: 'absolute',
+                left: 58,
+                bottom: 'calc(100% + 8px)',
+                width: 'min(340px, calc(100% - 80px))',
+                border: `1px solid ${v.borderSubtle}`,
+                borderRadius: 8,
+                background: v.surface,
+                boxShadow: `0 18px 46px ${v.shadow25}`,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'visible',
+                zIndex: 20,
+              }}
+            >
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  left: 154,
+                  bottom: -7,
+                  width: 14,
+                  height: 14,
+                  background: v.surface,
+                  borderRight: `1px solid ${v.borderSubtle}`,
+                  borderBottom: `1px solid ${v.borderSubtle}`,
+                  transform: 'rotate(45deg)',
+                }}
+              />
+              <div style={{ padding: 10, borderBottom: `1px solid ${v.borderSubtle}` }}>
+                <div
+                  style={{
+                    height: 34,
+                    borderRadius: 8,
+                    background: v.surfaceSunken,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '0 10px',
+                  }}
+                >
+                  <LxIcon name="explore" size={14} color={v.ink3} />
+                  <input
+                    type="search"
+                    value={emojiSearch}
+                    onChange={(event) => setEmojiSearch(event.target.value)}
+                    placeholder="search emoji"
+                    aria-label="search emoji"
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      border: 'none',
+                      outline: 'none',
+                      background: 'transparent',
+                      color: v.ink,
+                      fontFamily: v.fontBody,
+                      fontSize: 13,
+                    }}
+                  />
+                </div>
+              </div>
+              <div
+                style={{
+                  maxHeight: 242,
+                  overflowY: 'auto',
+                  padding: '10px 12px 12px',
+                }}
+              >
+                {visibleEmojiGroups.length ? (
+                  visibleEmojiGroups.map((group) => (
+                    <section
+                      key={group.label}
+                      ref={(node) => {
+                        emojiGroupRefs.current[group.label] = node;
+                      }}
+                      style={{ marginBottom: 14 }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: v.fontBody,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: v.ink3,
+                          marginBottom: 8,
+                        }}
+                      >
+                        {group.label}
+                      </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(8, 1fr)',
+                          gap: 3,
+                        }}
+                      >
+                        {group.icons.map(([icon]) => (
+                          <button
+                            key={`${group.label}-${icon}`}
+                            type="button"
+                            onClick={() => appendMessageIcon(icon)}
+                            aria-label={`insert ${icon}`}
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 6,
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontFamily: MESSAGE_EMOJI_FONT,
+                              fontSize: 24,
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                          >
+                            {icon}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  ))
+                ) : (
+                  <div
+                    style={{
+                      padding: '22px 8px',
+                      textAlign: 'center',
+                      fontFamily: v.fontBody,
+                      fontSize: 13,
+                      color: v.ink3,
+                    }}
+                  >
+                    no emoji found
+                  </div>
+                )}
+              </div>
+              <div
+                style={{
+                  borderTop: `1px solid ${v.borderSubtle}`,
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${MESSAGE_ICON_GROUPS.length}, 1fr)`,
+                  background: v.surface,
+                }}
+              >
+                {MESSAGE_ICON_GROUPS.map((group) => (
+                  <button
+                    key={group.label}
+                    type="button"
+                    onClick={() => {
+                      setEmojiSearch('');
+                      window.requestAnimationFrame(() => {
+                        emojiGroupRefs.current[group.label]?.scrollIntoView({
+                          block: 'nearest',
+                        });
+                      });
+                    }}
+                    aria-label={group.label}
+                    style={{
+                      height: 38,
+                      border: 'none',
+                      borderRight: `1px solid ${v.borderSubtle}`,
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      fontFamily: MESSAGE_EMOJI_FONT,
+                      fontSize: 17,
+                      padding: 0,
+                    }}
+                  >
+                    {group.categoryIcon}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }

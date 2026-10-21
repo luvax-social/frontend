@@ -37,7 +37,14 @@ export const REPORT_STATUSES = [
 export const MODERATOR_REPORT_STATUSES = ['pending', 'reviewing'] as const;
 
 /** `report_type` enum. */
-export const REPORT_TYPES = ['post', 'comment', 'user', 'story', 'message'] as const;
+export const REPORT_TYPES = [
+  'post',
+  'comment',
+  'user',
+  'story',
+  'message',
+  'message_reaction',
+] as const;
 
 export const REPORT_STATUS_LABELS = {
   pending: 'pending',
@@ -53,7 +60,15 @@ export const REPORT_TYPE_LABELS = {
   user: 'user',
   story: 'story',
   message: 'message',
+  message_reaction: 'message reaction',
 };
+
+/**
+ * The noun a control uses for the reported content, which is the type name except for a message
+ * reaction: "remove reaction" reads better than "remove message_reaction".
+ */
+export const contentNoun = (reportType: string) =>
+  reportType === 'message_reaction' ? 'reaction' : reportType;
 
 /**
  * The target types the panel can remove and restore.
@@ -67,4 +82,10 @@ export const REPORT_TYPE_LABELS = {
  * against an account are ban, suspend, and warn, which live on the account
  * screen and are not content moderation.
  */
-export const ACTIONABLE_TARGET_TYPES = new Set(['post', 'comment', 'story', 'message']);
+export const ACTIONABLE_TARGET_TYPES = new Set([
+  'post',
+  'comment',
+  'story',
+  'message',
+  'message_reaction',
+]);

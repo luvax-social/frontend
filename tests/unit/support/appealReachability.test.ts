@@ -182,7 +182,7 @@ describe('appealPath', () => {
 });
 
 describe('appealableActionId', () => {
-  it('offers an appeal on each of the four removal notices', () => {
+  it('offers an appeal on each of the five removal notices', () => {
     for (const type of CONTENT_REMOVAL_TYPES) {
       expect(appealableActionId({ type, entityType: 'admin_action', entityId: 'action-1' })).toBe(
         'action-1'
@@ -194,6 +194,17 @@ describe('appealableActionId', () => {
     expect(CONTENT_REMOVAL_TYPES.has('comment_removed')).toBe(true);
     expect(CONTENT_REMOVAL_TYPES.has('story_removed')).toBe(true);
     expect(CONTENT_REMOVAL_TYPES.has('message_removed')).toBe(true);
+  });
+
+  it('covers a removed message reaction, which is appealed like any other removal', () => {
+    expect(CONTENT_REMOVAL_TYPES.has('reaction_removed')).toBe(true);
+    expect(
+      appealableActionId({
+        type: 'reaction_removed',
+        entityType: 'admin_action',
+        entityId: 'action-9',
+      })
+    ).toBe('action-9');
   });
 
   // A post_removed notification written before this work points at the post.

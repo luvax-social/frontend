@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { v } from '@/config/tokens';
 import { LxIcon } from '@/components/ui/lx-icon';
+import { computeMenuPlacement, type MenuPlacement } from '@/components/ui/menuPlacement';
 
 export interface DropdownItem {
   id: string;
@@ -20,7 +21,6 @@ interface DropdownProps {
   onClose?: () => void;
   items: (DropdownItem | null | undefined | false)[];
   width?: number;
-  align?: 'left' | 'right';
   zIndex?: number;
 }
 
@@ -30,11 +30,15 @@ export function LxDropdownMenu({
   onClose,
   items,
   width = 196,
-  align = 'right',
   zIndex = 1200,
 }: DropdownProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0, placement: 'bottom' });
+  const [position, setPosition] = useState<MenuPlacement>({
+    top: 0,
+    left: 0,
+    vertical: 'bottom',
+    horizontal: 'start',
+  });
 
   useLayoutEffect(() => {
     if (!open || typeof window === 'undefined') {
@@ -61,18 +65,19 @@ export function LxDropdownMenu({
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
       const gap = 10;
-      const shouldOpenUp =
-        rect.bottom + menuHeight + gap > viewportHeight && rect.top > menuHeight + gap;
-      const topVisual = shouldOpenUp
-        ? Math.max(gap, rect.top - menuHeight - 8)
-        : Math.min(viewportHeight - menuHeight - gap, rect.bottom + 8);
-      const preferredLeft = align === 'right' ? rect.right - menuWidth : rect.left;
-      const leftVisual = Math.min(Math.max(gap, preferredLeft), viewportWidth - menuWidth - gap);
+      const placement = computeMenuPlacement({
+        rect,
+        menuWidth,
+        menuHeight,
+        viewportWidth,
+        viewportHeight,
+        gap,
+      });
 
       setPosition({
-        top: topVisual / zoom,
-        left: leftVisual / zoom,
-        placement: shouldOpenUp ? 'top' : 'bottom',
+        ...placement,
+        top: placement.top / zoom,
+        left: placement.left / zoom,
       });
     };
 
@@ -84,7 +89,7 @@ export function LxDropdownMenu({
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [align, anchorRef, open, width]);
+  }, [anchorRef, open, width]);
 
   useEffect(() => {
     if (!open || typeof window === 'undefined') {
@@ -125,7 +130,7 @@ export function LxDropdownMenu({
   const menu = (
     <div
       ref={menuRef}
-      className={`lx-popover-menu ${position.placement === 'top' ? 'is-up' : 'is-down'}`}
+      className={`lx-popover-menu ${position.vertical === 'top' ? 'is-up' : 'is-down'} is-${position.horizontal}`}
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
       style={{

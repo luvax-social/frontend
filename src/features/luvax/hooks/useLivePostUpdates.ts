@@ -4,8 +4,19 @@ import type { Post } from '@/types/social';
 import type { CommentResponse } from '@/types/domain';
 import type { CommentCachePage } from '@/types/cache';
 type CommentBroadcast = Omit<CommentResponse, 'isLiked' | 'hasReported' | 'pinned'>;
+/**
+ * The comment frames this hook acts on. `comment.unhidden.v1` is the release of a comment the
+ * post owner had hidden; it reaches every subscriber whole, as a created comment does.
+ */
+type CommentEventType =
+  | 'comment.created.v1'
+  | 'comment.unhidden.v1'
+  | 'comment.edited.v1'
+  | 'comment.deleted.v1'
+  | 'comment.liked.v1'
+  | 'comment.unliked.v1';
 interface CommentEvent {
-  eventType: string;
+  eventType: CommentEventType;
   data?: {
     comment?: CommentBroadcast;
     userId?: string;
@@ -170,6 +181,47 @@ const cachedCommentIds = (cached: CommentCachePage | undefined) => {
   return ids;
 };
 
+/**
+ * How long frames of a release must stop arriving before the counts are re-read. Unhiding a
+ * comment emits one frame for it and one for each reply released with it.
+ */
+const RELEASE_REFRESH_DEBOUNCE_MS = 150;
+
+/**
+ * Appends a comment to a cached list unless a row with its id is already there.
+ *
+ * A paged list takes it on its last page, never the first, for the reason given in the created
+ * branch above; a single payload takes it at the end.
+ */
+const appendNewComment = (
+  cached: CommentCachePage | undefined,
+  incoming: CommentBroadcast,
+  paged: boolean
+): CommentCachePage | undefined => {
+  if (!cached || cachedCommentIds(cached).has(incoming.id)) {
+    return cached;
+  }
+  const append = (payload: CommentCachePage) => {
+    const rows = payload?.data?.content;
+    if (!Array.isArray(rows)) {
+      return payload;
+    }
+    return {
+      ...payload,
+      data: { ...payload.data, content: [...rows, decorateNewComment(incoming)] },
+    };
+  };
+  if (paged && Array.isArray(cached.pages)) {
+    if (cached.pages.length === 0) {
+      return cached;
+    }
+    const pages = [...cached.pages];
+    pages[pages.length - 1] = append(pages[pages.length - 1]);
+    return { ...cached, pages };
+  }
+  return append(cached);
+};
+
 /** Adjusts a counter on the cached post detail without touching viewer state. */
 const adjustPostCounter = (
   queryClient: QueryClient,
@@ -197,11 +249,47 @@ export const useLivePostUpdates = (postId: string | null | undefined) => {
       return undefined;
     }
 
+    let releaseRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReleaseRefresh = () => {
+      clearTimeout(releaseRefreshTimer);
+      releaseRefreshTimer = setTimeout(() => {
+        void queryClient.invalidateQueries({ queryKey: ['post', postId] });
+        void queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+        void queryClient.invalidateQueries({ queryKey: ['commentReplies'] });
+      }, RELEASE_REFRESH_DEBOUNCE_MS);
+    };
+
     const onCommentEvent = ({ eventType, data }: CommentEvent) => {
       if (!data) {
         return;
       }
       const commentsKey = ['comments', postId];
+
+      if (eventType === 'comment.unhidden.v1') {
+        const incoming = data.comment;
+        if (!incoming) {
+          return;
+        }
+        // The owner's review list no longer holds a released comment, whoever released it.
+        // Nothing is written when that list was never opened.
+        queryClient.setQueryData<CommentCachePage>(
+          [...commentsKey, 'hidden'],
+          removeCachedComment(incoming.id)
+        );
+        // Unlike a created comment, a release changes counts the client cannot work out:
+        // the comment's replies are released with it, the unhiding owner has already
+        // refetched the counts, and a commenter's own hidden row was cached before it
+        // counted. So no count is touched here; the rows are added where a list is already
+        // open and the counts are re-read once the burst of frames has ended.
+        const listKey = incoming.parentId ? ['commentReplies', incoming.parentId] : commentsKey;
+        if (queryClient.getQueryData<CommentCachePage>(listKey)) {
+          queryClient.setQueryData<CommentCachePage>(listKey, (cached) =>
+            appendNewComment(cached, incoming, !incoming.parentId)
+          );
+        }
+        scheduleReleaseRefresh();
+        return;
+      }
 
       if (eventType === 'comment.created.v1') {
         const incoming = data.comment;
@@ -378,6 +466,7 @@ export const useLivePostUpdates = (postId: string | null | undefined) => {
     const unsubscribePosts = subscribeTopic(POST_TOPIC(postId), onPostEvent);
 
     return () => {
+      clearTimeout(releaseRefreshTimer);
       unsubscribeComments();
       unsubscribePosts();
     };

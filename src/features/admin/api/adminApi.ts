@@ -305,6 +305,33 @@ export const adminApi = {
   },
 
   /**
+   * Remove a message reaction. Returns an AdminActionResponse directly.
+   *
+   * `PATCH /admin/message-reactions/{reactionId}/remove`. The id is the reaction's own, which is
+   * what a report of a reaction names. A removal needs a reason and tells the reactor.
+   */
+  async removeMessageReaction(reactionId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
+      `/admin/message-reactions/${reactionId}/remove`,
+      buildBody({ reason, reportId })
+    );
+    return unwrap(res);
+  },
+
+  /**
+   * Restore a removed message reaction, with its original emoji and time.
+   *
+   * `PATCH /admin/message-reactions/{reactionId}/restore`. Returns an AdminActionResponse.
+   */
+  async restoreMessageReaction(reactionId: string, reason: string, reportId?: string | null) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
+      `/admin/message-reactions/${reactionId}/restore`,
+      buildBody({ reason, reportId })
+    );
+    return unwrap(res);
+  },
+
+  /**
    * One page of an account's violation history. The result set differs by role:
    * a moderator sees warnings only, an administrator sees warnings and strikes.
    * Rows are a discriminated union on `kind`.

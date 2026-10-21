@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interaction control wireframes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --lx-base:#F9F7F4; --lx-surface:#F0EDE8; --lx-surface-raised:#E8E3DC; --lx-surface-sunken:#EAE6E0;
+  --lx-ink:#1A1816; --lx-ink-2:#574F47; --lx-ink-3:#9B9088; --lx-ink-inverse:#F9F7F4;
+  --lx-border:#DDD7CF; --lx-border-strong:#C4BCB2; --lx-border-subtle:#ECEAE5;
+  --lx-accent:#C8A97E; --lx-accent-dark:#A8885A; --lx-accent-dim:#F2EAD9; --lx-accent-text:#7A5C34;
+  --lx-error:#C47168; --lx-error-dim:#F5E8E7; --lx-error-text:#98514A;
+  --lx-success:#7A9E7A; --lx-success-dim:#EAF0EA; --lx-warning-dim:#F5EED8; --lx-warning-text:#A88A3A;
+  --lx-scrim:rgba(26,24,22,0.45);
+  --font-display:'Syne',sans-serif; --font-body:'DM Sans',sans-serif; --font-mono:'DM Mono',monospace;
+  --shadow-card:0 2px 8px rgba(26,24,22,0.06); --shadow-md:0 2px 8px rgba(26,24,22,0.09);
+  --shadow-xl:0 20px 60px rgba(26,24,22,0.25),0 4px 16px rgba(26,24,22,0.12);
+  --radius-sm:4px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px; --radius-pill:999px;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--lx-surface-raised); color:var(--lx-ink); font:15px/1.5 var(--font-body); letter-spacing:-0.01em; }
+.doc { width:1480px; margin:0 auto; padding:40px 20px 80px; }
+.doc > header h1 { font:700 30px/1.25 var(--font-display); letter-spacing:-0.02em; margin:0 0 8px; }
+.doc > header p { margin:0 0 4px; color:var(--lx-ink-2); max-width:760px; }
+.index { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 40px; padding:0; list-style:none; }
+.index a { display:inline-block; padding:6px 12px; border:1px solid var(--lx-border-strong); border-radius:var(--radius-pill); color:var(--lx-ink); text-decoration:none; font-size:13px; background:var(--lx-base); }
+.frame-head { display:flex; align-items:baseline; gap:12px; margin:48px 0 12px; }
+.frame-head h2 { font:600 20px/1.25 var(--font-display); margin:0; }
+.frame-head .req { font:400 12px var(--font-mono); color:var(--lx-ink-2); }
+.notes { margin:0 0 12px; padding-left:18px; color:var(--lx-ink-2); max-width:1100px; font-size:14px; }
+.notes li { margin:2px 0; }
+.frame { position:relative; width:1440px; height:900px; overflow:hidden; background:var(--lx-base); border:1px solid var(--lx-border-strong); border-radius:var(--radius-md); }
+
+/* app shell */
+.shell { display:grid; grid-template-columns:244px 1fr; height:100%; }
+.nav { border-right:1px solid var(--lx-border); padding:28px 20px; display:flex; flex-direction:column; gap:6px; }
+.logo { font:700 24px var(--font-display); letter-spacing:-0.03em; margin:0 0 24px 8px; }
+.nav a { display:flex; align-items:center; gap:12px; padding:9px 8px; color:var(--lx-ink-2); text-decoration:none; }
+.nav a.on { color:var(--lx-accent-text); box-shadow:inset 0 -1px 0 var(--lx-accent); }
+.ic { width:20px; height:20px; flex:none; border:1.5px solid currentColor; border-radius:6px; opacity:.85; }
+.ic.round { border-radius:50%; }
+.main { position:relative; height:100%; overflow:hidden; }
+
+/* shared parts */
+.av { width:40px; height:40px; border-radius:50%; flex:none; background:var(--lx-accent); }
+.av.s { width:32px; height:32px; } .av.xs { width:24px; height:24px; } .av.l { width:56px; height:56px; }
+.av.c1 { background:#7A9E7A; } .av.c2 { background:#9B7EA8; } .av.c3 { background:#7A9EB8; } .av.c4 { background:#C47168; } .av.c5 { background:#B89468; }
+.muted { color:var(--lx-ink-3); } .ink2 { color:var(--lx-ink-2); }
+.small { font-size:13px; } .tiny { font-size:12px; }
+.handle { font-weight:500; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px 16px; border-radius:var(--radius-pill); font:500 14px var(--font-body); border:1px solid transparent; background:var(--lx-accent); color:var(--lx-ink); white-space:nowrap; }
+.btn.ghost { background:transparent; border-color:var(--lx-border); }
+.btn.danger { background:var(--lx-error); color:var(--lx-ink-inverse); }
+.btn.link { background:none; padding:0; color:var(--lx-accent-text); border:0; }
+.btn.dis { opacity:.4; }
+.input { background:var(--lx-surface-sunken); border:1px solid var(--lx-border); border-radius:var(--radius-md); padding:10px 14px; color:var(--lx-ink-3); }
+.input.focus { border-color:var(--lx-accent); color:var(--lx-ink); }
+.toggle { width:40px; height:24px; border-radius:var(--radius-pill); background:var(--lx-border-strong); position:relative; flex:none; }
+.toggle::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--lx-base); }
+.toggle.on { background:var(--lx-accent); } .toggle.on::after { left:19px; }
+.chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:var(--radius-pill); background:var(--lx-surface); font-size:13px; }
+.chip.sel { background:var(--lx-accent-dim); color:var(--lx-accent-text); box-shadow:inset 0 0 0 1px var(--lx-accent); }
+.count { display:inline-flex; min-width:20px; height:20px; padding:0 6px; border-radius:var(--radius-pill); background:var(--lx-accent); color:var(--lx-ink); font-size:12px; font-weight:600; align-items:center; justify-content:center; }
+.count.quiet { background:var(--lx-surface-raised); color:var(--lx-ink-2); }
+.hair { border-top:1px solid var(--lx-border); }
+.row { display:flex; align-items:center; gap:12px; }
+.col { display:flex; flex-direction:column; }
+.scrim { position:absolute; inset:0; background:var(--lx-scrim); }
+.sheet { position:absolute; background:var(--lx-base); border-radius:var(--radius-xl); box-shadow:var(--shadow-xl); }
+.menu { position:absolute; background:var(--lx-base); border:1px solid var(--lx-border); border-radius:var(--radius-md); box-shadow:var(--shadow-md); padding:6px; width:268px; }
+.menu .mi { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--radius-sm); font-size:14px; }
+.menu .mi.new { background:var(--lx-accent-dim); }
+.menu .mi.danger { color:var(--lx-error-text); }
+.menu .sep { height:1px; background:var(--lx-border); margin:6px 4px; }
+.tag-new { margin-left:auto; font:400 11px var(--font-mono); color:var(--lx-accent-text); }
+.callout { position:absolute; font:400 12px/1.4 var(--font-mono); color:var(--lx-accent-text); background:var(--lx-accent-dim); border:1px solid var(--lx-accent); border-radius:var(--radius-sm); padding:6px 8px; max-width:240px; }
+
+/* feed */
+.feedcol { width:680px; margin:0 auto; padding:24px 0; display:flex; flex-direction:column; gap:12px; }
+.tabs { display:flex; gap:28px; border-bottom:1px solid var(--lx-border); }
+.tabs span { padding:10px 0; color:var(--lx-ink-3); }
+.tabs span.on { color:var(--lx-ink); box-shadow:inset 0 -2px 0 var(--lx-accent); }
+.card { background:var(--lx-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-card); overflow:hidden; }
+.card .hd { padding:14px 16px; }
+.media { height:300px; background:linear-gradient(135deg,#E6DCCB,#D9CBB4); }
+.dismissed { background:var(--lx-surface); border-radius:var(--radius-lg); padding:18px 20px; display:flex; align-items:center; gap:16px; border:1px dashed var(--lx-border-strong); }
+
+/* settings */
+.settings { display:grid; grid-template-columns:300px 1fr; height:100%; }
+.cats { border-right:1px solid var(--lx-border); padding:28px 16px; overflow:hidden; }
+.cats h4 { font:500 12px var(--font-body); color:var(--lx-ink-3); margin:18px 8px 6px; }
+.cats .cat { display:flex; align-items:center; gap:10px; padding:8px; border-radius:var(--radius-md); color:var(--lx-ink-2); font-size:14px; }
+.cats .cat.on { background:var(--lx-surface); color:var(--lx-ink); }
+.pane { padding:32px 48px; max-width:760px; }
+.pane h3 { font:600 24px/1.25 var(--font-display); margin:0 0 6px; }
+.pane .lead { color:var(--lx-ink-2); margin:0 0 24px; }
+.set-row { display:flex; align-items:center; gap:16px; padding:16px 0; border-bottom:1px solid var(--lx-border); }
+.set-row .tx { flex:1; }
+.set-row .lb { font-weight:500; }
+.radio { width:18px; height:18px; border-radius:50%; border:1.5px solid var(--lx-border-strong); flex:none; position:relative; }
+.radio.on { border-color:var(--lx-accent-dark); }
+.radio.on::after { content:''; position:absolute; inset:3px; border-radius:50%; background:var(--lx-accent-dark); }
+.wordchip { display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px; border-radius:var(--radius-pill); background:var(--lx-surface); font-size:14px; }
+.wordchip .x { width:16px; height:16px; border-radius:50%; background:var(--lx-surface-raised); }
+.seg { display:inline-flex; border:1px solid var(--lx-border); border-radius:var(--radius-pill); padding:3px; gap:2px; }
+.seg span { padding:6px 14px; border-radius:var(--radius-pill); font-size:14px; color:var(--lx-ink-2); }
+.seg span.on { background:var(--lx-accent); color:var(--lx-ink); }
+
+/* messages */
+.msgs { display:grid; grid-template-columns:360px 1fr; height:100%; }
+.list { border-right:1px solid var(--lx-border); display:flex; flex-direction:column; }
+.list .top { padding:24px 20px 0; }
+.list .top h3 { font:600 20px var(--font-display); margin:0 0 14px; }
+.inbox-tabs { display:flex; gap:24px; padding:0 20px; border-bottom:1px solid var(--lx-border); }
+.inbox-tabs span { padding:10px 0; color:var(--lx-ink-3); display:flex; align-items:center; gap:8px; }
+.inbox-tabs span.on { color:var(--lx-ink); box-shadow:inset 0 -2px 0 var(--lx-accent); }
+.inbox-tabs .count, .nav .count { color:var(--lx-ink); box-shadow:none; padding:0 6px; }
+.conv { display:flex; gap:12px; padding:12px 20px; align-items:center; }
+.conv.on { background:var(--lx-surface); }
+.conv .meta { flex:1; min-width:0; }
+.conv .nm { font-weight:500; display:flex; gap:6px; align-items:baseline; }
+.conv .pv { color:var(--lx-ink-2); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.conv .pv.unread { color:var(--lx-ink); font-weight:500; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--lx-accent); flex:none; }
+.folder { margin:8px 20px; padding:12px 14px; border-radius:var(--radius-md); background:var(--lx-surface); display:flex; align-items:center; gap:12px; }
+.thread { display:flex; flex-direction:column; height:100%; }
+.thead { display:flex; align-items:center; gap:12px; padding:16px 24px; border-bottom:1px solid var(--lx-border); }
+.tbody { flex:1; padding:24px 48px; display:flex; flex-direction:column; gap:10px; overflow:hidden; }
+.bub { max-width:420px; padding:9px 14px; border-radius:18px; background:var(--lx-surface); position:relative; }
+.bub.me { align-self:flex-end; background:var(--lx-accent-dim); }
+.bub.del { background:transparent; border:1px dashed var(--lx-border-strong); color:var(--lx-ink-3); font-style:italic; }
+.quote { border-left:2px solid var(--lx-accent); padding:2px 0 2px 10px; margin-bottom:6px; font-size:13px; color:var(--lx-ink-2); }
+.quote.na { border-left-color:var(--lx-border-strong); color:var(--lx-ink-3); font-style:italic; }
+.react { position:absolute; bottom:-12px; right:10px; display:flex; gap:2px; background:var(--lx-base); border:1px solid var(--lx-border); border-radius:var(--radius-pill); padding:1px 7px; font-size:14px; box-shadow:var(--shadow-card); }
+.bub.me .react { right:auto; left:10px; }
+.picker { position:absolute; display:flex; gap:4px; background:var(--lx-base); border:1px solid var(--lx-border); border-radius:var(--radius-pill); padding:6px 8px; box-shadow:var(--shadow-md); font-size:22px; }
+.picker span { width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+.picker span.sel { background:var(--lx-accent-dim); box-shadow:inset 0 0 0 1px var(--lx-accent); }
+.picker .more { font-size:14px; color:var(--lx-ink-2); border:1px solid var(--lx-border); }
+.compose { padding:14px 24px; border-top:1px solid var(--lx-border); display:flex; align-items:center; gap:12px; }
+.compose .input { flex:1; border-radius:var(--radius-pill); }
+.reqbar { padding:18px 24px; border-top:1px solid var(--lx-border); display:flex; flex-direction:column; gap:12px; align-items:center; text-align:center; }
+.notice { align-self:center; max-width:460px; text-align:center; padding:12px 16px; border-radius:var(--radius-md); background:var(--lx-surface); color:var(--lx-ink-2); font-size:13px; }
+
+/* post detail */
+.pd { display:grid; grid-template-columns:1fr 440px; height:100%; }
+.pd .img { background:linear-gradient(135deg,#E6DCCB,#CDBB9F); }
+.pd .side { display:flex; flex-direction:column; border-left:1px solid var(--lx-border); }
+.cm { display:flex; gap:10px; padding:10px 20px; }
+.cm .b { flex:1; font-size:14px; }
+
+/* admin */
+.admin { display:grid; grid-template-columns:232px 1fr; height:100%; }
+.admin .side { background:var(--lx-surface); padding:24px 16px; display:flex; flex-direction:column; gap:4px; }
+.admin .side .cat { padding:8px 10px; border-radius:var(--radius-md); font-size:14px; color:var(--lx-ink-2); }
+.admin .side .cat.on { background:var(--lx-base); color:var(--lx-ink); }
+.admin .work { padding:28px 40px; }
+table.t { width:100%; border-collapse:collapse; font-size:14px; }
+table.t th { text-align:left; font-weight:500; color:var(--lx-ink-3); font-size:12px; padding:8px 12px; border-bottom:1px solid var(--lx-border); }
+table.t td { padding:12px; border-bottom:1px solid var(--lx-border-subtle); vertical-align:middle; }
+.mono { font-family:var(--font-mono); font-size:13px; }
+.pill { display:inline-block; padding:2px 10px; border-radius:var(--radius-pill); font-size:12px; background:var(--lx-surface); color:var(--lx-ink-2); }
+.pill.warn { background:var(--lx-warning-dim); color:var(--lx-warning-text); }
+.pill.err { background:var(--lx-error-dim); color:var(--lx-error-text); }
+</style>
+</head>
+<body>
+<div class="doc">
+<header>
+  <h1>Interaction control and direct messages - wireframes</h1>
+  <p>Desktop wireframes at 1440 by 900 for every new surface in phase 1, and for the existing surfaces whose layout changes.</p>
+  <p>Colours, type, radii and shadows are the live tokens from <code>src/index.css</code>; icons are placeholder outlines standing in for <code>LxIcon</code>.</p>
+  <p>Gold-tinted callouts are annotations, not interface.</p>
+</header>
+<ul class="index">
+  <li><a href="#w1">1 post menu and inline undo</a></li>
+  <li><a href="#w2">2 mute dialog</a></li>
+  <li><a href="#w3">3 muted accounts</a></li>
+  <li><a href="#w4">4 hidden words</a></li>
+  <li><a href="#w5">5 limit interactions</a></li>
+  <li><a href="#w6">6 who can message me</a></li>
+  <li><a href="#w7">7 hidden comments</a></li>
+  <li><a href="#w8">8 inbox and requests</a></li>
+  <li><a href="#w9">9 request thread, recipient</a></li>
+  <li><a href="#w10">10 pending thread, sender</a></li>
+  <li><a href="#w11">11 reactions and reply quotes</a></li>
+  <li><a href="#w12">12 admin hidden words</a></li>
+  <li><a href="#w13">13 admin reported reaction</a></li>
+</ul>
+
+<!-- 1 -->
+<div class="frame-head" id="w1"><h2>1. Post menu additions and inline undo</h2><span class="req">P1-A2-R1 P1-A2-R3 P1-A2-R5</span></div>
+<ul class="notes">
+  <li>Three items join the existing menu above "view author's profile"; "show fewer" appears on for you and explore only, never on following.</li>
+  <li>A dismissed post collapses in place into an undo row of the same width, so nothing below it moves until the next refresh.</li>
+  <li>Undo restores the card exactly where it was; the row stays for the session if left alone.</li>
+  <li>Every options menu now opens to the right of its trigger and flips to the left only when the right side lacks room (frame 7 shows the flip).</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a class="on"><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main">
+    <div class="feedcol">
+      <div class="tabs"><span>following</span><span class="on">for you</span></div>
+      <div class="dismissed">
+        <div class="col" style="flex:1"><span class="handle">post hidden</span><span class="small ink2">We'll show you fewer posts like this.</span></div>
+        <span class="btn ghost">undo</span>
+      </div>
+      <div class="dismissed">
+        <div class="col" style="flex:1"><span class="handle">you'll see fewer posts from @minh.tran</span><span class="small ink2">This only changes for you and explore. You'll still see them in following.</span></div>
+        <span class="btn ghost">undo</span>
+      </div>
+      <div class="card">
+        <div class="hd row"><div class="av s c3"></div><div class="col" style="flex:1"><span class="handle">linh.ng</span><span class="tiny muted">2h</span></div><span class="ic round" style="border-style:dotted"></span></div>
+        <div class="media"></div>
+      </div>
+    </div>
+    <div class="menu" style="left:900px; top:318px;">
+      <div class="mi"><i class="ic"></i>like</div>
+      <div class="mi"><i class="ic"></i>share</div>
+      <div class="mi"><i class="ic"></i>copy link</div>
+      <div class="sep"></div>
+      <div class="mi new"><i class="ic"></i>not interested<span class="tag-new">new</span></div>
+      <div class="mi new"><i class="ic"></i>show fewer from @linh.ng<span class="tag-new">new</span></div>
+      <div class="mi new"><i class="ic"></i>mute @linh.ng<span class="tag-new">new</span></div>
+      <div class="sep"></div>
+      <div class="mi"><i class="ic"></i>view author's profile</div>
+      <div class="mi"><i class="ic"></i>follow @linh.ng</div>
+      <div class="mi danger"><i class="ic"></i>block @linh.ng</div>
+      <div class="mi"><i class="ic"></i>report</div>
+    </div>
+    <div class="callout" style="left:500px; top:660px;">Menus open to the right of their trigger and flip left only when there is no room. "show fewer" is absent on the following tab; "mute" opens dialog 2.</div>
+  </div>
+</div></div>
+
+<!-- 2 -->
+<div class="frame-head" id="w2"><h2>2. Mute dialog</h2><span class="req">P1-A2-R5</span></div>
+<ul class="notes">
+  <li>Opened from the post menu or the profile menu; both scopes are independent toggles that save on change, the same pattern as notification settings.</li>
+  <li>The copy says plainly that the other person is not told, and where muted content still appears.</li>
+  <li>Turning both toggles off is the unmute; there is no separate unmute button to keep in sync.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a class="on"><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main">
+    <div style="height:220px; background:linear-gradient(135deg,#E6DCCB,#D9CBB4)"></div>
+    <div style="padding:0 60px" class="row"><div class="av l c1" style="width:96px;height:96px;margin-top:-48px;border:4px solid var(--lx-base)"></div></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet" style="left:504px; top:250px; width:432px; padding:28px;">
+    <div class="row" style="margin-bottom:6px"><div class="av c1"></div><div class="col"><span style="font:600 20px var(--font-display)">mute @an.pham</span><span class="small ink2">An won't know you muted them.</span></div></div>
+    <div class="set-row" style="margin-top:12px"><div class="tx"><div class="lb">posts</div><div class="small ink2">Hide their posts from following, for you and explore.</div></div><span class="toggle on"></span></div>
+    <div class="set-row"><div class="tx"><div class="lb">stories</div><div class="small ink2">Hide their stories from your story tray.</div></div><span class="toggle"></span></div>
+    <p class="small ink2" style="margin:16px 0 20px">You'll still see their profile, comments and messages. You can change this in settings, under muted accounts.</p>
+    <div class="row" style="justify-content:flex-end"><span class="btn">done</span></div>
+  </div>
+</div></div>
+
+<!-- 3 -->
+<div class="frame-head" id="w3"><h2>3. Settings - muted accounts</h2><span class="req">P1-A2-R7</span></div>
+<ul class="notes">
+  <li>New category in "who can see your content"; each row carries both toggles inline and an unmute action that turns both off.</li>
+  <li>Newest change first, paged with the existing infinite list pattern.</li>
+  <li>No page exists for not interested or show fewer, by the brief.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a class="on"><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="settings">
+    <aside class="cats">
+      <div class="input" style="margin:0 8px 8px">search settings</div>
+      <h4>how you use luvax</h4><div class="cat"><i class="ic"></i>profile</div><div class="cat"><i class="ic"></i>notifications</div><div class="cat"><i class="ic"></i>appearance</div><div class="cat"><i class="ic"></i>saved posts</div>
+      <h4>who can see your content</h4><div class="cat"><i class="ic"></i>privacy</div><div class="cat"><i class="ic"></i>follow requests</div><div class="cat"><i class="ic"></i>blocked accounts</div><div class="cat on"><i class="ic"></i>muted accounts</div><div class="cat"><i class="ic"></i>hidden words</div><div class="cat"><i class="ic"></i>limit interactions</div>
+      <h4>your account</h4><div class="cat"><i class="ic"></i>account</div><div class="cat"><i class="ic"></i>support</div>
+    </aside>
+    <section class="pane">
+      <h3>muted accounts</h3>
+      <p class="lead">People you muted. They aren't told, and you can still visit their profile.</p>
+      <div class="row tiny muted" style="justify-content:flex-end; gap:52px; padding-right:118px">posts<span>stories</span></div>
+      <div class="set-row"><div class="av c1"></div><div class="tx"><div class="lb">an.pham</div><div class="small ink2">An Pham</div></div><span class="toggle on"></span><span class="toggle" style="margin-left:40px"></span><span class="btn ghost" style="margin-left:24px">unmute</span></div>
+      <div class="set-row"><div class="av c4"></div><div class="tx"><div class="lb">quang.do</div><div class="small ink2">Quang Do</div></div><span class="toggle on"></span><span class="toggle on" style="margin-left:40px"></span><span class="btn ghost" style="margin-left:24px">unmute</span></div>
+      <div class="set-row"><div class="av c2"></div><div class="tx"><div class="lb">thao.le</div><div class="small ink2">Thao Le</div></div><span class="toggle"></span><span class="toggle on" style="margin-left:40px"></span><span class="btn ghost" style="margin-left:24px">unmute</span></div>
+      <p class="small muted" style="margin-top:28px">Empty state: "You haven't muted anyone. Mute someone from their profile or a post's menu."</p>
+    </section>
+  </div></div>
+</div></div>
+
+<!-- 4 -->
+<div class="frame-head" id="w4"><h2>4. Settings - hidden words</h2><span class="req">P1-D1-R3 P1-D1-R4 P1-D1-R5</span></div>
+<ul class="notes">
+  <li>The system list toggle sits first and defaults on; the personal list follows with an add field and removable chips.</li>
+  <li>Under the field, a live preview shows the normalised form the server will match ("Đồ ngu!" matches "do ngu"), using the shared text match contract.</li>
+  <li>The counter shows usage against the 200-entry limit; a duplicate is refused inline before any request.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a class="on"><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="settings">
+    <aside class="cats">
+      <div class="input" style="margin:0 8px 8px">search settings</div>
+      <h4>who can see your content</h4><div class="cat"><i class="ic"></i>privacy</div><div class="cat"><i class="ic"></i>follow requests</div><div class="cat"><i class="ic"></i>blocked accounts</div><div class="cat"><i class="ic"></i>muted accounts</div><div class="cat on"><i class="ic"></i>hidden words</div><div class="cat"><i class="ic"></i>limit interactions</div>
+    </aside>
+    <section class="pane">
+      <h3>hidden words</h3>
+      <p class="lead">Comments on your posts and new message requests that contain these words are hidden. You can review hidden comments on each post.</p>
+      <div class="set-row"><div class="tx"><div class="lb">use the luvax list</div><div class="small ink2">Hide comments and requests with words luvax commonly sees used to harass people.</div></div><span class="toggle on"></span></div>
+      <div style="padding:20px 0 8px" class="row"><span class="lb" style="font-weight:500; flex:1">your words and phrases</span><span class="small muted">12 of 200</span></div>
+      <div class="row"><div class="input focus" style="flex:1">Đồ ngu!</div><span class="btn">add</span></div>
+      <div class="small ink2" style="margin:8px 0 18px">Matches "do ngu", including accented, capitalised and number-swapped spellings.</div>
+      <div class="row" style="flex-wrap:wrap; gap:8px">
+        <span class="wordchip">spam link<i class="x"></i></span><span class="wordchip">đồ điên<i class="x"></i></span><span class="wordchip">idiot<i class="x"></i></span><span class="wordchip">fake account<i class="x"></i></span><span class="wordchip">xấu xí<i class="x"></i></span><span class="wordchip">dm me<i class="x"></i></span><span class="wordchip">loser<i class="x"></i></span><span class="wordchip">câm mồm<i class="x"></i></span>
+      </div>
+      <p class="small muted" style="margin-top:28px">Changes apply to new comments and requests only. Things already posted stay as they are.</p>
+      <p class="small" style="color:var(--lx-error-text)">Inline error example: "You already hide "do ngu"."</p>
+    </section>
+  </div></div>
+</div></div>
+
+<!-- 5 -->
+<div class="frame-head" id="w5"><h2>5. Settings - limit interactions</h2><span class="req">P1-D5-R2 P1-D5-R3 P1-D5-R4</span></div>
+<ul class="notes">
+  <li>Two audience toggles, then a duration segmented control with the five presets; "turn on" is disabled until at least one audience is chosen.</li>
+  <li>Active state replaces the form with a status line showing the end date in local time and a "turn off now" action.</li>
+  <li>The explanation names every effect: hidden comments, hidden requests, no mention notifications.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a class="on"><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="settings">
+    <aside class="cats">
+      <div class="input" style="margin:0 8px 8px">search settings</div>
+      <h4>who can see your content</h4><div class="cat"><i class="ic"></i>privacy</div><div class="cat"><i class="ic"></i>follow requests</div><div class="cat"><i class="ic"></i>blocked accounts</div><div class="cat"><i class="ic"></i>muted accounts</div><div class="cat"><i class="ic"></i>hidden words</div><div class="cat on"><i class="ic"></i>limit interactions</div>
+    </aside>
+    <section class="pane" style="display:grid; grid-template-columns:1fr 1fr; gap:48px; max-width:1100px">
+      <div>
+        <h3>limit interactions</h3>
+        <p class="lead">For a while, hide comments and message requests from people who don't follow you or only just followed you. They aren't told.</p>
+        <div class="set-row"><div class="tx"><div class="lb">accounts that don't follow you</div></div><span class="toggle on"></span></div>
+        <div class="set-row"><div class="tx"><div class="lb">accounts that followed you in the last 7 days</div></div><span class="toggle"></span></div>
+        <div style="padding:20px 0 10px" class="lb">for how long</div>
+        <div class="seg"><span>1 day</span><span>3 days</span><span class="on">7 days</span><span>14 days</span><span>28 days</span></div>
+        <ul class="small ink2" style="padding-left:18px; margin:20px 0">
+          <li>Their new comments on your posts are hidden. You can review them on each post.</li>
+          <li>Their new message requests go to hidden requests.</li>
+          <li>You won't be notified when they mention you.</li>
+        </ul>
+        <span class="btn">turn on</span>
+      </div>
+      <div>
+        <div class="small muted" style="margin-bottom:12px">active state</div>
+        <div class="card" style="padding:20px">
+          <div class="row"><span class="dot" style="background:var(--lx-success)"></span><span class="lb" style="font-weight:500">limits are on until Fri, Oct 17, 9:40 pm</span></div>
+          <p class="small ink2" style="margin:8px 0 16px">Limiting accounts that don't follow you.</p>
+          <div class="row"><span class="btn ghost">turn off now</span><span class="btn link">change</span></div>
+        </div>
+      </div>
+    </section>
+  </div></div>
+</div></div>
+
+<!-- 6 -->
+<div class="frame-head" id="w6"><h2>6. Settings - privacy, who can message me (modified)</h2><span class="req">P1-B2-R1</span></div>
+<ul class="notes">
+  <li>The "allow message requests" toggle becomes a three-option group in place; every other privacy row is unchanged.</li>
+  <li>Each option says where messages land, so "everyone" is understood as "into requests".</li>
+  <li>The "no one" option notes that mutual followers can still message, per approved decision B-12.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a class="on"><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="settings">
+    <aside class="cats">
+      <div class="input" style="margin:0 8px 8px">search settings</div>
+      <h4>who can see your content</h4><div class="cat on"><i class="ic"></i>privacy</div><div class="cat"><i class="ic"></i>follow requests</div><div class="cat"><i class="ic"></i>blocked accounts</div><div class="cat"><i class="ic"></i>muted accounts</div><div class="cat"><i class="ic"></i>hidden words</div><div class="cat"><i class="ic"></i>limit interactions</div>
+    </aside>
+    <section class="pane">
+      <h3>privacy</h3>
+      <p class="lead">Who can see what you post, and who can reach you.</p>
+      <div class="set-row"><div class="tx"><div class="lb">private account</div></div><span class="toggle"></span></div>
+      <div class="set-row"><div class="tx"><div class="lb">show activity status</div></div><span class="toggle on"></span></div>
+      <div class="set-row"><div class="tx"><div class="lb">allow story replies</div></div><span class="toggle on"></span></div>
+      <div style="padding:16px 0; border-bottom:1px solid var(--lx-border)">
+        <div class="lb" style="font-weight:500; margin-bottom:12px">who can message you</div>
+        <div class="row" style="padding:8px 0; align-items:flex-start"><span class="radio on" style="margin-top:3px"></span><div><div>everyone</div><div class="small ink2">People you don't follow can send one message. It arrives in your requests.</div></div></div>
+        <div class="row" style="padding:8px 0; align-items:flex-start"><span class="radio" style="margin-top:3px"></span><div><div>people you follow</div><div class="small ink2">Only people you follow can start a conversation with you.</div></div></div>
+        <div class="row" style="padding:8px 0; align-items:flex-start"><span class="radio" style="margin-top:3px"></span><div><div>no one</div><div class="small ink2">No one new can message you. People you follow each other with still can.</div></div></div>
+      </div>
+      <div class="set-row"><div class="tx"><div class="lb">suggest my account to others</div></div><span class="toggle on"></span></div>
+    </section>
+  </div></div>
+</div></div>
+
+<!-- 7 -->
+<div class="frame-head" id="w7"><h2>7. Post detail - hidden comments (owner only)</h2><span class="req">P1-D1-R6 P1-D1-R7 P1-D5-R4</span></div>
+<ul class="notes">
+  <li>The owner opens "hidden comments" from the post menu; the comment column swaps to the review list with a back control, so the media stays in view.</li>
+  <li>Each row names why it was hidden (one of your hidden words, limited interactions) and offers unhide and report.</li>
+  <li>Commenters never see any of this; their own hidden comment renders like any other comment in their view.</li>
+  <li>The post menu trigger sits at the right edge of the side column, so its menu flips to open leftward; this is the fallback case of the right-first rule.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a class="on"><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="pd">
+    <div class="img"></div>
+    <div class="side">
+      <div class="thead"><span class="ic"></span><div class="col" style="flex:1"><span style="font:600 16px var(--font-display)">hidden comments</span><span class="tiny muted">4 on this post, only you can see these</span></div></div>
+      <div class="cm"><div class="av s c4"></div><div class="b"><span class="handle">troll.acc</span> đồ ngu, xoá bài đi<div class="tiny muted">3h - one of your hidden words</div></div><div class="col" style="gap:6px"><span class="btn ghost" style="padding:5px 12px; font-size:13px">unhide</span><span class="btn link small">report</span></div></div>
+      <div class="cm hair"><div class="av s c2"></div><div class="b"><span class="handle">new.viewer22</span> where did you buy this?<div class="tiny muted">5h - limited interactions</div></div><div class="col" style="gap:6px"><span class="btn ghost" style="padding:5px 12px; font-size:13px">unhide</span><span class="btn link small">report</span></div></div>
+      <div class="cm hair"><div class="av s c5"></div><div class="b"><span class="handle">promo.deals</span> dm me for followers<div class="tiny muted">1d - luvax hidden words</div></div><div class="col" style="gap:6px"><span class="btn ghost" style="padding:5px 12px; font-size:13px">unhide</span><span class="btn link small">report</span></div></div>
+      <div class="cm hair"><div class="av s c3"></div><div class="b"><span class="handle">bao.vu</span> h3ll0 l0ser<div class="tiny muted">2d - one of your hidden words</div></div><div class="col" style="gap:6px"><span class="btn ghost" style="padding:5px 12px; font-size:13px">unhide</span><span class="btn link small">report</span></div></div>
+      <div style="flex:1"></div>
+      <p class="small muted hair" style="padding:16px 20px; margin:0">Unhidden comments appear for everyone and count toward the post's comments.</p>
+    </div>
+  </div>
+  <span class="ic round" style="position:absolute; left:1160px; top:30px; border-style:dotted"></span><div class="menu" style="left:950px; top:58px; width:230px"><div class="mi"><i class="ic"></i>edit post</div><div class="mi new"><i class="ic"></i>hidden comments<span class="tag-new">new</span></div><div class="mi danger"><i class="ic"></i>delete post</div></div>
+  </div>
+</div></div>
+
+<!-- 8 -->
+<div class="frame-head" id="w8"><h2>8. Messages - primary and requests</h2><span class="req">P1-B2-R6 P1-B2-R7 P1-B1-R4</span></div>
+<ul class="notes">
+  <li>Two tabs replace the single list header; requests carry their own count, and the main nav badge counts primary unread only.</li>
+  <li>Hidden requests are a folder row at the top of the requests tab with no count, opening a list of the same shape.</li>
+  <li>A reaction updates the row preview ("Minh reacted 😂 to your message") without bold unread styling and without reordering.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a class="on"><i class="ic"></i>messages<span class="count" style="margin-left:auto">2</span></a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="msgs">
+    <div class="list">
+      <div class="top"><h3>messages</h3><div class="input" style="margin-bottom:14px; border-radius:var(--radius-pill)">search</div></div>
+      <div class="inbox-tabs"><span class="on">primary</span><span>requests<span class="count">3</span></span></div>
+      <div class="conv on"><div class="av c1"></div><div class="meta"><div class="nm">minh.tran<span class="tiny muted">now</span></div><div class="pv">Minh reacted 😂 to your message</div></div></div>
+      <div class="conv"><div class="av c2"></div><div class="meta"><div class="nm">thao.le<span class="tiny muted">5m</span></div><div class="pv unread">gửi mình file nhé</div></div><span class="dot"></span></div>
+      <div class="conv"><div class="av c3"></div><div class="meta"><div class="nm">bao.vu<span class="tiny muted">1h</span></div><div class="pv unread">ok see you at 7</div></div><span class="dot"></span></div>
+      <div class="conv"><div class="av c5"></div><div class="meta"><div class="nm">hoa.nguyen<span class="tiny muted">3h</span></div><div class="pv">You: request sent</div></div></div>
+      <div class="conv"><div class="av c4"></div><div class="meta"><div class="nm">quang.do<span class="tiny muted">2d</span></div><div class="pv">You: haha thanks</div></div></div>
+    </div>
+    <div class="list" style="border-right:0; width:360px; border-left:1px dashed var(--lx-border-strong); position:relative">
+      <div class="top"><div class="small muted" style="margin-bottom:8px">same panel, requests tab selected</div><h3>messages</h3><div class="input" style="margin-bottom:14px; border-radius:var(--radius-pill)">search</div></div>
+      <div class="inbox-tabs"><span>primary</span><span class="on">requests<span class="count">3</span></span></div>
+      <div class="folder"><span class="ic"></span><div class="col" style="flex:1"><span class="handle">hidden requests</span><span class="tiny ink2">Requests that matched your hidden words or limits</span></div><span class="muted">&rsaquo;</span></div>
+      <div class="conv"><div class="av c4"></div><div class="meta"><div class="nm">linh.ng<span class="tiny muted">10m</span></div><div class="pv unread">Chào bạn, mình thấy bài của bạn về...</div></div></div>
+      <div class="conv"><div class="av c3"></div><div class="meta"><div class="nm">photo.studio.hn<span class="tiny muted">1d</span></div><div class="pv unread">Hi! Would you be up for a collab?</div></div></div>
+      <div class="conv"><div class="av c2"></div><div class="meta"><div class="nm">duc.hoang<span class="tiny muted">3d</span></div><div class="pv">sent a story reply</div></div></div>
+      <p class="small muted" style="padding:12px 20px">Requests don't add to your unread count. They aren't told you've seen them.</p>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- 9 -->
+<div class="frame-head" id="w9"><h2>9. Request thread - recipient view</h2><span class="req">P1-B2-R4 P1-B2-R5</span></div>
+<ul class="notes">
+  <li>The composer is replaced by a decision bar: accept, delete, block; replying from the composer is not offered until accept (B-9 makes a reply accept, but the bar keeps the choice explicit).</li>
+  <li>Delete asks for confirmation and states the sender is not told; block reuses the existing block confirmation dialog.</li>
+  <li>The header shows who they are and how you are connected, so the choice is informed.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a class="on"><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="msgs">
+    <div class="list">
+      <div class="top"><h3>messages</h3><div class="input" style="margin-bottom:14px; border-radius:var(--radius-pill)">search</div></div>
+      <div class="inbox-tabs"><span>primary</span><span class="on">requests<span class="count">3</span></span></div>
+      <div class="folder"><span class="ic"></span><div class="col" style="flex:1"><span class="handle">hidden requests</span></div></div>
+      <div class="conv on"><div class="av c4"></div><div class="meta"><div class="nm">linh.ng<span class="tiny muted">10m</span></div><div class="pv">Chào bạn, mình thấy bài của bạn về...</div></div></div>
+      <div class="conv"><div class="av c3"></div><div class="meta"><div class="nm">photo.studio.hn<span class="tiny muted">1d</span></div><div class="pv">Hi! Would you be up for a collab?</div></div></div>
+    </div>
+    <div class="thread">
+      <div class="thead"><div class="av c4"></div><div class="col" style="flex:1"><span class="handle">linh.ng</span><span class="tiny muted">Linh Nguyen</span></div></div>
+      <div class="tbody" style="align-items:center">
+        <div class="av l c4" style="width:80px;height:80px;margin-top:16px"></div>
+        <div style="font:600 20px var(--font-display)">Linh Nguyen</div>
+        <div class="small ink2">linh.ng - 214 followers - you don't follow each other</div>
+        <span class="btn ghost" style="margin:6px 0 24px">view profile</span>
+        <div class="bub" style="align-self:flex-start">Chào bạn, mình thấy bài của bạn về quán cà phê ở Hội An, cho mình xin địa chỉ được không?</div>
+        <div class="tiny muted" style="align-self:flex-start">10:42 am</div>
+      </div>
+      <div class="reqbar">
+        <div class="small ink2">Accept to reply to Linh. They won't know you've seen this until you do.</div>
+        <div class="row"><span class="btn danger">block</span><span class="btn ghost">delete</span><span class="btn">accept</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="scrim" style="left:-244px"></div>
+  <div class="sheet" style="left:398px; top:330px; width:400px; padding:24px">
+    <div style="font:600 20px var(--font-display); margin-bottom:8px">delete this request?</div>
+    <p class="small ink2" style="margin:0 0 20px">It will be removed from your requests. Linh won't be told.</p>
+    <div class="row" style="justify-content:flex-end"><span class="btn ghost">cancel</span><span class="btn danger">delete</span></div>
+  </div>
+  </div>
+</div></div>
+
+<!-- 10 -->
+<div class="frame-head" id="w10"><h2>10. Pending thread - sender view</h2><span class="req">P1-B2-R4 P1-B2-R5</span></div>
+<ul class="notes">
+  <li>After the one allowed message, the composer is disabled with a quiet notice; attachment and share controls are disabled from the start.</li>
+  <li>This view is identical whether the request is pending or was deleted, so a deletion is never revealed.</li>
+  <li>No seen or read marker appears anywhere in a pending thread.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a class="on"><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="msgs">
+    <div class="list">
+      <div class="top"><h3>messages</h3><div class="input" style="margin-bottom:14px; border-radius:var(--radius-pill)">search</div></div>
+      <div class="inbox-tabs"><span class="on">primary</span><span>requests</span></div>
+      <div class="conv on"><div class="av c5"></div><div class="meta"><div class="nm">hoa.nguyen<span class="tiny muted">3h</span></div><div class="pv">You: request sent</div></div></div>
+      <div class="conv"><div class="av c1"></div><div class="meta"><div class="nm">minh.tran<span class="tiny muted">1d</span></div><div class="pv">see you tomorrow</div></div></div>
+    </div>
+    <div class="thread">
+      <div class="thead"><div class="av c5"></div><div class="col" style="flex:1"><span class="handle">hoa.nguyen</span><span class="tiny muted">Hoa Nguyen</span></div></div>
+      <div class="tbody">
+        <div style="flex:1"></div>
+        <div class="bub me">Hi Hoa, I loved your Đà Lạt photos. Which lens did you use?</div>
+        <div class="tiny muted" style="align-self:flex-end">3:10 pm</div>
+        <div class="notice">Request sent. You can send more messages after Hoa accepts.</div>
+      </div>
+      <div class="compose"><span class="ic btn dis" style="padding:0;width:32px;height:32px;border-radius:50%"></span><span class="ic btn dis" style="padding:0;width:32px;height:32px;border-radius:50%"></span><div class="input btn dis" style="justify-content:flex-start">message</div><span class="btn dis">send</span></div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- 11 -->
+<div class="frame-head" id="w11"><h2>11. Reactions and reply quotes</h2><span class="req">P1-B1-R1 P1-B1-R2 P1-B1-R5</span></div>
+<ul class="notes">
+  <li>Hovering a bubble reveals react and reply controls; react opens a pill picker with six quick reactions and a "more" input that accepts any single emoji.</li>
+  <li>The caller's current reaction is highlighted; choosing it again removes it, choosing another changes it. Reactions sit as a small chip under the bubble's edge.</li>
+  <li>Quotes come from the server preview, so a reply to an old message renders without loading history; a deleted or removed parent shows "message unavailable". Tombstoned bubbles show no chip and no picker.</li>
+</ul>
+<div class="frame"><div class="shell">
+  <nav class="nav"><div class="logo">luvax</div>
+    <a><i class="ic"></i>home</a><a><i class="ic"></i>explore</a><a class="on"><i class="ic"></i>messages</a><a><i class="ic"></i>notifications</a><a><i class="ic round"></i>profile</a><a><i class="ic"></i>settings</a></nav>
+  <div class="main"><div class="msgs">
+    <div class="list">
+      <div class="top"><h3>messages</h3><div class="input" style="margin-bottom:14px; border-radius:var(--radius-pill)">search</div></div>
+      <div class="inbox-tabs"><span class="on">primary</span><span>requests<span class="count">3</span></span></div>
+      <div class="conv on"><div class="av c1"></div><div class="meta"><div class="nm">minh.tran<span class="tiny muted">now</span></div><div class="pv">Minh reacted 😂 to your message</div></div></div>
+      <div class="conv"><div class="av c2"></div><div class="meta"><div class="nm">thao.le<span class="tiny muted">5m</span></div><div class="pv">gửi mình file nhé</div></div></div>
+    </div>
+    <div class="thread">
+      <div class="thead"><div class="av c1"></div><div class="col" style="flex:1"><span class="handle">minh.tran</span><span class="tiny muted">Minh Tran</span></div></div>
+      <div class="tbody" style="gap:22px; padding-top:96px">
+        <div class="bub">trip to Sa Pa next month?</div>
+        <div class="bub me">only if we skip the 5am hike this time<div class="react">😂</div></div>
+        <div class="bub"><div class="quote"><span class="handle">you</span> - only if we skip the 5am hike this time</div>deal, 7am then<div class="react">👍</div></div>
+        <div class="bub del">message deleted</div>
+        <div class="bub me"><div class="quote na">message unavailable</div>that one didn't age well</div>
+        <div class="bub"><div class="quote"><span class="handle">you</span> - photo</div>still the best sunset this year</div>
+      </div>
+      <div class="compose"><div class="col" style="flex:1; gap:6px"><div class="quote" style="margin:0">replying to <span class="handle">minh.tran</span> - still the best sunset this year</div><div class="input" style="border-radius:var(--radius-pill)">message</div></div><span class="btn">send</span></div>
+    </div>
+  </div>
+  <div class="picker" style="left:842px; top:172px"><span>❤️</span><span class="sel">😂</span><span>😮</span><span>😢</span><span>😡</span><span>👍</span><span class="more">+</span></div>
+  <div class="callout" style="left:420px; top:620px">Picker anchored above the hovered bubble. Highlight = your current reaction; tap it again to remove.</div>
+  </div>
+</div></div>
+
+<!-- 12 -->
+<div class="frame-head" id="w12"><h2>12. Admin - system hidden words</h2><span class="req">P1-D1-R1</span></div>
+<ul class="notes">
+  <li>Administrator-only screen beside the hashtag registry; same table, search and drawer pattern.</li>
+  <li>Create, edit and delete each require a reason, because each writes an audit row.</li>
+  <li>The normalised column shows exactly what is matched, so near-duplicates are visible.</li>
+</ul>
+<div class="frame"><div class="admin">
+  <aside class="side"><div class="logo" style="margin-left:10px">luvax admin</div>
+    <div class="cat">reports</div><div class="cat">escalated</div><div class="cat">audit log</div><div class="cat">support</div><div class="cat">accounts</div><div class="cat">hashtags</div><div class="cat on">hidden words</div><div class="cat">statistics</div><div class="cat">activity</div></aside>
+  <div class="work" style="display:grid; grid-template-columns:1fr 380px; gap:32px">
+    <div>
+      <div class="row" style="margin-bottom:18px"><h3 style="font:600 24px var(--font-display); margin:0; flex:1">hidden words</h3><span class="btn">add word</span></div>
+      <p class="small ink2" style="margin:-8px 0 18px">Used for every account that keeps the luvax list on. Changes apply to new comments and requests only.</p>
+      <div class="input" style="margin-bottom:12px; width:360px">search words</div>
+      <table class="t">
+        <tr><th>word or phrase</th><th>matches</th><th>added by</th><th>updated</th><th></th></tr>
+        <tr><td>đồ ngu</td><td class="mono">do ngu</td><td>admin.ha</td><td>Oct 8</td><td class="small ink2">edit</td></tr>
+        <tr><td>dm me for followers</td><td class="mono">dm me for followers</td><td>admin.ha</td><td>Oct 7</td><td class="small ink2">edit</td></tr>
+        <tr><td>câm mồm</td><td class="mono">cam mom</td><td>admin.long</td><td>Oct 2</td><td class="small ink2">edit</td></tr>
+        <tr><td>l0ser</td><td class="mono">loser</td><td>admin.long</td><td>Sep 30</td><td class="small ink2">edit</td></tr>
+        <tr><td>free followers</td><td class="mono">free followers</td><td>admin.ha</td><td>Sep 29</td><td class="small ink2">edit</td></tr>
+      </table>
+    </div>
+    <div class="card" style="padding:22px; align-self:start">
+      <div style="font:600 18px var(--font-display); margin-bottom:14px">edit word</div>
+      <div class="small" style="font-weight:500; margin-bottom:6px">word or phrase</div>
+      <div class="input focus" style="margin-bottom:6px">câm mồm</div>
+      <div class="tiny ink2" style="margin-bottom:16px">Matches "cam mom".</div>
+      <div class="small" style="font-weight:500; margin-bottom:6px">reason</div>
+      <div class="input" style="height:80px; margin-bottom:18px">Why this change is needed. Saved to the audit log.</div>
+      <div class="row"><span class="btn danger">delete</span><span style="flex:1"></span><span class="btn ghost">cancel</span><span class="btn">save</span></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- 13 -->
+<div class="frame-head" id="w13"><h2>13. Admin - reported message reaction</h2><span class="req">Rule 7 (P1-B1)</span></div>
+<ul class="notes">
+  <li>The existing report detail screen gains a target renderer for the new report type: the reaction, who left it, and the message it sits on.</li>
+  <li>Remove and restore reuse the existing action panel; remove notifies the reactor with a system notice.</li>
+  <li>Only the reported reaction and its one message are shown, keeping to the report-anchored access rule.</li>
+</ul>
+<div class="frame"><div class="admin">
+  <aside class="side"><div class="logo" style="margin-left:10px">luvax admin</div>
+    <div class="cat on">reports</div><div class="cat">escalated</div><div class="cat">audit log</div><div class="cat">support</div><div class="cat">accounts</div><div class="cat">hashtags</div><div class="cat">hidden words</div><div class="cat">statistics</div><div class="cat">activity</div></aside>
+  <div class="work" style="display:grid; grid-template-columns:1fr 360px; gap:32px">
+    <div>
+      <div class="small muted" style="margin-bottom:6px">reports / r-2f81</div>
+      <div class="row" style="margin-bottom:20px"><h3 style="font:600 24px var(--font-display); margin:0">reaction on a message</h3><span class="pill warn">pending</span><span class="pill">harassment</span></div>
+      <div class="card" style="padding:22px">
+        <div class="small muted" style="margin-bottom:12px">reported reaction</div>
+        <div class="row" style="margin-bottom:18px"><span style="font-size:40px; line-height:1">🖕</span><div class="col"><span class="handle">troll.acc</span><span class="tiny muted">reacted Oct 9, 10:14 pm</span></div></div>
+        <div class="small muted" style="margin-bottom:8px">on this message by thao.le</div>
+        <div class="bub" style="max-width:520px">mình vừa đăng ảnh tốt nghiệp nè</div>
+      </div>
+      <div class="card" style="padding:18px; margin-top:16px"><div class="small muted">reporter note</div><p style="margin:6px 0 0">Keeps reacting like this to every message I send.</p></div>
+    </div>
+    <div class="card" style="padding:22px; align-self:start">
+      <div style="font:600 18px var(--font-display); margin-bottom:14px">take action</div>
+      <div class="row" style="padding:10px 0"><span class="radio on"></span>remove reaction</div>
+      <div class="row" style="padding:10px 0"><span class="radio"></span>dismiss report</div>
+      <div class="row" style="padding:10px 0"><span class="radio"></span>warn troll.acc</div>
+      <div class="small" style="font-weight:500; margin:12px 0 6px">reason shown to the account</div>
+      <div class="input" style="height:80px; margin-bottom:18px">This reaction broke the harassment rules.</div>
+      <span class="btn" style="width:100%">remove reaction</span>
+    </div>
+  </div>
+</div></div>
+
+</div>
+</body>
+</html>

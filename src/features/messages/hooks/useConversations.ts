@@ -2,22 +2,37 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { STALE_TIME } from '@/config/constants';
 import { messageService } from '@/services/message.service';
+import type { ConversationFolder } from '@/types/domain';
 import { getNextCursor } from '@/utils/helpers';
 
 export const conversationsKey = ['conversations'];
 export const unreadCountKey = ['conversations', 'unread-count'];
 
+export const CONVERSATION_FOLDERS: readonly ConversationFolder[] = [
+  'primary',
+  'requests',
+  'hidden_requests',
+];
+
+/** Cache key of one inbox folder's list; it sits under {@link conversationsKey}. */
+export const conversationFolderKey = (folder: ConversationFolder) => ['conversations', folder];
+
+export const isConversationFolder = (value: unknown): value is ConversationFolder =>
+  typeof value === 'string' && CONVERSATION_FOLDERS.some((folder) => folder === value);
+
 /**
- * The caller's conversations, most recent activity first.
+ * The caller's conversations in one inbox folder, most recent activity first.
  *
  * Each row already carries its unread count and newest message, so this is the only request the
- * list screen makes; there is no follow-up per conversation.
+ * list screen makes; there is no follow-up per conversation. Every folder is cached under its own
+ * key (`['conversations', folder]`), so switching tabs shows the folder's last list while it
+ * refreshes. Mutations and live frames invalidate by folder key or by the shared prefix.
  */
-export const useConversations = () => {
+export const useConversations = (folder: ConversationFolder = 'primary') => {
   const query = useInfiniteQuery({
-    queryKey: conversationsKey,
+    queryKey: conversationFolderKey(folder),
     queryFn: ({ pageParam = null, signal }) =>
-      messageService.listConversations({ cursor: pageParam, limit: 20, signal }),
+      messageService.listConversations({ folder, cursor: pageParam, limit: 20, signal }),
     staleTime: STALE_TIME.SHORT,
     getNextPageParam: getNextCursor,
     initialPageParam: null,
@@ -28,22 +43,32 @@ export const useConversations = () => {
 };
 
 /**
- * Total unread messages across every conversation.
+ * The two inbox counters: unread messages in the regular inbox (`count`) and pending incoming
+ * requests (`requestCount`).
  *
- * Named `useUnreadMessageCount`, not `useUnreadCount`: the notifications feature already exports a
- * hook by that name and the shell imports it. Two hooks with one name in the same component is a
- * merge conflict waiting to happen.
- *
- * The count is database-owned, so it is re-read rather than adjusted locally.
+ * Both are database-owned, so they are re-read rather than adjusted locally. The server counts a
+ * request only while it is visible, so the hidden requests folder never contributes.
  */
-export const useUnreadMessageCount = () => {
+export const useInboxCounts = () => {
   const { data } = useQuery({
     queryKey: unreadCountKey,
     queryFn: () => messageService.getUnreadCount(),
     staleTime: STALE_TIME.SHORT,
   });
-  return data?.data?.unreadCount ?? 0;
+  return {
+    count: data?.data?.unreadCount ?? 0,
+    requestCount: data?.data?.requestCount ?? 0,
+  };
 };
+
+/**
+ * Unread messages in the regular inbox, for the navigation badge.
+ *
+ * Named `useUnreadMessageCount`, not `useUnreadCount`: the notifications feature already exports a
+ * hook by that name and the shell imports it. The badge reads `count` only; requests never add to
+ * it.
+ */
+export const useUnreadMessageCount = () => useInboxCounts().count;
 
 /**
  * Marks a conversation read.

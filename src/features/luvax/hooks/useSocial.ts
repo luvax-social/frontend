@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import * as socialService from '../../../services/social.service';
 import { getNextCursor } from '@/utils/helpers';
@@ -13,6 +14,22 @@ export const socialKeys = {
   requests: () => [...socialKeys.all, 'follow-requests'],
   blocked: () => [...socialKeys.all, 'blocked'],
 };
+
+// Caches that can list an account somewhere other than the feeds: the story tray, the trending
+// hashtag previews with their cover images, account suggestions, search results and hashtag
+// pages. Literals, like the feed keys used below them: the hooks that own these keys sit in
+// several modules and the search key in another slice. A block changes who is visible on all of
+// them at once.
+const ACCOUNT_SURFACE_KEYS = [
+  ['storyFeed'],
+  ['trendingPreviews'],
+  ['suggestions'],
+  ['search'],
+  ['hashtag'],
+];
+
+const refreshAccountSurfaces = (queryClient: QueryClient) =>
+  ACCOUNT_SURFACE_KEYS.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
 
 // --- Queries ---
 
@@ -119,21 +136,30 @@ export const useUnfollow = () => {
 // The blocked list is server state. It is read back from GET /social/blocked
 // rather than mirrored into client storage, so a rejected mutation must reach
 // the caller instead of being reported as a success.
+/**
+ * Drops every cache that can still show a blocked account.
+ *
+ * Shared by the profile block action and the message request block action, which reach the same
+ * server-side block through different endpoints.
+ */
+export const invalidateAfterBlock = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
+  queryClient.invalidateQueries({ queryKey: ['users'] });
+  queryClient.invalidateQueries({ queryKey: socialKeys.following() });
+  queryClient.invalidateQueries({ queryKey: socialKeys.followers() });
+  queryClient.invalidateQueries({ queryKey: ['post'] });
+  refreshAccountSurfaces(queryClient);
+  queryClient.resetQueries({ queryKey: ['feed'] });
+  queryClient.resetQueries({ queryKey: ['recommendedFeed'] });
+  queryClient.resetQueries({ queryKey: ['explore'] });
+  queryClient.resetQueries({ queryKey: ['userPosts'] });
+};
+
 export const useBlock = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (targetUserId: string) => socialService.blockUser(targetUserId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: socialKeys.following() });
-      queryClient.invalidateQueries({ queryKey: socialKeys.followers() });
-      queryClient.invalidateQueries({ queryKey: ['post'] });
-      queryClient.resetQueries({ queryKey: ['feed'] });
-      queryClient.resetQueries({ queryKey: ['recommendedFeed'] });
-      queryClient.resetQueries({ queryKey: ['explore'] });
-      queryClient.resetQueries({ queryKey: ['userPosts'] });
-    },
+    onSuccess: () => invalidateAfterBlock(queryClient),
   });
 };
 
@@ -144,6 +170,7 @@ export const useUnblock = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: socialKeys.blocked() });
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      refreshAccountSurfaces(queryClient);
     },
   });
 };

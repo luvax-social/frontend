@@ -1,5 +1,18 @@
-import type { Message, MessageMedia, MessageView, ThreadRow, Conversation } from '../types';
-import type { ParticipantResponse, StoryResponse, PublicUserProfileResponse } from '@/types/domain';
+import type {
+  Message,
+  MessageMedia,
+  MessageView,
+  ReactionChipView,
+  ThreadRow,
+  Conversation,
+} from '../types';
+import type {
+  LastReactionPreviewResponse,
+  MessageType,
+  ParticipantResponse,
+  StoryResponse,
+  PublicUserProfileResponse,
+} from '@/types/domain';
 /**
  * Maps conversation API shapes onto the props the message components consume.
  *
@@ -17,6 +30,8 @@ import type { ParticipantResponse, StoryResponse, PublicUserProfileResponse } fr
  */
 
 const DELETED_PLACEHOLDER = 'this message was deleted';
+const UNAVAILABLE_QUOTE = 'message unavailable';
+const OWN_QUOTE_NAME = 'you';
 const UNKNOWN_PARTICIPANT = 'unknown';
 const TIME_SEPARATOR_GAP_MS = 60 * 60 * 1000;
 const STORY_MEDIA_CACHE_KEY = 'luvax:message-story-media';
@@ -130,6 +145,64 @@ const previewTextOf = (message: Message | null) => {
 };
 
 /**
+ * The conversation row's line for a reaction newer than the last message, such as
+ * "Minh reacted X to your message". The server only sends it when it is newer, so it replaces the
+ * message preview rather than sitting beside it.
+ */
+const reactionPreviewOf = (
+  reaction: LastReactionPreviewResponse,
+  currentUserId: string | undefined,
+  counterpartName: string
+) => {
+  const actor = reaction.userId === currentUserId ? 'You' : counterpartName;
+  return `${actor} reacted ${reaction.emoji} to ${reaction.onMyMessage ? 'your' : 'their'} message`;
+};
+
+/** What a quote shows for a replied-to message that has no text of its own. */
+const quoteLabelOf = (messageType: MessageType | null) => {
+  switch (messageType) {
+    case 'image':
+      return 'photo';
+    case 'video':
+      return 'video';
+    case 'post_share':
+      return 'shared post';
+    case 'story_share':
+      return 'shared story';
+    default:
+      return '';
+  }
+};
+
+/**
+ * One chip per distinct emoji, in the order the first person chose it.
+ *
+ * A message that is no longer shown carries none: the server sends an empty list for it, and this
+ * guards the optimistic and live paths the same way. Only a reaction by someone else can be
+ * reported, so the viewer's own never exposes an id.
+ */
+const reactionChipsOf = (message: Message, currentUserId: string | undefined) => {
+  if (message.isDeleted) return [];
+  const chips = new Map<string, ReactionChipView>();
+  (message.reactions || []).forEach((reaction) => {
+    const mine = reaction.userId === currentUserId;
+    const chip = chips.get(reaction.emoji) || {
+      emoji: reaction.emoji,
+      count: 0,
+      mine: false,
+      reactionId: null,
+    };
+    chips.set(reaction.emoji, {
+      ...chip,
+      count: chip.count + 1,
+      mine: chip.mine || mine,
+      reactionId: chip.reactionId ?? (mine ? null : reaction.id),
+    });
+  });
+  return Array.from(chips.values());
+};
+
+/**
  * Which bubble treatment a message gets.
  *
  * Keyed on `replyToId` rather than on whether the quote resolved: a reply is still a reply when the
@@ -148,6 +221,7 @@ const kindOf = (message: Message): MessageView['kind'] => {
 export const toThreadSummary = (conversation: Conversation, currentUserId: string | undefined) => {
   const counterpart = counterpartOf(conversation, currentUserId);
   const nickname = myNicknameForCounterpart(conversation.participants, currentUserId);
+  const lastReaction = 'lastReaction' in conversation ? conversation.lastReaction : null;
 
   return {
     id: conversation.id,
@@ -157,7 +231,9 @@ export const toThreadSummary = (conversation: Conversation, currentUserId: strin
     isVerified: Boolean(counterpart?.isVerified),
     verifiedCategory: counterpart?.verifiedCategory ?? null,
     avatarUrl: counterpart?.avatarUrl || null,
-    preview: previewTextOf('lastMessage' in conversation ? conversation.lastMessage : null),
+    preview: lastReaction
+      ? reactionPreviewOf(lastReaction, currentUserId, nickname || nameOf(counterpart))
+      : previewTextOf('lastMessage' in conversation ? conversation.lastMessage : null),
     time: formatMessageTime(conversation.lastMessageAt),
     unread: ('unreadCount' in conversation ? conversation.unreadCount : 0) || 0,
     // A caller-set flag independent of unreadCount: clearing the read marker only changes the
@@ -168,6 +244,9 @@ export const toThreadSummary = (conversation: Conversation, currentUserId: strin
     pinned: conversation.pinned || false,
     muted: conversation.muted || false,
     nickname,
+    requestStatus: conversation.requestStatus,
+    isRequestRecipient: conversation.isRequestRecipient,
+    sendRestriction: conversation.sendRestriction,
   };
 };
 
@@ -188,11 +267,21 @@ export const toMessageView = (
     participant && participant.userId !== currentUserId
       ? nickname || nameOf(participant)
       : nameOf(participant);
-  // Resolved from the loaded page only. Fetching the referenced message per bubble would issue one
-  // request per reply while scrolling.
-  const repliedTo = message.replyToId
-    ? loadedMessages.find((candidate) => candidate.id === message.replyToId) || null
-    : null;
+  const quoteNameOf = (senderId: string | null) =>
+    senderId === null
+      ? null
+      : senderId === currentUserId
+        ? OWN_QUOTE_NAME
+        : displayNameOf(participantOf(participants, senderId));
+  // The server preview is authoritative. The loaded page is a fallback for a message that carries
+  // no preview, such as a just-sent reply, because fetching the referenced message per bubble would
+  // issue one request per reply while scrolling.
+  const preview = message.replyTo;
+  const repliedTo =
+    !preview && message.replyToId
+      ? loadedMessages.find((candidate) => candidate.id === message.replyToId) || null
+      : null;
+  const reactions = reactionChipsOf(message, currentUserId);
 
   return {
     id: message.id,
@@ -207,8 +296,23 @@ export const toMessageView = (
     sharedStoryMedia: message.sharedStory?.media || cachedStoryMediaOf(message.sharedStoryId),
     sharedPostId: message.sharedPostId || null,
     sharedStoryId: message.sharedStoryId || null,
-    replyTo: repliedTo ? displayNameOf(participantOf(participants, repliedTo.senderId)) : null,
-    replyText: repliedTo ? previewTextOf(repliedTo) : null,
+    replyTo: preview
+      ? preview.unavailable
+        ? null
+        : quoteNameOf(preview.senderId)
+      : repliedTo
+        ? quoteNameOf(repliedTo.senderId)
+        : null,
+    replyText: preview
+      ? preview.unavailable
+        ? UNAVAILABLE_QUOTE
+        : preview.snippet || quoteLabelOf(preview.messageType)
+      : repliedTo
+        ? previewTextOf(repliedTo)
+        : null,
+    replyUnavailable: Boolean(preview?.unavailable),
+    reactions,
+    myReaction: reactions.find((chip) => chip.mine)?.emoji ?? null,
     handle: sender?.username ? `@${sender.username}` : null,
     title: null,
     meta: message.sharedStoryId ? 'shared story' : message.sharedPostId ? 'shared post' : null,
@@ -390,6 +494,9 @@ export const toPendingThread = (targetUser: PublicUserProfileResponse) => ({
   pinned: false,
   muted: false,
   nickname: null,
+  requestStatus: 'accepted' as const,
+  isRequestRecipient: false,
+  sendRestriction: 'none' as const,
   counterpartId: targetUser.id,
   participants: [] as ParticipantResponse[],
   media: [] as (MessageMedia & { id: string })[],

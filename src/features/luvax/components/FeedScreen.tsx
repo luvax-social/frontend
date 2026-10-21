@@ -2,8 +2,9 @@ import type { ReactNode } from 'react';
 import type { Post } from '@/types/social';
 import type { Tweaks, Viewport } from '../LuvaxTweaksContext';
 import type { FeedCardType } from '../utils/feedInterleave';
+import type { FeedSurface } from '../utils/feedSurface';
 import { getErrorResponse, getErrorHeader } from '@/utils/errors';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import { v } from '@/config/tokens';
@@ -12,6 +13,7 @@ import { LxIcon, LxAvatar } from './primitives';
 import { useFeed, useForYouFeed } from '../hooks/usePosts';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import { useStoryFeed } from '../hooks/useStories';
+import { useDismissedPostsStore } from '../store/useDismissedPostsStore';
 import { useOverlayNavigate } from '../hooks/useOverlayNavigate';
 import { useLuvaxTweaks } from '../LuvaxTweaksContext';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -189,6 +191,7 @@ export function StoriesCarousel({ viewport }: { viewport: Viewport }) {
 }
 
 import { PostCard } from './PostCard';
+import { DismissedPostRow } from './feed/DismissedPostRow';
 import { interleaveFeed } from '../utils/feedInterleave';
 import { useSuggestions, useFollowSuggestion, useDismissSuggestion } from '../hooks/useSuggestions';
 import { useTrendingPreviews } from '../hooks/useTrendingPreviews';
@@ -197,6 +200,66 @@ import { FeedHashtagCard } from './feed/FeedHashtagCard';
 
 /** How many account-suggestion cards one feed may carry, however many accounts are available. */
 const MAX_PEOPLE_CARDS = 3;
+
+/**
+ * One post in a feed list: its card, or the undo row when the viewer dismissed it.
+ *
+ * The row replaces the card without leaving the list, so the order and the scroll position of
+ * everything around it stay put. Not interested shows on both tabs. Show fewer steers For You
+ * and Explore only, so Following keeps showing the card. Focus follows the change: when the
+ * viewer dismisses the card from its own menu it moves to undo, because the menu item left with the
+ * card, and when the dismissal is undone it moves to this wrapper, because undo has left the page.
+ */
+function FeedPost({
+  post,
+  density,
+  showTags,
+  viewport,
+  feedSurface,
+  assumeFollowing,
+}: {
+  post: Post;
+  density: string;
+  showTags: boolean;
+  viewport: Viewport;
+  feedSurface: FeedSurface;
+  assumeFollowing?: boolean;
+}) {
+  const dismissal = useDismissedPostsStore((state) => state.byPostId[post.id]);
+  const showRow =
+    dismissal !== undefined && (dismissal.kind === 'not-interested' || feedSurface === 'for-you');
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  // Starts at the current value, so a row already there when the list mounts is not a change.
+  const wasShowingRow = useRef(showRow);
+  const focusUndo = dismissal?.focusUndo;
+
+  useEffect(() => {
+    if (showRow && !wasShowingRow.current && focusUndo) {
+      wrapperRef.current?.querySelector('button')?.focus({ preventScroll: true });
+    } else if (!showRow && wasShowingRow.current) {
+      wrapperRef.current?.focus({ preventScroll: true });
+    }
+    wasShowingRow.current = showRow;
+  }, [showRow, focusUndo]);
+
+  return (
+    <div ref={wrapperRef} tabIndex={-1} style={{ outline: 'none' }}>
+      {showRow ? (
+        <DismissedPostRow postId={post.id} dismissal={dismissal} />
+      ) : (
+        <PostCard
+          post={post}
+          density={density}
+          showTags={showTags}
+          viewport={viewport}
+          surface="feed"
+          feedSurface={feedSurface}
+          assumeFollowing={assumeFollowing}
+        />
+      )}
+    </div>
+  );
+}
 
 /**
  * One tab's posts with the suggestion cards placed among them.
@@ -218,6 +281,7 @@ export function FeedInjectedList({
   viewport,
   betweenPosts,
   assumeFollowing,
+  feedSurface = 'other',
 }: {
   posts: Post[];
   cards: Partial<Record<FeedCardType, (occurrence: number) => ReactNode>>;
@@ -227,6 +291,7 @@ export function FeedInjectedList({
   viewport: Viewport;
   betweenPosts: number;
   assumeFollowing?: boolean;
+  feedSurface?: FeedSurface;
 }) {
   const items = interleaveFeed(posts, availability, dismissed);
 
@@ -237,13 +302,13 @@ export function FeedInjectedList({
     >
       {items.map((item) =>
         item.kind === 'post' ? (
-          <PostCard
+          <FeedPost
             key={item.post.id}
             post={item.post}
             density={tweaks.density}
             showTags={tweaks.showTags}
             viewport={viewport}
-            surface="feed"
+            feedSurface={feedSurface}
             assumeFollowing={assumeFollowing}
           />
         ) : (
@@ -452,6 +517,7 @@ function FeedTabPanel({
             viewport={viewport}
             betweenPosts={betweenPosts}
             assumeFollowing={assumeFollowing}
+            feedSurface={isRecommended ? 'for-you' : 'following'}
           />
 
           {hasNextPage && (

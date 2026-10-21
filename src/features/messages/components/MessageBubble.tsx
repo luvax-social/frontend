@@ -13,6 +13,12 @@ interface Props {
   onReplyMessage: (message: MessageView) => void;
   viewport: Viewport;
   forceShowActions?: boolean;
+  /** Whether the thread accepts reactions; false when messaging is paused or unavailable. */
+  canReact?: boolean;
+  /** Sets the viewer's reaction on a message, or removes it when the emoji is null. */
+  onReact?: (messageId: string, emoji: string | null) => void;
+  /** Opens the report flow for someone else's reaction on a message. */
+  onReportReaction?: (reactionId: string, messageId: string) => void;
 }
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -23,8 +29,12 @@ import { ROUTES, routeTo } from '@/config/constants';
 import { copyToClipboard, getDisplayName, getUserSummary } from '@/utils/helpers';
 import { usePostDetail } from '@/features/luvax/hooks/usePosts';
 import { bubbleCornerRadius } from '../utils/bubbleShape';
+import { REACTION_TRIGGER_ATTRIBUTE } from '../utils/reactionOptions';
 import { AvatarVisual } from './AvatarVisual';
 import { MediaPlaceholder } from './MediaPlaceholder';
+import { ReactionPicker } from './ReactionPicker';
+import { ReactionChip } from './ReactionChip';
+import { ReplyQuote } from './ReplyQuote';
 
 const AVATAR_SIZE = 21;
 // Extends the hover/click target a few pixels past the bubble itself in every direction, so the
@@ -43,6 +53,9 @@ export function MessageBubble({
   onReplyMessage,
   viewport,
   forceShowActions = false,
+  canReact = false,
+  onReact,
+  onReportReaction,
 }: Props) {
   const navigate = useNavigate();
   const isMine = message.from === 'me';
@@ -57,6 +70,7 @@ export function MessageBubble({
   const [menuOpen, setMenuOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [touchRevealed, setTouchRevealed] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const bubbleRowRef = useRef<HTMLDivElement | null>(null);
   const textForCopy =
@@ -103,8 +117,11 @@ export function MessageBubble({
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   const showActions =
-    forceShowActions || menuOpen || (!isTouchLayout && hovered) || (isTouchLayout && touchRevealed);
-
+    forceShowActions ||
+    menuOpen ||
+    pickerOpen ||
+    (!isTouchLayout && hovered) ||
+    (isTouchLayout && touchRevealed);
   const openSharedPost = () => {
     if (message.sharedPostId) {
       navigate(routeTo.postDetail(message.sharedPostId), {
@@ -228,6 +245,82 @@ export function MessageBubble({
     background: 'rgba(255,255,255,0.06)',
   };
 
+  // A tombstoned message carries neither a chip nor a picker: its reactions are hidden with it.
+  const reactable = canReact && Boolean(onReact) && message.kind !== 'deleted';
+
+  const reactionButton =
+    showActions && reactable ? (
+      <button
+        type="button"
+        {...{ [REACTION_TRIGGER_ATTRIBUTE]: '' }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          setPickerOpen((open) => !open);
+        }}
+        aria-label="react to message"
+        aria-expanded={pickerOpen}
+        style={replyButtonStyle}
+      >
+        <LxIcon name="smile" size={12} color={isMine ? v.ink2 : v.ink3} />
+      </button>
+    ) : null;
+
+  const reactionChips =
+    message.kind !== 'deleted' && message.reactions.length > 0 ? (
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 4,
+          marginTop: -8,
+          padding: '0 8px',
+          position: 'relative',
+          zIndex: 1,
+          alignSelf: isMine ? 'flex-end' : 'flex-start',
+        }}
+      >
+        {message.reactions.map((reaction) => (
+          <ReactionChip
+            key={reaction.emoji}
+            reaction={reaction}
+            onRemoveMine={() => onReact?.(message.id, null)}
+            onReport={
+              onReportReaction
+                ? (reactionId) => onReportReaction(reactionId, message.id)
+                : undefined
+            }
+          />
+        ))}
+      </div>
+    ) : null;
+
+  const reactionPicker =
+    pickerOpen && reactable ? (
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '100%',
+          marginBottom: 6,
+          [isMine ? 'right' : 'left']: 0,
+          zIndex: 6,
+        }}
+      >
+        <ReactionPicker
+          current={message.myReaction}
+          onPick={(emoji) => {
+            onReact?.(message.id, emoji);
+            setPickerOpen(false);
+          }}
+          onRemove={() => {
+            onReact?.(message.id, null);
+            setPickerOpen(false);
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      </div>
+    ) : null;
+
   // The padding/negative-margin pair widens the hover and tap target past the bubble's own edges
   // without shifting this row's siblings apart - hovering "near" a message reveals its actions, not
   // only a precise hover on the bubble pixels themselves.
@@ -292,185 +385,197 @@ export function MessageBubble({
           onPointerDown={handleBubbleInteraction}
           onClick={handleTouchMenuToggle}
         >
-          {isStory ? (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: isMine ? 'flex-end' : 'flex-start',
-                gap: 8,
-                maxWidth: isMobile ? 300 : 460,
-              }}
-            >
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+            }}
+          >
+            {isStory ? (
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  color: v.ink3,
-                  fontFamily: v.fontBody,
-                  fontSize: 13,
-                  alignSelf: isMine ? 'flex-end' : 'flex-start',
+                  flexDirection: 'column',
+                  alignItems: isMine ? 'flex-end' : 'flex-start',
+                  gap: 8,
+                  maxWidth: isMobile ? 300 : 460,
                 }}
               >
-                <LxIcon name="reply" size={12} color={v.ink3} />
-                <span>
-                  {isMine
-                    ? `you replied to ${activeThread.name}'s story`
-                    : `${message.senderName} replied to your story`}
-                </span>
-              </div>
-              <div
-                style={{
-                  width: isMobile ? 116 : 180,
-                  height: isMobile ? 154 : 240,
-                  borderRadius: 14,
-                  overflow: 'hidden',
-                  alignSelf: isMine ? 'flex-end' : 'flex-start',
-                  background: v.surface,
-                }}
-              >
-                <MediaPlaceholder
-                  item={storyMedia}
-                  onClick={() =>
-                    message.sharedStoryId
-                      ? onOpenStory?.(message.sharedStoryId)
-                      : onPreviewMedia(storyMedia)
-                  }
-                />
-              </div>
-              {message.text ? (
                 <div
                   style={{
-                    maxWidth: '100%',
-                    padding: '8px 12px',
-                    borderRadius: 16,
-                    background: isMine ? activeThread.accent || v.accentDim : v.surface,
-                    color: v.ink,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: v.ink3,
                     fontFamily: v.fontBody,
-                    fontSize: 14.5,
-                    lineHeight: 1.42,
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
+                    fontSize: 13,
+                    alignSelf: isMine ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {message.text}
+                  <LxIcon name="reply" size={12} color={v.ink3} />
+                  <span>
+                    {isMine
+                      ? `you replied to ${activeThread.name}'s story`
+                      : `${message.senderName} replied to your story`}
+                  </span>
                 </div>
-              ) : null}
-            </div>
-          ) : isFile ? (
-            // A real photo or video is the bubble - no surrounding card, border, or padding
-            // framing it. Chrome around a thumbnail read as over-designed next to a plain photo.
-            <div
-              style={{
-                maxWidth: isMobile ? 196 : 248,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: isMine ? 'flex-end' : 'flex-start',
-                gap: message.text ? 2 : 0,
-              }}
-            >
-              <MediaPlaceholder
-                item={
-                  message.media
-                    ? { ...message.media, label: message.text }
-                    : { label: message.text }
-                }
-                large
-                onClick={() => onPreviewMedia(message.media || { label: message.text })}
-              />
-              {message.text ? (
                 <div
                   style={{
-                    maxWidth: '100%',
-                    padding: '8px 11px',
-                    borderRadius: bubbleCornerRadius({
-                      isMine,
-                      isFirstInRun: false,
-                      isLastInRun: message.isLastInRun,
-                    }),
-                    background: isMine ? activeThread.accent || v.accentDim : v.surface,
-                    color: v.ink,
-                    fontFamily: v.fontBody,
-                    fontSize: 13.5,
-                    lineHeight: 1.42,
-                    overflowWrap: 'anywhere',
-                    wordBreak: 'break-word',
+                    width: isMobile ? 116 : 180,
+                    height: isMobile ? 154 : 240,
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    alignSelf: isMine ? 'flex-end' : 'flex-start',
+                    background: v.surface,
                   }}
                 >
-                  {message.text}
+                  <MediaPlaceholder
+                    item={storyMedia}
+                    onClick={() =>
+                      message.sharedStoryId
+                        ? onOpenStory?.(message.sharedStoryId)
+                        : onPreviewMedia(storyMedia)
+                    }
+                  />
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div
-              style={{
-                ...bubbleBase,
-                background: isMine ? activeThread.accent || v.accentDim : v.surface,
-                border: isMine ? 'none' : `1px solid ${v.border}`,
-                padding: 9,
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                <MediaPlaceholder
-                  item={sharedPostMedia || { label: message.meta || 'shared post' }}
-                  onClick={openSharedPost}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <div style={{ fontFamily: v.fontMono, fontSize: 10, color: v.accent }}>
-                    {sharedPostHandle || message.meta || 'shared post'}
-                  </div>
+                {message.text ? (
                   <div
                     style={{
+                      maxWidth: '100%',
+                      padding: '8px 12px',
+                      borderRadius: 16,
+                      background: isMine ? activeThread.accent || v.accentDim : v.surface,
                       color: v.ink,
-                      fontSize: 12.5,
+                      fontFamily: v.fontBody,
+                      fontSize: 14.5,
+                      lineHeight: 1.42,
                       overflowWrap: 'anywhere',
                       wordBreak: 'break-word',
                     }}
                   >
-                    {sharedPostCaption}
+                    {message.text}
                   </div>
-                  {sharedPostAuthor ? (
+                ) : null}
+              </div>
+            ) : isFile ? (
+              // A real photo or video is the bubble - no surrounding card, border, or padding
+              // framing it. Chrome around a thumbnail read as over-designed next to a plain photo.
+              <div
+                style={{
+                  maxWidth: isMobile ? 196 : 248,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: isMine ? 'flex-end' : 'flex-start',
+                  gap: message.text ? 2 : 0,
+                }}
+              >
+                <MediaPlaceholder
+                  item={
+                    message.media
+                      ? { ...message.media, label: message.text }
+                      : { label: message.text }
+                  }
+                  large
+                  onClick={() => onPreviewMedia(message.media || { label: message.text })}
+                />
+                {message.text ? (
+                  <div
+                    style={{
+                      maxWidth: '100%',
+                      padding: '8px 11px',
+                      borderRadius: bubbleCornerRadius({
+                        isMine,
+                        isFirstInRun: false,
+                        isLastInRun: message.isLastInRun,
+                      }),
+                      background: isMine ? activeThread.accent || v.accentDim : v.surface,
+                      color: v.ink,
+                      fontFamily: v.fontBody,
+                      fontSize: 13.5,
+                      lineHeight: 1.42,
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {message.text}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div
+                style={{
+                  ...bubbleBase,
+                  background: isMine ? activeThread.accent || v.accentDim : v.surface,
+                  border: isMine ? 'none' : `1px solid ${v.border}`,
+                  padding: 9,
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  <MediaPlaceholder
+                    item={sharedPostMedia || { label: message.meta || 'shared post' }}
+                    onClick={openSharedPost}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <div style={{ fontFamily: v.fontMono, fontSize: 10, color: v.accent }}>
+                      {sharedPostHandle || message.meta || 'shared post'}
+                    </div>
                     <div
                       style={{
-                        fontFamily: v.fontBody,
-                        fontSize: 11,
-                        color: v.ink3,
+                        color: v.ink,
+                        fontSize: 12.5,
                         overflowWrap: 'anywhere',
                         wordBreak: 'break-word',
                       }}
                     >
-                      by {getDisplayName(sharedPostAuthor)}
+                      {sharedPostCaption}
                     </div>
-                  ) : null}
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 7,
-                      fontFamily: v.fontMono,
-                      fontSize: 10,
-                      color: v.ink3,
-                    }}
-                  >
-                    <span>{message.meta}</span>
-                    <button
-                      type="button"
-                      onClick={openSharedPost}
+                    {sharedPostAuthor ? (
+                      <div
+                        style={{
+                          fontFamily: v.fontBody,
+                          fontSize: 11,
+                          color: v.ink3,
+                          overflowWrap: 'anywhere',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        by {getDisplayName(sharedPostAuthor)}
+                      </div>
+                    ) : null}
+                    <div
                       style={{
-                        background: 'none',
-                        border: 'none',
+                        display: 'flex',
+                        gap: 7,
+                        fontFamily: v.fontMono,
+                        fontSize: 10,
                         color: v.ink3,
-                        cursor: 'pointer',
-                        padding: 0,
                       }}
                     >
-                      view
-                    </button>
+                      <span>{message.meta}</span>
+                      <button
+                        type="button"
+                        onClick={openSharedPost}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: v.ink3,
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      >
+                        view
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+            {reactionChips}
+            {reactionPicker}
+          </div>
+          {reactionButton}
           {showActions ? (
             <button
               type="button"
@@ -538,67 +643,61 @@ export function MessageBubble({
       >
         <div
           style={{
-            ...bubbleBase,
-            background: isEmojiOnly
-              ? 'transparent'
-              : isMine
-                ? activeThread.accent || v.accentDim
-                : v.surface,
-            color: v.ink,
-            border: isEmojiOnly || isMine ? 'none' : `1px solid ${v.border}`,
-            minWidth: isEmojiOnly || isMobile ? 0 : 76,
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
             width: isMobile ? '100%' : 'auto',
-            overflow: 'hidden',
-            padding: isEmojiOnly ? '0 2px' : bubbleBase.padding,
-            fontFamily: isEmojiOnly
-              ? '"Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", sans-serif'
-              : v.fontBody,
-            fontSize: isEmojiOnly ? 34 : bubbleBase.fontSize,
-            lineHeight: isEmojiOnly ? 1.15 : bubbleBase.lineHeight,
           }}
         >
-          {message.kind === 'reply' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                  color: v.ink2,
-                  minWidth: 0,
-                }}
-              >
-                <span style={{ fontFamily: v.fontMono, fontSize: 10, minWidth: 0 }}>
-                  ↳ {message.replyTo}
-                </span>
+          <div
+            style={{
+              ...bubbleBase,
+              background: isEmojiOnly
+                ? 'transparent'
+                : isMine
+                  ? activeThread.accent || v.accentDim
+                  : v.surface,
+              color: v.ink,
+              border: isEmojiOnly || isMine ? 'none' : `1px solid ${v.border}`,
+              minWidth: isEmojiOnly || isMobile ? 0 : 76,
+              width: isMobile ? '100%' : 'auto',
+              overflow: 'hidden',
+              padding: isEmojiOnly ? '0 2px' : bubbleBase.padding,
+              fontFamily: isEmojiOnly
+                ? '"Segoe UI Emoji", "Segoe UI Symbol", "Apple Color Emoji", sans-serif'
+                : v.fontBody,
+              fontSize: isEmojiOnly ? 34 : bubbleBase.fontSize,
+              lineHeight: isEmojiOnly ? 1.15 : bubbleBase.lineHeight,
+            }}
+          >
+            {message.kind === 'reply' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <ReplyQuote
+                  name={message.replyTo}
+                  text={message.replyText}
+                  unavailable={message.replyUnavailable}
+                />
                 <span
                   style={{
-                    fontSize: 11.5,
                     minWidth: 0,
                     overflowWrap: 'anywhere',
                     wordBreak: 'break-word',
                   }}
                 >
-                  {message.replyText}
+                  {message.text}
                 </span>
               </div>
-              <strong
-                style={{
-                  fontWeight: 600,
-                  minWidth: 0,
-                  overflowWrap: 'anywhere',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {message.text}
-              </strong>
-            </div>
-          ) : (
-            message.text
-          )}
+            ) : (
+              message.text
+            )}
+          </div>
+          {reactionChips}
+          {reactionPicker}
         </div>
         {showActions ? (
           <>
+            {reactionButton}
             <button
               type="button"
               onPointerDown={(event) => event.stopPropagation()}

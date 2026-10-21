@@ -6,6 +6,16 @@ import type {
   ReportStatus,
   UserSummaryResponse,
 } from './domain';
+// modules/social/dto/response/AdminHiddenWordResponse.java
+export interface AdminHiddenWordResponse {
+  id: string;
+  phrase: string;
+  normalizedPhrase: string;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // modules/hashtag/dto/response/HashtagAdminResponse.java
 export interface HashtagAdminResponse {
   id: string;
@@ -52,6 +62,8 @@ export type AdminActionType =
   | 'restore_story'
   | 'remove_message'
   | 'restore_message'
+  | 'remove_message_reaction'
+  | 'restore_message_reaction'
   | 'resolve_report'
   | 'dismiss_report'
   | 'change_user_role'
@@ -137,6 +149,8 @@ export interface AdminReportTargetResponse {
   mediaUrls: string[];
   removed: boolean;
   createdAt: string;
+  /** The emoji of a reported message reaction; null for every other type. */
+  emoji: string | null;
 }
 
 // modules/admin/dto/response/AdminStatsCurrentResponse.java

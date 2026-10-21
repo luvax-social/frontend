@@ -14,7 +14,8 @@
     "test:watch": "vitest --config vitest.config.ts",
     "test:live": "vitest run --config vitest.live.config.ts",
     "test:all": "npm run test && npm run test:live",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:live": "playwright test -c playwright.live.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

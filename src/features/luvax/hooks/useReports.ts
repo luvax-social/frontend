@@ -82,6 +82,11 @@ export const useSubmitReport = () => {
       return;
     }
 
+    // A reaction carries no viewer report state, so there is no cached item to refresh.
+    if (reportType === reportService.REPORT_TYPES.MESSAGE_REACTION) {
+      return;
+    }
+
     if (reportType === reportService.REPORT_TYPES.COMMENT) {
       queryClient.invalidateQueries({ queryKey: ['comments'] });
       queryClient.invalidateQueries({ queryKey: ['commentReplies'] });

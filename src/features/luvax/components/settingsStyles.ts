@@ -432,6 +432,218 @@ export const SETTINGS_CSS = `
   margin-top: var(--space-2);
 }
 
+/* A titled single-choice group inside a section: the title reads like a row
+   label, and the options sit under it between two hairlines. */
+.lx-radio-block {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--lx-border-subtle);
+  border-bottom: 1px solid var(--lx-border-subtle);
+  margin: var(--space-2) 0;
+}
+.lx-radio-block-title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--lx-ink);
+  margin: 0 0 var(--space-3);
+}
+
+/* Radio options: a dot, a label and the sentence that says what the choice does.
+   The whole row is the target and is at least 44px tall, so it can be hit at 390. */
+.lx-radio-list { display: flex; flex-direction: column; gap: var(--space-1); }
+.lx-radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  color: var(--lx-ink);
+}
+.lx-radio-option:disabled,
+.lx-segmented-option:disabled { cursor: not-allowed; opacity: 0.5; }
+.lx-radio-dot {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--lx-ink-2);
+  background: var(--lx-surface-sunken);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+.lx-radio-option[aria-checked="true"] .lx-radio-dot { border-color: var(--lx-accent-dark); }
+.lx-radio-option[aria-checked="true"] .lx-radio-dot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--lx-accent-dark);
+}
+.lx-radio-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lx-radio-label { font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+.lx-radio-description { font-size: 12px; line-height: 1.5; color: var(--lx-ink-2); }
+
+/* A segmented control is one pill track holding the choices side by side. It
+   scrolls sideways inside its own track rather than widening the page when the
+   labels do not fit. */
+.lx-segmented {
+  display: flex;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: var(--space-1);
+  border: 1px solid var(--lx-border);
+  border-radius: var(--radius-pill);
+  background: var(--lx-surface-sunken);
+  width: fit-content;
+}
+.lx-segmented-option {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lx-ink-2);
+  white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.lx-segmented-option[aria-checked="true"] { background: var(--lx-accent); color: var(--lx-black); }
+
+/* Hidden words: the add field and its button share a row, and the words sit as
+   removable pills beneath. */
+.lx-hidden-words-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.lx-hidden-words-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--lx-ink-2);
+}
+.lx-hidden-words-form { display: flex; gap: var(--space-2); align-items: center; }
+.lx-hidden-words-form .lx-settings-input { flex: 1; min-width: 0; }
+.lx-hidden-words-preview { margin-top: var(--space-2); }
+.lx-hidden-words-footnote { margin-top: var(--space-6); }
+.lx-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+}
+.lx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--lx-surface);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--lx-ink);
+  overflow-wrap: anywhere;
+}
+/* The glyph is small but the target is not: 28px square at the chip's edge, so
+   a thumb can remove a word without hitting its neighbour. */
+.lx-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: none;
+  cursor: pointer;
+}
+.lx-chip-remove:hover { background: var(--lx-surface-raised); }
+.lx-chip-remove:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* Limit interactions: the status card that replaces the form while a limit is
+   in force, and the three sentences naming what the limit does. */
+.lx-limit-status {
+  background: var(--lx-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+.lx-limit-status-line { display: flex; align-items: center; gap: var(--space-2); }
+.lx-limit-status-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--lx-success);
+}
+.lx-limit-status-title {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--lx-ink);
+}
+.lx-limit-status .lx-settings-note { margin: var(--space-2) 0 var(--space-4); }
+.lx-limit-status-actions { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.lx-limit-restart-hint { margin-top: var(--space-2); }
+.lx-limit-effects { padding-left: var(--space-5); margin: var(--space-4) 0 0; }
+.lx-limit-effects li + li { margin-top: var(--space-1); }
+
+/* Muted accounts: a person, a posts switch, a stories switch and an unmute button on one
+   grid, with the two column names above the rows. At phone width the names move into each
+   row, because the heading row can no longer sit above the switches it names. */
+.lx-mute-head,
+.lx-mute-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 56px auto;
+  align-items: center;
+  column-gap: var(--space-4);
+}
+.lx-mute-head {
+  padding-bottom: var(--space-1);
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--lx-ink-2);
+  text-align: center;
+}
+.lx-mute-head span:last-child { min-width: 64px; }
+.lx-mute-list { list-style: none; padding: 0; margin: 0; }
+.lx-mute-row {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--lx-border-subtle);
+}
+.lx-mute-row:last-child { border-bottom: none; }
+.lx-mute-who { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.lx-mute-cell { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.lx-mute-cell-label { display: none; font-size: 11px; color: var(--lx-ink-2); }
+@media (max-width: 520px) {
+  .lx-mute-head { display: none; }
+  .lx-mute-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    row-gap: var(--space-3);
+  }
+  .lx-mute-who { grid-column: 1 / -1; }
+  .lx-mute-cell-label { display: block; }
+}
+
 /* Below the split breakpoint the screen is not a split. Whichever region is not
    in play is removed, so the group list is the whole width until a category is
    opened and the category is the whole width afterwards, with a way back. That

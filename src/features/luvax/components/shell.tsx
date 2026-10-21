@@ -17,7 +17,10 @@ import { useNotificationState } from '../hooks/useNotifications';
 import { NotificationBadge } from '../notifications/NotificationBadge';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isPanelRole } from '@/config/roles';
-import { useConversations } from '@/features/messages/hooks/useConversations';
+import {
+  useConversations,
+  useUnreadMessageCount,
+} from '@/features/messages/hooks/useConversations';
 import { toThreadSummary } from '@/features/messages/utils/messageViewModel';
 
 // `id` still identifies the active tab for the shell's own styling; `path` is
@@ -191,6 +194,7 @@ export function LxBottomNav({ active, navigate }: NavProps) {
   const unseenCount = state?.unseen?.count ?? 0;
   const unseenCapped = state?.unseen?.capped ?? false;
   const hasFollowRequests = requests.length > 0;
+  const unreadMessages = useUnreadMessageCount();
   return (
     <nav
       style={{
@@ -248,6 +252,15 @@ export function LxBottomNav({ active, navigate }: NavProps) {
                 <NotificationBadge
                   count={hasFollowRequests ? Math.max(unseenCount, 1) : unseenCount}
                   capped={unseenCapped}
+                />
+              </span>
+            )}
+            {t.id === 'messages' && unreadMessages > 0 && (
+              <span style={{ position: 'absolute', top: 2, right: '22%' }}>
+                <NotificationBadge
+                  count={Math.min(unreadMessages, 99)}
+                  capped={unreadMessages > 99}
+                  noun="unread messages"
                 />
               </span>
             )}
@@ -594,6 +607,7 @@ export function LxSideRail({ active, navigate, visible = true }: NavProps & { vi
   const unseenCount = state?.unseen?.count ?? 0;
   const unseenCapped = state?.unseen?.capped ?? false;
   const hasFollowRequests = requests.length > 0;
+  const unreadMessages = useUnreadMessageCount();
 
   const rowStyle = (disabled?: boolean): CSSProperties => ({
     width: '100%',
@@ -721,6 +735,15 @@ export function LxSideRail({ active, navigate, visible = true }: NavProps & { vi
                   <NotificationBadge
                     count={hasFollowRequests ? Math.max(unseenCount, 1) : unseenCount}
                     capped={unseenCapped}
+                  />
+                </span>
+              )}
+              {t.id === 'messages' && unreadMessages > 0 && (
+                <span style={{ position: 'absolute', top: 2, left: RAIL_ICON_INSET + 14 }}>
+                  <NotificationBadge
+                    count={Math.min(unreadMessages, 99)}
+                    capped={unreadMessages > 99}
+                    noun="unread messages"
                   />
                 </span>
               )}

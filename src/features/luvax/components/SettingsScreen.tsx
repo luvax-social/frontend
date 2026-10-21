@@ -22,6 +22,9 @@ import {
   RequestsCategory,
   SavedCategory,
 } from './settingsCategories';
+import { HiddenWordsCategory } from './settings/HiddenWordsCategory';
+import { InteractionLimitsCategory } from './settings/InteractionLimitsCategory';
+import { MutedAccountsCategory } from './settings/MutedAccountsCategory';
 import { SETTINGS_CSS } from './settingsStyles';
 
 const CATEGORY_VIEWS: Record<string, ComponentType> = {
@@ -32,6 +35,9 @@ const CATEGORY_VIEWS: Record<string, ComponentType> = {
   privacy: PrivacyCategory,
   requests: RequestsCategory,
   blocked: BlockedCategory,
+  muted: MutedAccountsCategory,
+  'hidden-words': HiddenWordsCategory,
+  limits: InteractionLimitsCategory,
   account: AccountCategory,
   support: SupportCenter,
 };

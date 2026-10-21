@@ -57,6 +57,7 @@ describe('notificationCopyParts', () => {
     ['comment_removed', 'removed your comment'],
     ['story_removed', 'removed your story'],
     ['message_removed', 'removed your message'],
+    ['reaction_removed', 'removed your reaction'],
     ['report_post_removed', 'removed content you reported'],
     ['post_restored', 'restored your post'],
     ['report_dismissed', 'reviewed your report and took no action'],

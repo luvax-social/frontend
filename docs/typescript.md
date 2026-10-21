@@ -56,7 +56,8 @@ DTOs. Nullable/deleted data keeps its existing presentation and fallback behavio
   Cost: tests requiring plugin-specific transforms would need an updated test toolchain.
 - Preserved the existing `allowMessageRequests` settings view, separately from the backend's
   `messagePermission` contract. This pre-existing mismatch needs a dedicated behavior change;
-  migration does not invent a backend field. Cost: that legacy toggle's contract drift remains.
+  migration does not invent a backend field. Cost: that legacy toggle's contract drift remained
+  until the privacy settings replaced it with the `messagePermission` radio group.
 
 ## Verification
 

@@ -49,6 +49,11 @@ export const ROUTES = {
   SETTINGS_PRIVACY: '/app/settings/privacy',
   SETTINGS_ACCOUNT: '/app/settings/account',
   SETTINGS_REQUESTS: '/app/settings/requests',
+  // The three safety categories sit under the generic settings category route like the others, so
+  // each is a deep link into the settings shell rather than a screen with its own router entry.
+  SETTINGS_MUTED: '/app/settings/muted',
+  SETTINGS_HIDDEN_WORDS: '/app/settings/hidden-words',
+  SETTINGS_LIMITS: '/app/settings/limits',
   // Support is a settings category rather than a screen of its own. Every
   // surface it needs was built and none of them had an entry point: nothing in
   // the signed-in navigation reached /app/support, so the only support-shaped
@@ -145,6 +150,9 @@ export const ROUTES = {
   ADMIN_USER: '/admin/users/:userId',
   // The administrative hashtag registry. Administrator only.
   ADMIN_HASHTAGS: '/admin/hashtags',
+  // The platform-wide hidden word list. Administrator only: the backend answers a moderator with
+  // 403, so the screen sits behind the second guard beside the hashtag registry.
+  ADMIN_HIDDEN_WORDS: '/admin/hidden-words',
   // Moderator-reachable, not administrator-only: verification is a discretionary grant rather than
   // an enforcement action, so it sits with reports rather than with the account list.
   // The staff support console. Verification review happens here, as one

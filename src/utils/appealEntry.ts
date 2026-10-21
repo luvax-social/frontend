@@ -23,6 +23,7 @@ export const appealPath = (adminActionId: string | null | undefined) =>
 
 /**
  * The enforcement notices that carry an appeal, keyed by notification type.
+ * A removed message reaction is one of them: the reactor is shown the same appeal route.
  *
  * Each of these points at the audit row rather than at the removed content,
  * which is gone and has no surface to open. That identifier is what
@@ -36,6 +37,7 @@ export const CONTENT_REMOVAL_TYPES = new Set([
   'comment_removed',
   'story_removed',
   'message_removed',
+  'reaction_removed',
 ]);
 
 /**

@@ -137,9 +137,11 @@ export const messageFixture = (overrides: Partial<Message> = {}): Message => ({
   sharedPostId: null,
   sharedStoryId: null,
   replyToId: null,
+  replyTo: null,
   isDeleted: false,
   deletedAt: null,
   createdAt: '2026-09-01T00:00:00Z',
+  reactions: [],
   ...overrides,
 });
 export const conversationFixture = (
@@ -155,6 +157,11 @@ export const conversationFixture = (
   pinned: false,
   muted: false,
   manuallyUnread: false,
+  requestStatus: 'accepted',
+  isRequestRecipient: false,
+  requestHidden: false,
+  sendRestriction: 'none',
+  lastReaction: null,
   ...overrides,
 });
 export const profileFixture = (
@@ -180,6 +187,9 @@ export const profileFixture = (
     isFollowedBy: false,
     isBlocking: false,
     hasReported: false,
+    isMutingPosts: false,
+    isMutingStories: false,
+    isShowingFewer: false,
   },
   ...overrides,
 });

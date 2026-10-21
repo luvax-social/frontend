@@ -39,6 +39,7 @@ import {
   useToggleCommentLike,
 } from '../hooks/usePosts';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useNotInterested, useShowFewer } from '../hooks/useFeedPreferences';
 import { useBlock, useFollow, useFollowing, useUnfollow } from '../hooks/useSocial';
 import { useUserProfile } from '../hooks/useUsers';
 import { useRelativeTime } from '../hooks/useRelativeTime';
@@ -46,12 +47,15 @@ import { useViewport } from '../hooks/useViewport';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ReportModal } from './ReportModal';
+import { HiddenCommentsPanel } from './HiddenCommentsPanel';
 import { toast } from './Toast';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { REPORT_TYPES } from '@/services/report.service';
 import { routeTo, CHAR_LIMITS } from '@/config/constants';
 import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
+import { offersShowFewer, surfaceFromState } from '../utils/feedSurface';
+import { useMuteDialogStore } from '../store/useMuteDialogStore';
 import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
 import { useQuery } from '@tanstack/react-query';
 import { getCommentContext } from '@/services/notification.service';
@@ -674,7 +678,6 @@ function CommentRow({
         onClose={() => setCommentMenuOpen(false)}
         items={commentMenuItems}
         width={214}
-        align="right"
         zIndex={5200}
       />
 
@@ -717,7 +720,11 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const [commentEmojiSearch, setCommentEmojiSearch] = useState('');
   const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
   const [postReportTarget, setPostReportTarget] = useState<ReportTarget | null>(null);
+  // The panel is tied to the post it was opened on, so opening another post shows that post's
+  // comments instead of carrying the panel across.
+  const [hiddenPanelPostId, setHiddenPanelPostId] = useState<string | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreMenuFocusRef = useRef(false);
   const commentsPaneRef = useRef<HTMLDivElement | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
   const commentEmojiGroupRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -764,12 +771,29 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   }, [commentEmojiSearch]);
 
   const { postId } = useParams();
+  // The route can change post without unmounting this screen. The panel is closed when the post
+  // changes, so coming back to the first post does not find it still open.
+  const [panelCheckedPostId, setPanelCheckedPostId] = useState(postId);
+  if (panelCheckedPostId !== postId) {
+    setPanelCheckedPostId(postId);
+    setHiddenPanelPostId(null);
+  }
   const { data: postResponse, isLoading, isError } = usePostDetail(postId);
 
   const currentUser = useAuthStore((state) => state.user);
   const follow = useFollow();
   const unfollow = useUnfollow();
   const block = useBlock();
+  const notInterested = useNotInterested({
+    onError: () => toast("Couldn't hide that post. Try again."),
+  });
+  const showFewer = useShowFewer({ onError: () => toast("Couldn't save that. Try again.") });
+  // The mutation objects change on every render; their mutate functions do not, so the callbacks
+  // below depend on those.
+  const { mutate: applyNotInterested } = notInterested.apply;
+  const { mutate: undoNotInterested } = notInterested.undo;
+  const { mutate: applyShowFewer } = showFewer.apply;
+  const { mutate: undoShowFewer } = showFewer.undo;
   const { data: myFollowingData } = useFollowing(currentUser?.id);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
@@ -799,6 +823,9 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
   const authorHandle = author.username || location.state?.fallbackAuthorUsername || 'unknown';
   const authorAvatarUrl = author.avatarUrl;
   const isSelf = currentUser?.id === targetUserId;
+  // The list this post was opened from, recorded by the card or tile that opened it. A post opened
+  // from a link has no list behind it, so show fewer is not offered there.
+  const feedSurface = surfaceFromState(location.state);
   const { data: authorProfileResponse } = useUserProfile(
     targetUserId,
     Boolean(targetUserId && !isSelf)
@@ -983,6 +1010,45 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     setDeleteConfirmOpen(false);
   };
 
+  // Both feedback signals record the dismissal in the dismissed-posts store, which the feed behind
+  // this overlay reads, so the card there is already an undo row when the overlay closes.
+  const handleNotInterested = useCallback(() => {
+    if (!targetUserId || !postId) return;
+    applyNotInterested({ postId, authorId: targetUserId, authorHandle });
+    // The overlay closes with the post, so undo lives on the toast; the dismissal itself is in the
+    // store, where the feed behind this overlay shows it as an undo row too.
+    toast('Post hidden', {
+      action: { label: 'Undo', onClick: () => undoNotInterested({ postId }) },
+    });
+    navigate(-1);
+  }, [applyNotInterested, authorHandle, navigate, postId, targetUserId, undoNotInterested]);
+
+  const handleShowFewer = useCallback(() => {
+    if (!targetUserId || !postId) return;
+    applyShowFewer({ postId, authorId: targetUserId, authorHandle });
+    toast(`You'll see fewer posts from @${authorHandle}`, {
+      action: {
+        label: 'Undo',
+        onClick: () => undoShowFewer({ postId, authorId: targetUserId }),
+      },
+    });
+  }, [applyShowFewer, authorHandle, postId, targetUserId, undoShowFewer]);
+
+  // The dialog is mounted once for the whole app, so it survives the feed behind this overlay
+  // reloading when the mute lands.
+  const handleMuteOpen = useCallback(() => {
+    if (!targetUserId) return;
+    useMuteDialogStore.getState().open({
+      user: {
+        id: targetUserId,
+        username: authorHandle,
+        displayName: author.displayName ?? null,
+        avatarUrl: authorAvatarUrl ?? null,
+      },
+      returnFocusTo: menuButtonRef.current,
+    });
+  }, [author.displayName, authorAvatarUrl, authorHandle, targetUserId]);
+
   const handleBlockConfirm = () => {
     if (!targetUserId) return;
     block.mutate(targetUserId, {
@@ -1059,6 +1125,14 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               label: 'Edit post',
               onClick: handleEditOpen,
             },
+            // The server lists hidden comments for the post owner only, so the entry
+            // is not offered to anyone else.
+            {
+              id: 'hidden-comments',
+              icon: 'eye',
+              label: 'Hidden comments',
+              onClick: () => setHiddenPanelPostId(postId ?? null),
+            },
             {
               id: 'delete',
               icon: 'trash',
@@ -1075,9 +1149,31 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
         ? []
         : [
             {
+              id: 'not-interested',
+              icon: 'close',
+              label: 'Not interested',
+              separator: true,
+              onClick: handleNotInterested,
+            },
+            offersShowFewer(feedSurface)
+              ? {
+                  id: 'show-fewer',
+                  icon: 'filter',
+                  label: `Show fewer from @${authorHandle}`,
+                  onClick: handleShowFewer,
+                }
+              : null,
+            {
+              id: 'mute',
+              icon: 'bellOff',
+              label: `Mute @${authorHandle}`,
+              onClick: handleMuteOpen,
+            },
+            {
               id: 'view-profile',
               icon: 'profile',
               label: "View author's profile",
+              separator: true,
               onClick: () => targetUserId && navigate(routeTo.userProfile(targetUserId)),
             },
             {
@@ -1085,7 +1181,6 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
               icon: following ? 'userMinus' : 'profile',
               label: `${following ? 'Unfollow' : 'Follow'} @${authorHandle}`,
               tone: following ? 'danger' : undefined,
-              separator: true,
               onClick: handleFollowToggle,
               disabled: follow.isPending || unfollow.isPending,
             },
@@ -1122,12 +1217,16 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       authorAvatarUrl,
       authorHandle,
       authorName,
+      feedSurface,
       follow.isPending,
       following,
       handleDeleteRequest,
       handleEditOpen,
       handleFollowToggle,
       handleLikeToggle,
+      handleMuteOpen,
+      handleNotInterested,
+      handleShowFewer,
       isSelf,
       liked,
       navigate,
@@ -1138,6 +1237,22 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       unfollow.isPending,
     ]
   );
+
+  const hiddenPanelOpen = Boolean(postId) && hiddenPanelPostId === postId;
+
+  // The menu trigger unmounts while the review panel replaces the comment column, so
+  // focus goes back to its new instance once the panel has closed.
+  useEffect(() => {
+    if (!hiddenPanelOpen && restoreMenuFocusRef.current) {
+      restoreMenuFocusRef.current = false;
+      menuButtonRef.current?.focus();
+    }
+  }, [hiddenPanelOpen]);
+
+  const closeHiddenPanel = () => {
+    restoreMenuFocusRef.current = true;
+    setHiddenPanelPostId(null);
+  };
 
   if (isLoading) {
     return (
@@ -1176,7 +1291,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     );
   }
 
-  const commentColumn = (
+  const postCommentColumn = (
     <div
       style={{
         height: '100%',
@@ -1213,6 +1328,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
         <button
           ref={menuButtonRef}
           type="button"
+          aria-label="post options"
           onClick={() => setMenuOpen((open) => !open)}
           className="lx-header-icon-btn"
           style={{
@@ -1826,6 +1942,13 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       </div>
     </div>
   );
+
+  const commentColumn =
+    hiddenPanelOpen && isSelf ? (
+      <HiddenCommentsPanel postId={postId} onBack={closeHiddenPanel} />
+    ) : (
+      postCommentColumn
+    );
 
   const container = (
     <div

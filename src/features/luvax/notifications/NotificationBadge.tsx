@@ -5,15 +5,24 @@ import { v } from '@/config/tokens';
  * rail). Replaces the three duplicated dot-only badges: P0 section 16 calls a numeric
  * badge a deliberate, approved change from the plain dot, using the existing error token
  * and body type rather than a new colour.
- * @param {{count: number, capped: boolean}} props
+ * The same pill carries the unread message count, named through `noun`.
+ * @param {{count: number, capped: boolean, noun?: string}} props
  */
-export function NotificationBadge({ count, capped }: { count: number; capped: boolean }) {
+export function NotificationBadge({
+  count,
+  capped,
+  noun = 'new notifications',
+}: {
+  count: number;
+  capped: boolean;
+  noun?: string;
+}) {
   if (count === 0) return null;
   const label = capped ? '99+' : String(count);
   return (
     <span
-      role="status"
-      aria-label={`${label} new notifications`}
+      role="img"
+      aria-label={`${label} ${noun}`}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

@@ -27,6 +27,7 @@ import { AdminMediaGrid } from '../components/AdminMediaViewer';
 import { StatusBadge } from '../components/StatusBadge';
 import { LocalTime } from '../components/LocalTime';
 import { ReporterName } from '../components/ReporterName';
+import { ReportedReaction } from '../components/ReportedReaction';
 import { ReasonConfirmDialog } from '../components/ReasonConfirmDialog';
 import { AccountDisciplinePanel } from '../components/AccountDisciplinePanel';
 import { FailedState, LoadingState } from '../components/ListStates';
@@ -35,7 +36,7 @@ import { useReportDetail, useReportTarget } from '../hooks/useReportDetail';
 import { useReportActions } from '../hooks/useReportActions';
 import { useVocabularies } from '../hooks/useVocabularies';
 import { describeError, getErrorCode } from '../lib/errors';
-import { ACTIONABLE_TARGET_TYPES } from '../lib/reportSchema';
+import { ACTIONABLE_TARGET_TYPES, contentNoun } from '../lib/reportSchema';
 import {
   removeConfirmDescription,
   removeSuccessMessage,
@@ -63,6 +64,10 @@ function TargetRegion({
         the reported content could not be loaded.
       </div>
     );
+  }
+
+  if (target.reportType === 'message_reaction') {
+    return <ReportedReaction target={target} />;
   }
 
   const isUser = target.reportType === 'user';
@@ -410,7 +415,7 @@ export function ReportDetailScreen({
                   onClick={() =>
                     openReason({
                       key: 'remove',
-                      title: `remove ${targetType}`,
+                      title: `remove ${contentNoun(targetType ?? 'content')}`,
                       description: removeConfirmDescription(targetType ?? 'content'),
                       confirmLabel: 'remove',
                       tone: 'danger',
@@ -429,7 +434,7 @@ export function ReportDetailScreen({
                     })
                   }
                 >
-                  remove {targetType}
+                  remove {contentNoun(targetType ?? 'content')}
                 </LxBtn>
               ) : null}
 
@@ -440,7 +445,7 @@ export function ReportDetailScreen({
                   onClick={() =>
                     openReason({
                       key: 'restore',
-                      title: `restore ${targetType}`,
+                      title: `restore ${contentNoun(targetType ?? 'content')}`,
                       description: restoreConfirmDescription(targetType ?? 'content'),
                       confirmLabel: 'restore',
                       tone: 'primary',
@@ -459,7 +464,7 @@ export function ReportDetailScreen({
                     })
                   }
                 >
-                  restore {targetType}
+                  restore {contentNoun(targetType ?? 'content')}
                 </LxBtn>
               ) : null}
             </div>

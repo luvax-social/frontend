@@ -87,6 +87,8 @@ export const restoreSuccessMessage = (
       return storyRestoreMessage();
     case 'message':
       return messageRestoreMessage();
+    case 'message_reaction':
+      return 'reaction restored';
     default:
       return `${targetType} restored`;
   }
@@ -102,6 +104,9 @@ export const restoreSuccessMessage = (
 export const removeSuccessMessage = (targetType: string) => {
   if (targetType === 'message') {
     return 'message removed. its text and any media are withheld from both participants';
+  }
+  if (targetType === 'message_reaction') {
+    return 'reaction removed';
   }
   return `${targetType} removed`;
 };
@@ -119,6 +124,12 @@ export const removeConfirmDescription = (targetType: string) => {
       'take down this message. its text, media, and any shared post or story are withheld from ' +
       'both participants, who see the same placeholder a deleted message leaves. the reason is ' +
       'recorded.'
+    );
+  }
+  if (targetType === 'message_reaction') {
+    return (
+      'take down this reaction. it is hidden from both participants and the person who reacted ' +
+      'is told. the reason is recorded.'
     );
   }
   return `take down this ${targetType}. the reason is recorded.`;
@@ -144,6 +155,12 @@ export const restoreConfirmDescription = (targetType: string) => {
     return (
       'put this message back. this lifts the removal only: if the sender also deleted it, it ' +
       'stays hidden for both participants. the reason is recorded.'
+    );
+  }
+  if (targetType === 'message_reaction') {
+    return (
+      'put this reaction back. it returns to both participants with its original emoji and time. ' +
+      'the reason is recorded.'
     );
   }
   return `put this ${targetType} back. the reason is recorded.`;

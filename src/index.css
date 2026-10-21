@@ -471,6 +471,18 @@ button:disabled {
   line-height: 1.25;
 }
 
+/* A handle is one unbroken word, so a long one has to wrap inside the row instead of pushing past
+   the menu and squeezing the icon to nothing. */
+.lx-popover-item > svg {
+  flex-shrink: 0;
+}
+
+.lx-popover-item > span {
+  min-width: 0;
+  padding: 7px 0;
+  overflow-wrap: anywhere;
+}
+
 .lx-popover-item:hover {
   background: var(--lx-surface);
 }

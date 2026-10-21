@@ -433,7 +433,9 @@ export function ChatCenterPanel({
         >
           <ConversationGreeting
             messageCount={activeThread.messages.length}
-            pending={!activeThread.id}
+            // An unanswered request is not a connection yet, so it gets the same neutral
+            // greeting as a thread that has no conversation behind it.
+            pending={!activeThread.id || activeThread.requestStatus === 'pending'}
             name={activeThread.name}
             username={activeThread.username}
             avatarUrl={activeThread.avatarUrl}

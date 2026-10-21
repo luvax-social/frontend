@@ -404,6 +404,32 @@ describe('thread composer', () => {
     expect(screen.getByRole('button', { name: /attach a photo/ })).toBeDisabled();
   });
 
+  it('does not call an unanswered request a connection, for either side', () => {
+    const asSender = panel(
+      conversationFixture({
+        participants: others,
+        requestStatus: 'pending',
+        sendRestriction: 'awaiting_acceptance',
+      }) as Conversation
+    );
+    expect(screen.queryByText("you're now connected on luvax")).not.toBeInTheDocument();
+    asSender.unmount();
+
+    panel(
+      conversationFixture({
+        participants: others,
+        requestStatus: 'pending',
+        isRequestRecipient: true,
+      }) as Conversation
+    );
+    expect(screen.queryByText("you're now connected on luvax")).not.toBeInTheDocument();
+  });
+
+  it('keeps the connected greeting once the request is accepted', () => {
+    panel(conversationFixture({ participants: others, requestStatus: 'accepted' }) as Conversation);
+    expect(screen.getByText("you're now connected on luvax")).toBeInTheDocument();
+  });
+
   it('keeps the composer open when the server sends no restriction', () => {
     panel(conversationFixture({ participants: others }) as Conversation);
     expect(screen.getByRole('textbox')).toBeEnabled();

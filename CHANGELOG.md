@@ -135,6 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- An unanswered message request no longer greets either person with "you're now connected on luvax", because nothing is connected until the recipient accepts.
 - Options menus now wrap a long account handle inside the row and keep every icon, instead of running past the menu edge and squeezing the icon away.
 - The undo toast offered after hiding a post from its detail view now appears when the detail closes; it was dropped with the toast host the closing view unmounted.
 - The notification end-to-end scenarios stub the messages unread counters and refuse the live inbox handshake ticket, so the app shell's new requests do not depend on a running backend.

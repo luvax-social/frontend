@@ -129,7 +129,12 @@ export function MessagesScreen() {
     [currentUserId]
   );
   const [folder, setFolder] = useState<ConversationFolder>('primary');
-  const { conversations, isLoading: conversationsLoading } = useConversations(folder);
+  const {
+    conversations,
+    isLoading: conversationsLoading,
+    isError: conversationsFailed,
+    refetch: refetchConversations,
+  } = useConversations(folder);
   const { requestCount } = useInboxCounts();
   // The adapter owns every mapping from the API shape onto what these panels render.
   const threads = useMemo(
@@ -812,12 +817,19 @@ export function MessagesScreen() {
     }
   };
 
+  // The decided request is gone from its folder. On a phone the open thread would otherwise stay
+  // mounted with nothing to show while the list stays hidden, so the list is brought back.
+  const closeDecidedRequest = () => {
+    setActiveThreadId(null);
+    if (viewport === 'mobile') setThreadOpen(false);
+  };
+
   const handleDeleteRequestConfirm = () => {
     if (!deleteRequestTarget?.id) return;
     const conversationId = deleteRequestTarget.id;
     setDeleteRequestTarget(null);
     deleteRequest.mutate(conversationId, {
-      onSuccess: () => setActiveThreadId(null),
+      onSuccess: closeDecidedRequest,
       onError: handleRequestFailure,
     });
   };
@@ -827,7 +839,7 @@ export function MessagesScreen() {
     const conversationId = blockRequestTarget.id;
     setBlockRequestTarget(null);
     blockRequester.mutate(conversationId, {
-      onSuccess: () => setActiveThreadId(null),
+      onSuccess: closeDecidedRequest,
       onError: handleRequestFailure,
     });
   };
@@ -875,6 +887,8 @@ export function MessagesScreen() {
           requestCount={requestCount}
           onSelectFolder={handleSelectFolder}
           loading={conversationsLoading}
+          isError={conversationsFailed && conversations.length === 0}
+          onRetry={() => void refetchConversations()}
           search={search}
           setSearch={setSearch}
           filteredThreads={filteredThreads}

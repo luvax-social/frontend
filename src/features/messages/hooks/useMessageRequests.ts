@@ -40,17 +40,20 @@ interface RequestSnapshot {
  * recipient's lists are the only ones touched, because the sender's own conversation stays in the
  * primary folder whatever the recipient decides. Rolls back to the snapshots taken in `onMutate`.
  * The folder counts and the unread counter belong to the database, so success re-reads them rather
- * than patching a number.
+ * than patching a number. With `optimistic` false the row stays until the server answers and the
+ * folders are re-read, which keeps the open request on screen while a decision is in flight.
  */
 const useRequestDecision = (
   mutationFn: (conversationId: string) => Promise<unknown>,
-  afterSuccess: (queryClient: QueryClient, conversationId: string) => Promise<unknown> | void
+  afterSuccess: (queryClient: QueryClient, conversationId: string) => Promise<unknown> | void,
+  optimistic = true
 ) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn,
     onMutate: async (conversationId: string) => {
+      if (!optimistic) return { snapshots: [] };
       await Promise.all(
         REQUEST_FOLDERS.map((folder) =>
           queryClient.cancelQueries({ queryKey: conversationFolderKey(folder) })
@@ -89,12 +92,15 @@ const useRequestDecision = (
  *
  * The primary folder is refetched before the mutation settles, including when no screen is
  * observing it, so the caller can switch to it and find the accepted conversation already listed.
+ * The row is not removed ahead of the answer: the open request and its decision bar stay on screen
+ * while the accept is in flight, and the folders are re-read once it settles.
  */
 export const useAcceptRequest = () =>
   useRequestDecision(
     (conversationId) => messageService.acceptRequest(conversationId),
     (queryClient) =>
-      queryClient.refetchQueries({ queryKey: conversationFolderKey('primary'), type: 'all' })
+      queryClient.refetchQueries({ queryKey: conversationFolderKey('primary'), type: 'all' }),
+    false
   );
 
 /** Deletes an incoming request: `DELETE /conversations/{id}/request`. The sender is not told. */

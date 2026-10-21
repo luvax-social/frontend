@@ -8,6 +8,10 @@ interface Props {
   onSelectFolder: (folder: ConversationFolder) => void;
   /** True until the folder's first page arrives, so an empty folder is not announced early. */
   loading?: boolean;
+  /** True when the folder's list could not be loaded and no earlier list is cached. */
+  isError?: boolean;
+  /** Reads the folder again; offered beside the load failure line. */
+  onRetry?: () => void;
   search: string;
   setSearch: (value: string) => void;
   filteredThreads: ThreadSummary[];
@@ -37,6 +41,8 @@ export function ConversationListPanel({
   requestCount,
   onSelectFolder,
   loading = false,
+  isError = false,
+  onRetry,
   search,
   setSearch,
   filteredThreads,
@@ -109,7 +115,43 @@ export function ConversationListPanel({
       <InboxTabs folder={folder} requestCount={requestCount} onSelectFolder={onSelectFolder} />
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {isRequestFolder && !loading && filteredThreads.length === 0 ? (
+        {isRequestFolder && !loading && isError && filteredThreads.length === 0 ? (
+          <div
+            role="alert"
+            style={{
+              padding: '22px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 8,
+              fontFamily: v.fontBody,
+              fontSize: 13,
+              color: v.ink3,
+            }}
+          >
+            <span>We couldn&apos;t load your requests.</span>
+            {onRetry ? (
+              <button
+                type="button"
+                onClick={onRetry}
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  background: 'none',
+                  color: v.ink,
+                  fontFamily: v.fontBody,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                }}
+              >
+                try again
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {isRequestFolder && !loading && !isError && filteredThreads.length === 0 ? (
           <div
             style={{
               padding: '22px 14px',

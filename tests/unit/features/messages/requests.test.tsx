@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 
+import { ConversationListPanel } from '@/features/messages/components/ConversationListPanel';
 import { ChatCenterPanel } from '@/features/messages/components/ChatCenterPanel';
 import { InboxTabs } from '@/features/messages/components/InboxTabs';
 import { PendingRequestNotice } from '@/features/messages/components/PendingRequestNotice';
@@ -23,7 +24,7 @@ import { messageService } from '@/services/message.service';
 import { subscribeTopic } from '@/services/realtime/stompConnection';
 import type { ApiResponse, CursorPage } from '@/types/api';
 import type { ConversationSummaryResponse } from '@/types/domain';
-import { conversationFixture, participantFixture } from '../../../fixtures/domain';
+import { conversationFixture, messageFixture, participantFixture } from '../../../fixtures/domain';
 import { apiError, envelope } from '../../luvax/settings/settingsFixtures';
 
 vi.mock('@/services/message.service');
@@ -126,12 +127,21 @@ describe('inbox folders', () => {
 });
 
 describe('request actions', () => {
+  it('accept keeps the row listed until the server answers', async () => {
+    service.acceptRequest.mockReturnValue(new Promise(() => {}) as never);
+    const { queryClient, wrapper } = setup();
+    seedRequests(queryClient, [row('r1'), row('r2')]);
+    const { result } = renderHook(() => useAcceptRequest(), { wrapper });
+
+    act(() => {
+      result.current.mutate('r1');
+    });
+    await waitFor(() => expect(service.acceptRequest).toHaveBeenCalledWith('r1'));
+
+    expect(cachedIds(queryClient)).toEqual(['r1', 'r2']);
+  });
+
   it.each([
-    [
-      'accept',
-      useAcceptRequest,
-      (p: Promise<unknown>) => service.acceptRequest.mockReturnValue(p as never),
-    ],
     [
       'delete',
       useDeleteRequest,
@@ -449,5 +459,103 @@ describe('thread composer', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'accept' }));
     expect(onAccept).toHaveBeenCalledOnce();
+  });
+});
+
+describe('reacting inside a request', () => {
+  const others = [
+    participantFixture({ userId: 'me', username: 'me' }),
+    participantFixture({ userId: 'hoa', username: 'hoa.nguyen', displayName: 'Hoa' }),
+  ];
+
+  const renderThread = (conversation: Conversation) => {
+    const message = messageFixture({
+      id: 'm1',
+      conversationId: conversation.id,
+      senderId: 'hoa',
+      content: 'hello there',
+    });
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={new QueryClient()}>
+          <ChatCenterPanel
+            viewport="desktop"
+            activeThread={toThread(conversation, [message], 'me')}
+            setActiveThreadId={vi.fn()}
+            closeThread={vi.fn()}
+            openInfo={vi.fn()}
+            isDesktop
+            isTablet={false}
+            scrollerRef={{ current: null }}
+            openPreview={vi.fn()}
+            openStory={vi.fn()}
+            handleDeleteToggle={vi.fn()}
+            replyingTo={null}
+            setReplyingTo={vi.fn()}
+            draft=""
+            setDraft={vi.fn()}
+            handleSend={vi.fn()}
+            pendingAttachments={[]}
+            isSending={false}
+            onReact={vi.fn()}
+            requestActions={{ onAccept: vi.fn(), onDelete: vi.fn(), onBlock: vi.fn() }}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>
+    );
+    fireEvent.mouseEnter(screen.getByText('hello there'));
+  };
+
+  it('offers a reaction on an accepted conversation', () => {
+    renderThread(
+      conversationFixture({ participants: others, requestStatus: 'accepted' }) as Conversation
+    );
+    expect(screen.getByRole('button', { name: 'react to message' })).toBeInTheDocument();
+  });
+
+  it('hides the reaction affordance from the recipient of a pending request', () => {
+    renderThread(
+      conversationFixture({
+        participants: others,
+        requestStatus: 'pending',
+        isRequestRecipient: true,
+      }) as Conversation
+    );
+    expect(screen.queryByRole('button', { name: 'react to message' })).not.toBeInTheDocument();
+  });
+});
+
+describe('request folder load failure', () => {
+  const panelProps = {
+    requestCount: 0,
+    onSelectFolder: vi.fn(),
+    search: '',
+    setSearch: vi.fn(),
+    filteredThreads: [],
+    activeThreadId: null,
+    selectThread: vi.fn(),
+    viewport: 'desktop' as const,
+  };
+
+  it('says the folder could not load and retries, instead of claiming there are no requests', () => {
+    const onRetry = vi.fn();
+    render(<ConversationListPanel {...panelProps} folder="requests" isError onRetry={onRetry} />);
+    expect(screen.queryByText('No message requests.')).not.toBeInTheDocument();
+    expect(screen.getByText(/couldn't load/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'try again' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it('still says there are no requests when the folder loaded empty', () => {
+    render(<ConversationListPanel {...panelProps} folder="requests" />);
+    expect(screen.getByText('No message requests.')).toBeInTheDocument();
+  });
+});
+
+describe('InboxTabs back control', () => {
+  it('labels the way back from the hidden folder apart from the link into it', () => {
+    render(<InboxTabs folder="hidden_requests" requestCount={0} onSelectFolder={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'back to requests' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^hidden requests$/ })).not.toBeInTheDocument();
   });
 });

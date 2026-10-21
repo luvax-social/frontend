@@ -325,8 +325,10 @@ export function ChatCenterPanel({
   // hook count between renders, which React resolves by binding state to the wrong slot.
   if (!activeThread) return null;
 
-  const isRequestRecipient =
-    activeThread.requestStatus === 'pending' && activeThread.isRequestRecipient && requestActions;
+  // Reacting to a pending request would tell the sender it was seen before the recipient accepts.
+  const isPendingRequestRecipient =
+    activeThread.requestStatus === 'pending' && Boolean(activeThread.isRequestRecipient);
+  const isRequestRecipient = isPendingRequestRecipient && requestActions;
   const blockedHandle = activeThread.username ? `@${activeThread.username}` : activeThread.name;
   const blockedMessage =
     blockedHint || `you blocked ${blockedHandle}. messaging is paused until you unblock them.`;
@@ -528,7 +530,7 @@ export function ChatCenterPanel({
                     onDeleteToggle={handleDeleteToggle}
                     onReplyMessage={setReplyingTo}
                     forceShowActions={rowHovered}
-                    canReact={!isBlocked}
+                    canReact={!isBlocked && !isPendingRequestRecipient}
                     onReact={onReact}
                     onReportReaction={
                       onReportReaction ? (reactionId) => onReportReaction(reactionId) : undefined

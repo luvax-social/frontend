@@ -135,6 +135,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- The recipient of a pending message request can no longer react to its messages, because a reaction would tell the sender the request was seen.
+- A requests folder that fails to load now says so and offers a retry, instead of claiming there are no message requests.
+- On a phone, deleting or blocking a request returns to the request list, and accepting one keeps the decision bar on screen until the server answers.
+- Quick reactions in one conversation are sent in order, and a failed reaction re-reads the thread, so a late rollback no longer erases a newer reaction.
+- The way back from the hidden requests folder is labelled "back to requests".
+- The unread message count pill no longer announces every change to screen readers.
 - Hidden words and limit interactions keep showing the last loaded settings when a background refresh fails, instead of replacing them with a full error page.
 - The text of a reply is shown at the weight of any other message instead of in bold.
 - An unanswered message request no longer greets either person with "you're now connected on luvax", because nothing is connected until the recipient accepts.

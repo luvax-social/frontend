@@ -130,7 +130,7 @@ export function InboxTabs({ folder, requestCount, onSelectFolder }: Props) {
           }}
         >
           <LxIcon name="chevronLeft" size={12} color={v.ink2} />
-          hidden requests
+          back to requests
         </button>
       ) : null}
     </div>

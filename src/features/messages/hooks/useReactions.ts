@@ -20,8 +20,9 @@ interface ReactionVariables {
  * Sets, changes or removes the caller's reaction on a message of one conversation.
  *
  * Cache key: `messagesKey(conversationId)`. The reaction is patched into the cached message at
- * once, and `onError` rolls the history back to the snapshot taken in `onMutate`, so a refused
- * reaction never stays on screen. The server's live frame applies the same change through
+ * once, and `onError` rolls the history back to the snapshot taken in `onMutate` and re-reads the
+ * thread, so a refused reaction never stays on screen. Writes to one conversation share a mutation
+ * scope and run one at a time. The server's live frame applies the same change through
  * `applyReactionChange`, so it agrees with this patch instead of refetching the thread. The
  * conversation lists are re-read afterwards because their rows carry the newest reaction.
  *
@@ -38,6 +39,9 @@ export const useReactions = (
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
+    // One scope per conversation, so quick reactions are sent in the order they were made and a
+    // late rollback cannot overwrite a newer change.
+    scope: { id: `message-reactions:${conversationId}` },
     mutationFn: async ({ messageId, emoji }: ReactionVariables) => {
       if (emoji === null) {
         await messageService.removeMessageReaction(conversationId!, messageId);
@@ -73,9 +77,11 @@ export const useReactions = (
     // Rolls back to the history snapshot taken in onMutate.
     onError: (error, _variables, context) => {
       if (context?.previous !== undefined) queryClient.setQueryData(context.key, context.previous);
+      // The thread is re-read after every failure, so whatever the server holds replaces the
+      // snapshot, which may predate a newer reaction or a live frame.
+      queryClient.invalidateQueries({ queryKey: messagesKey(conversationId) });
       if (isNotFoundError(error)) {
         toast(UNAVAILABLE_NOTICE);
-        queryClient.invalidateQueries({ queryKey: messagesKey(conversationId) });
         return;
       }
       toast("Couldn't update that reaction. Try again.");

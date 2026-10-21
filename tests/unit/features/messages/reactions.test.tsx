@@ -229,6 +229,55 @@ describe('useReactions', () => {
   });
 });
 
+describe('useReactions overlapping writes', () => {
+  it('sends reactions to one conversation one at a time', async () => {
+    let releaseFirst: (value: unknown) => void = () => {};
+    service.reactToMessage
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          releaseFirst = resolve;
+        }) as never
+      )
+      .mockResolvedValueOnce(
+        envelope({
+          id: 'rx-2',
+          userId: ME,
+          emoji: LAUGH,
+          reactedAt: '2026-10-01T10:00:02Z',
+        }) as never
+      );
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(KEY, data([other('m1')]));
+    const { result } = renderHook(() => useReactions(CONVERSATION, ME), { wrapper });
+
+    act(() => {
+      void result.current.react('m1', HEART);
+      void result.current.react('m1', LAUGH);
+    });
+    await waitFor(() => expect(service.reactToMessage).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      releaseFirst(
+        envelope({ id: 'rx-1', userId: ME, emoji: HEART, reactedAt: '2026-10-01T10:00:01Z' })
+      );
+    });
+    await waitFor(() => expect(service.reactToMessage).toHaveBeenCalledTimes(2));
+  });
+
+  it('re-reads the thread after any failure so a late rollback cannot hide a newer reaction', async () => {
+    service.reactToMessage.mockRejectedValue(apiError('RATE_LIMITED', 429));
+    const { queryClient, invalidate, wrapper } = setup();
+    queryClient.setQueryData(KEY, data([other('m1')]));
+    const { result } = renderHook(() => useReactions(CONVERSATION, ME), { wrapper });
+
+    await act(async () => {
+      await result.current.react('m1', HEART);
+    });
+
+    expect(keysOf(invalidate)).toContain(JSON.stringify(KEY));
+  });
+});
+
 describe('live reaction frames', () => {
   const frame = (overrides: Record<string, unknown> = {}) => ({
     eventType: 'message.reaction.changed.v1',

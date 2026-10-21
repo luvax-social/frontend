@@ -5,9 +5,9 @@ import { adminApi } from '../api/adminApi';
 
 /**
  * The five content types a reviewer can take down and put back, each mapped to
- * its endpoint pair. A message reaction joined the four content types with its own pair. Stories and messages joined posts and comments when the
+ * its endpoint pair. Stories and messages joined posts and comments when the
  * backend added their four endpoints; before that a reported story or message
- * was rendered read-only.
+ * was rendered read-only. A message reaction joined them later with its own pair.
  *
  * A map rather than a chain of ternaries: with four types a ternary chain has a
  * silent default, and the default would have been "treat it as a comment".

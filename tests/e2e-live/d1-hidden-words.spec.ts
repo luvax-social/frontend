@@ -365,20 +365,25 @@ test.describe('platform hidden words', () => {
         .toBe(false);
       created.length = 0;
 
-      const actions = await admin.call<{ content: { actionType: string; reason: string }[] }>(
-        'GET',
-        '/admin/actions?limit=20'
-      );
-      const recent = itemsOf<{ actionType: string; reason: string }>(actions.data);
+      // The audit listing is read from a replica that trails the write by a few seconds.
       for (const [type, reason] of [
         ['create_hidden_word', reasons.add],
         ['edit_hidden_word', reasons.edit],
         ['delete_hidden_word', reasons.remove],
       ]) {
-        expect(
-          recent.some((action) => action.actionType === type && action.reason === reason),
-          type
-        ).toBe(true);
+        await expect
+          .poll(
+            async () => {
+              const actions = await admin.call<{
+                content: { actionType: string; reason: string }[];
+              }>('GET', '/admin/actions?limit=20');
+              return itemsOf<{ actionType: string; reason: string }>(actions.data).some(
+                (action) => action.actionType === type && action.reason === reason
+              );
+            },
+            { message: type, timeout: 30_000 }
+          )
+          .toBe(true);
       }
     } finally {
       for (const id of created) {

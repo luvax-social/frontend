@@ -59,7 +59,12 @@ export interface Api {
   user: SessionUser;
   token: string;
   /** Calls the backend as this account and returns the unwrapped `data` of the envelope. */
-  call: <T = unknown>(method: string, url: string, body?: unknown) => Promise<ApiResult<T>>;
+  call: <T = unknown>(
+    method: string,
+    url: string,
+    body?: unknown,
+    headers?: Record<string, string>
+  ) => Promise<ApiResult<T>>;
 }
 
 export interface Session extends Api {
@@ -111,13 +116,19 @@ async function login(request: APIRequestContext, username: string): Promise<Logi
 }
 
 function bindCaller(request: APIRequestContext, token: string): Api['call'] {
-  return async (method, url, data) => {
-    const response = await request.fetch(`${API}${url}`, {
-      method,
-      data: data === undefined ? undefined : (data as object),
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return unwrap(response);
+  return async (method, url, data, headers) => {
+    // A burst of reads from one account can meet the per-account rate limit; waiting out the
+    // window the server names keeps a spec from failing for a reason it is not about.
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await request.fetch(`${API}${url}`, {
+        method,
+        data: data === undefined ? undefined : (data as object),
+        headers: { Authorization: `Bearer ${token}`, ...headers },
+      });
+      if (response.status() !== 429 || attempt >= 3) return unwrap(response);
+      const wait = Number(response.headers()['retry-after'] ?? '5');
+      await new Promise((resolve) => setTimeout(resolve, (wait + 1) * 1000));
+    }
   };
 }
 

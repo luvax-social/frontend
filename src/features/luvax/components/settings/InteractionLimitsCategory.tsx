@@ -167,7 +167,7 @@ export function InteractionLimitsCategory() {
     };
   }, [expiresAt, expiryTick, refetch]);
 
-  if (error) {
+  if (error && !limit) {
     return (
       <StateBlock
         icon="alert"

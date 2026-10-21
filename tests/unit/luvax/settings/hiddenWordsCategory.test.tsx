@@ -355,3 +355,25 @@ describe('hidden words: focus', () => {
     expect(input()).toHaveFocus();
   });
 });
+
+describe('hidden words: a failed background refetch', () => {
+  it('keeps the cached list on screen instead of replacing it with the load error', async () => {
+    service.getMyHiddenWords.mockResolvedValue(envelope(hiddenWordList(['spam link'])));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <HiddenWordsCategory />
+      </QueryClientProvider>
+    );
+    await screen.findByText('1 of 200');
+
+    service.getMyHiddenWords.mockRejectedValue(apiError('INTERNAL_ERROR', 500));
+    await queryClient.invalidateQueries({ queryKey: ['users', 'me', 'hiddenWords'] });
+
+    await waitFor(() => expect(service.getMyHiddenWords).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText('we could not load your hidden words')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'remove spam link' })).toBeInTheDocument();
+  });
+});

@@ -472,3 +472,25 @@ describe('limit interactions: expiry while the page is open', () => {
     expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('interaction limits: a failed background refetch', () => {
+  it('keeps the cached limit on screen instead of replacing it with the load error', async () => {
+    service.getMyInteractionLimit.mockResolvedValue(envelope(limitFixture()));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <InteractionLimitsCategory />
+      </QueryClientProvider>
+    );
+    await screen.findByRole('radiogroup', { name: 'for how long' });
+
+    service.getMyInteractionLimit.mockRejectedValue(apiError('INTERNAL_ERROR', 500));
+    await queryClient.invalidateQueries({ queryKey: ['users', 'me', 'interactionLimits'] });
+
+    await waitFor(() => expect(service.getMyInteractionLimit).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText('we could not load your interaction limit')).not.toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'for how long' })).toBeInTheDocument();
+  });
+});

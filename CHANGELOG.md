@@ -135,6 +135,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A notification row no longer carries a per-row unread dot or an overflow menu; "mark all as read" in the header remains the way to clear read state in bulk, and tapping a navigable row still marks it read.
 
 ### Fixed
+- Hidden words and limit interactions keep showing the last loaded settings when a background refresh fails, instead of replacing them with a full error page.
 - The text of a reply is shown at the weight of any other message instead of in bold.
 - An unanswered message request no longer greets either person with "you're now connected on luvax", because nothing is connected until the recipient accepts.
 - Options menus now wrap a long account handle inside the row and keep every icon, instead of running past the menu edge and squeezing the icon away.

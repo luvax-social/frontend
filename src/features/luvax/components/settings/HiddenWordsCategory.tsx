@@ -106,7 +106,7 @@ export function HiddenWordsCategory() {
   };
 
   let words;
-  if (error) {
+  if (error && !list) {
     words = (
       <StateBlock
         icon="alert"

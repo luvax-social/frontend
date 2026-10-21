@@ -23,6 +23,11 @@ describe('NotificationBadge', () => {
     expect(screen.getByLabelText('5 new notifications')).toBeInTheDocument();
   });
 
+  it('is not a live region, so a changing count is not announced each time', () => {
+    render(<NotificationBadge count={5} capped={false} />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
   it('the aria-label says 99+ new notifications when capped', () => {
     render(<NotificationBadge count={99} capped />);
     expect(screen.getByLabelText('99+ new notifications')).toBeInTheDocument();

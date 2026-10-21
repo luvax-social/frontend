@@ -21,7 +21,7 @@ export function NotificationBadge({
   const label = capped ? '99+' : String(count);
   return (
     <span
-      role="status"
+      role="img"
       aria-label={`${label} ${noun}`}
       style={{
         display: 'inline-flex',

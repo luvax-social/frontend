@@ -1,3 +1,10 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Muting an account from a profile or post menu with separate posts and
+// stories switches, the effect on post lists and the story tray, and the muted accounts list in
+// settings.
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import {

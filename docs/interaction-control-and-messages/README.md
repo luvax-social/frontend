@@ -128,6 +128,55 @@ In short:
 - `wireframes/png/` holds the thirteen rendered frames, numbered 01 to 13 in the order of the table in `wireframes/README.md`.
 - `wireframes/README.md` maps each frame to its surface and lists the design decisions.
 
+## Requirement identifiers and live specs
+
+The `P1-*` identifiers in the live spec titles and in the screenshot file names are the requirement identifiers of this work.
+Each row below names the behavior an identifier stands for and the spec under `tests/e2e-live` that exercises it.
+Run them against the running stack with `npx playwright test -c playwright.live.config.ts <file>`.
+
+| Identifier | Behavior | Spec |
+|------------|----------|------|
+| P1-A2-R1 | Not interested hides a post, collapses it into an undo row and undo restores it | `not-interested-feed.spec.ts` |
+| P1-A2-R3 | Show fewer is offered on For You and Explore only and lowers one account in recommendations | `show-fewer-posts.spec.ts` |
+| P1-A2-R4 | A post marked not interested stays out of every recommendation list | `not-interested-feed.spec.ts` |
+| P1-A2-R5 | Mute is one dialog with independent posts and stories switches, and the muted account is not notified | `mute-accounts.spec.ts` |
+| P1-A2-R6 | Muted posts leave every post list and muted stories leave the tray and discovery | `mute-accounts.spec.ts` |
+| P1-A2-R7 | Settings lists the muted accounts and unmutes them | `mute-accounts.spec.ts` |
+| P1-B1-R1 | A message reaction can be added, changed, removed and reported from its chip | `message-reactions-and-quotes.spec.ts` |
+| P1-B1-R2 | A deleted or moderator removed message hides its reactions and refuses new ones | `message-reactions-and-quotes.spec.ts` |
+| P1-B1-R3 | A reaction reaches the other participant live and disappears when removed | `message-reactions-and-quotes.spec.ts` |
+| P1-B1-R4 | The conversation list previews a newer reaction without adding unread | `message-reactions-and-quotes.spec.ts` |
+| P1-B1-R5 | A reply quotes its parent from the server preview and reads message unavailable when it is gone | `message-reactions-and-quotes.spec.ts` |
+| P1-B2-R1 | Privacy settings offer who can message you and save the choice | `interaction-policy-outcomes.spec.ts` |
+| P1-B2-R2 | Accepting a request moves it to Primary and opens the composer | `message-requests.spec.ts` |
+| P1-B2-R3 | A later change of relationship never demotes an accepted conversation | `message-requests.spec.ts` |
+| P1-B2-R4 | A sender may send one request message and then waits for acceptance | `message-requests.spec.ts` |
+| P1-B2-R5 | The recipient accepts, deletes or blocks, and the sender sees nothing about a decline | `message-requests.spec.ts` |
+| P1-B2-R6 | A stranger message lands in Requests and not in Primary | `message-requests.spec.ts` |
+| P1-B2-R7 | The requests tab carries its own server owned count | `message-requests.spec.ts` |
+| P1-B2-R8 | The inbox live topic delivers only the account own frames, with no message content | `inbox-live-topic-security.spec.ts` |
+| P1-D1-R1 | An administrator adds, edits and removes a platform hidden word with an audited reason | `hidden-words.spec.ts` |
+| P1-D1-R2 | The spam heuristics still reject rather than hide | `hidden-words.spec.ts` |
+| P1-D1-R3 | Settings shows the platform switch and a personal list that previews what a phrase matches | `hidden-words.spec.ts` |
+| P1-D1-R4 | Matching folds case, diacritics and leetspeak and matches whole tokens only | `hidden-words.spec.ts` |
+| P1-D1-R5 | Only the post owner list applies to a comment | `hidden-words.spec.ts` |
+| P1-D1-R6 | A matching comment is hidden from everyone but its author | `hidden-words.spec.ts` |
+| P1-D1-R7 | The post owner reviews hidden comments and approves one | `hidden-words.spec.ts` |
+| P1-D1-R8 | A first message matching the recipient hidden words goes to Hidden requests and is not counted | `message-requests.spec.ts` |
+| P1-D1-R9 | Adding a phrase does not hide comments already posted | `hidden-words.spec.ts` |
+| P1-D5-R1 | A recent followers limit hides an account approved this week and not an older follower | `limit-interactions.spec.ts` |
+| P1-D5-R2 | Settings turns a limit on for a chosen duration and off early | `limit-interactions.spec.ts` |
+| P1-D5-R3 | A limit past its expiry reads as off and filters nothing | `limit-interactions.spec.ts` |
+| P1-D5-R4 | An active limit hides stranger comments, silences mentions and sends new requests to Hidden requests | `limit-interactions.spec.ts`, `message-requests.spec.ts` |
+| P1-D5-R5 | A limit applies to new comments only | `limit-interactions.spec.ts` |
+| P1-D5-R6 | The post owner limit decides, not the commenter own limit | `limit-interactions.spec.ts` |
+| P1-S-R2 | An allowed and a hidden comment look the same to the person writing them | `interaction-policy-outcomes.spec.ts` |
+| P1-S-R3 | A block is decided before hidden words and limits | `interaction-policy-outcomes.spec.ts` |
+| P1-S-R4 | Replies and edits are evaluated like new comments, and who can message me applies before a conversation exists | `interaction-policy-outcomes.spec.ts` |
+| P1-BUGS | A comment notification stops showing the comment text once its author is blocked | `comment-notification-snippet.spec.ts` |
+| P1-BUGS-1 | A reused send key with another reply target is a conflict and never replays the old quote | `message-send-regressions.spec.ts` |
+| P1-BUGS-2 | A send to a peer who left and then blocked the sender is refused as not found | `message-send-regressions.spec.ts` |
+
 ## Verification
 
 Screenshots of these features running in the application are recorded beside this page once they are captured.

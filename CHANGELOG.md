@@ -222,6 +222,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- The live end-to-end specs for this work are named for the behavior they cover, and the feature documentation maps each requirement identifier to its behavior and spec.
 - The live end-to-end suite now covers message reactions, reply quotes, message requests, the inbox live topic and the two message send fixes against the running stack.
 - Live-stack end-to-end specs cover not interested, show fewer, mute, hidden words, limit interactions, the interaction policy and hidden comment review against the real backend; run them with `npm run test:e2e:live` while the stack is up and seeded.
 - Unit coverage for not interested and show fewer with rollback, mutes, hidden words, interaction limits, hidden comments, the message permission setting and the shared text match contract.

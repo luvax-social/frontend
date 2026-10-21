@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Marking a post not interested from For You, Following and Explore, undoing
+// it, and keeping it out of every recommendation list.
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import {

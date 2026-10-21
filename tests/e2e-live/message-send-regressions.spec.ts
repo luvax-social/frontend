@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Two message send regressions driven through the HTTP API: a reused send key
+// with another reply target, and a send to a peer who left and then blocked the sender.
+
 import { expect, test } from '@playwright/test';
 import type { Pair } from './helpers/messages';
 import {

@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Message reactions and reply quotes: adding, changing, removing and reporting
+// a reaction, live delivery, conversation list previews, and deleted or removed messages.
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { apiSession, capture, DESKTOP, signIn } from './helpers/session';

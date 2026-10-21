@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Message requests: the requests inbox and its count, the accept, delete and
+// block decisions, the sender view, and the hidden requests folder.
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import type { Api } from './helpers/session';

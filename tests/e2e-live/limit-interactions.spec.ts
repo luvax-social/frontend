@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Interaction limits for non-followers and recent followers: the settings
+// form, expiry, which comments and mentions are hidden, and owner review.
+
 import { expect, test } from '@playwright/test';
 import { apiSession, capture, commentsSeenBy, itemsOf, postsOf, signIn } from './helpers/session';
 import type { Api } from './helpers/session';

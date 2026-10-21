@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: The comment notification no longer shows the comment text once its author is
+// blocked.
+
 import { expect, test } from '@playwright/test';
 import { apiSession, itemsOf, postsOf, signIn, userIdOf } from './helpers/session';
 

@@ -1,3 +1,10 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: The inbox live topic on the real broker: each account receives only its own
+// frames, other inboxes and wildcard subscriptions are refused, and frames carry no message
+// content.
+
 import { expect, test } from '@playwright/test';
 import type { Pair } from './helpers/messages';
 import { claimPairs, startRequest } from './helpers/messages';

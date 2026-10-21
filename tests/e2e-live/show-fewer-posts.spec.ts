@@ -1,3 +1,9 @@
+// The P1-* identifiers in the test titles are the requirement identifiers of the interaction
+// control and direct messages work. docs/interaction-control-and-messages/README.md maps each
+// one to its behavior and spec file.
+// Behavior covered: Show fewer from an account on For You and Explore, its absence on Following,
+// the undo paths and the long handle layout in the post menu.
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { apiSession, capture, menuItem, signIn, userIdOf, walk } from './helpers/session';

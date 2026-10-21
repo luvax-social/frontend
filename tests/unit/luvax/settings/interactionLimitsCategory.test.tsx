@@ -145,7 +145,7 @@ describe('limit interactions: the active state', () => {
     renderCategory();
 
     expect(
-      await screen.findByText(`limits are on until ${formatLimitEnd(END)}`)
+      await screen.findByText(`limits are on until ${formatLimitEnd(END).replace(/\s/g, ' ')}`)
     ).toBeInTheDocument();
     expect(screen.getByText("Limiting accounts that don't follow you.")).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'turn on' })).toBeNull();

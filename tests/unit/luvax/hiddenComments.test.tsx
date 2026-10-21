@@ -28,6 +28,11 @@ import { apiError } from './settings/settingsFixtures';
 
 vi.mock('@/services/post.service');
 vi.mock('@/services/notification.service');
+// The post screen also reads the author's profile and the viewer's following list. Left real,
+// those requests reach the network, and a 401 from a running backend signs the test account
+// out in the middle of a later test.
+vi.mock('@/services/user.service');
+vi.mock('@/services/social.service');
 
 const liveHandlers = new Map<string, (payload: unknown) => void>();
 vi.mock('@/services/realtime/stompConnection', () => ({

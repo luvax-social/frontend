@@ -213,6 +213,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Live-stack end-to-end specs cover not interested, show fewer, mute, hidden words, limit interactions, the interaction policy and hidden comment review against the real backend; run them with `npm run test:e2e:live` while the stack is up and seeded.
 - Unit coverage for not interested and show fewer with rollback, mutes, hidden words, interaction limits, hidden comments, the message permission setting and the shared text match contract.
 - Unit coverage for the hidden word registry form, list and stale delete handling.
 - Unit coverage for the reaction report type, its moderation copy and endpoints, the reported reaction view, the removal notice sentence and its appeal entry.

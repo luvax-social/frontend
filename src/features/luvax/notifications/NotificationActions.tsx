@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { NotificationItemResponse } from '@/types/domain';
 import type { NavigateFunction } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -37,6 +38,34 @@ export function NotificationActions({
   const approveTag = useApproveTag();
   const removeTag = useRemoveTag();
   const respond = useRespondToCollaboration();
+
+  // A row older than the first twenty waiting items would otherwise show no buttons, so the lists
+  // keep loading pages until the row's post is among them or there are no more.
+  const tagFound = (tagRequests.data?.pages ?? []).some((page) =>
+    page.data.content.some((row) => row.postId === postId)
+  );
+  const inviteFound = (invites.data?.pages ?? []).some((page) =>
+    page.data.content.some((row) => row.postId === postId)
+  );
+  const { hasNextPage: moreTags, isFetchingNextPage: fetchingTags } = tagRequests;
+  const { hasNextPage: moreInvites, isFetchingNextPage: fetchingInvites } = invites;
+  const { fetchNextPage: fetchMoreTags } = tagRequests;
+  const { fetchNextPage: fetchMoreInvites } = invites;
+  useEffect(() => {
+    if (item.type === 'post_tag_request' && !tagFound && moreTags && !fetchingTags) {
+      fetchMoreTags();
+    }
+  }, [item.type, tagFound, moreTags, fetchingTags, fetchMoreTags]);
+  useEffect(() => {
+    if (
+      item.type === 'post_collaboration_invite' &&
+      !inviteFound &&
+      moreInvites &&
+      !fetchingInvites
+    ) {
+      fetchMoreInvites();
+    }
+  }, [item.type, inviteFound, moreInvites, fetchingInvites, fetchMoreInvites]);
 
   if (item.type === 'scheduled_post_failed' && postId) {
     return (

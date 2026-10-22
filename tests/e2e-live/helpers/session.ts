@@ -222,7 +222,12 @@ export async function userIdOf(session: Api, username: string): Promise<string> 
  * Waits for animations and web fonts to settle, then writes a full-viewport screenshot to the
  * documented location. The file name carries the requirement and the viewport width.
  */
-export async function capture(page: Page, requirementId: string, width: number): Promise<void> {
+export async function capture(
+  page: Page,
+  requirementId: string,
+  width: number,
+  directory: string = SCREENSHOT_DIR
+): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
   await page.addStyleTag({
     content:
@@ -230,19 +235,20 @@ export async function capture(page: Page, requirementId: string, width: number):
       'transition-duration:0s!important;transition-delay:0s!important;caret-color:transparent!important}',
   });
   await page.waitForTimeout(400);
-  await page.screenshot({ path: path.join(SCREENSHOT_DIR, `${requirementId}-${width}.png`) });
+  await page.screenshot({ path: path.join(directory, `${requirementId}-${width}.png`) });
 }
 
 /** Captures the current page at every width, resizing the viewport between shots. */
 export async function captureAtAllWidths(
   page: Page,
   requirementId: string,
-  prepare?: () => Promise<void>
+  prepare?: () => Promise<void>,
+  directory: string = SCREENSHOT_DIR
 ): Promise<void> {
   for (const size of ALL_WIDTHS) {
     await page.setViewportSize(size);
     if (prepare) await prepare();
-    await capture(page, requirementId, size.width);
+    await capture(page, requirementId, size.width, directory);
   }
   await page.setViewportSize(DESKTOP);
 }

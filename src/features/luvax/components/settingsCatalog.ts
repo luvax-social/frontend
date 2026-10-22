@@ -114,6 +114,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
           'Comments on your posts and new message requests that contain these words are hidden. You can review hidden comments on each post.',
       },
       {
+        id: 'tags',
+        path: ROUTES.SETTINGS_TAGS,
+        label: 'tags',
+        icon: 'tag',
+        description:
+          'Choose who can tag you in photos, whether tags wait for your review, and see the tags waiting for you.',
+      },
+      {
         id: 'limits',
         path: ROUTES.SETTINGS_LIMITS,
         label: 'limit interactions',

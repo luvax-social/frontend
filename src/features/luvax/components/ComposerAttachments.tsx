@@ -30,11 +30,14 @@ export function ComposerAttachments({
   onRemove,
   onMove,
   onRetry,
+  onEditAlt,
 }: {
   items: ComposerAttachment[];
   onRemove: (id: string) => void;
   onMove: (id: string, direction: number) => void;
   onRetry: (id: string) => void;
+  /** Opens the alt text editor on one item; the chip is omitted when this is not given. */
+  onEditAlt?: (id: string) => void;
 }) {
   if (items.length === 0) return null;
 
@@ -73,7 +76,7 @@ export function ComposerAttachments({
           ) : (
             <img
               src={item.previewUrl}
-              alt={`attachment ${index + 1}`}
+              alt={item.altText.trim() || `attachment ${index + 1}`}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           )}
@@ -93,6 +96,31 @@ export function ComposerAttachments({
           >
             {index + 1}/{items.length}
           </div>
+
+          {onEditAlt ? (
+            <button
+              type="button"
+              onClick={() => onEditAlt(item.id)}
+              aria-label={`${item.altText.trim() ? 'edit' : 'add'} alt text for attachment ${index + 1}`}
+              data-alt-chip={item.altText.trim() ? 'filled' : 'empty'}
+              style={{
+                position: 'absolute',
+                left: 4,
+                bottom: 26,
+                fontFamily: v.fontMono,
+                fontSize: 9,
+                lineHeight: 1,
+                borderRadius: 999,
+                padding: '3px 7px',
+                cursor: 'pointer',
+                border: 'none',
+                background: item.altText.trim() ? v.accentDim : v.base,
+                color: item.altText.trim() ? v.accentText : v.ink2,
+              }}
+            >
+              {item.altText.trim() ? 'alt' : 'add alt'}
+            </button>
+          ) : null}
 
           <button
             type="button"

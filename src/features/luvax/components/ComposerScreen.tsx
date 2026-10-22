@@ -1,15 +1,32 @@
-import type { ChangeEvent } from 'react';
-import type { ComposerAttachment } from '@/types/composer';
-import type { HashtagResponse } from '@/types/domain';
-import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import type { ChangeEvent, ReactNode } from 'react';
+import type { ComposerAttachment, ComposerTag } from '@/types/composer';
+import type {
+  HashtagResponse,
+  PlaceSummaryResponse,
+  PostResponse,
+  PostStatus,
+  UserSummaryResponse,
+} from '@/types/domain';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ROUTES, CHAR_LIMITS } from '@/config/constants';
 import { v } from '@/config/tokens';
+import { postService } from '@/services/post.service';
+import { useAuthStore } from '@/store/useAuthStore';
+import { getApiErrorCode, getErrorMessage } from '@/utils/errors';
 import { LxDivider, LxIcon, LxTag } from './primitives';
 import { ComposerAttachments } from './ComposerAttachments';
-import { useCreatePost } from '../hooks/usePosts';
+import { AltTextDialog } from './composer/AltTextDialog';
+import { CollaboratorPicker } from './composer/CollaboratorPicker';
+import { DraftsPanel } from './composer/DraftsPanel';
+import { PlacePicker } from './composer/PlacePicker';
+import { SchedulePicker } from './composer/SchedulePicker';
+import { TagPeopleEditor } from './composer/TagPeopleEditor';
+import { toast } from './Toast';
 import { useMediaUpload } from '../hooks/useMediaUpload';
 import { useMediaConstraints } from '../hooks/useMediaConstraints';
+import { useMyPostCounts } from '../hooks/useDrafts';
 import { useLuvaxTweaks } from '../LuvaxTweaksContext';
 import { useHashtagSearch } from '@/features/search/hooks/useSearch';
 import { useTrendingHashtags } from '../hooks/useHashtag';
@@ -24,8 +41,16 @@ import {
   validateDuration,
   validateFile,
 } from '../utils/composerMedia';
+import {
+  attachmentsFromPost,
+  buildContentRequest,
+  collaboratorsFromPost,
+  tagsFromPost,
+} from '../utils/composerContent';
+import { invalidatePostAffectedQueries } from '../utils/postCacheKeys';
+import { formatScheduleLabel } from '../utils/scheduleTime';
 
-const MAX_CHARS = 280;
+const MAX_CHARS = CHAR_LIMITS.caption;
 
 const clampCaption = (value: string) => value.slice(0, MAX_CHARS);
 
@@ -35,14 +60,118 @@ const SUBMIT_LABEL: Record<string, string> = {
   VIDEO: 'post video',
 };
 
+/**
+ * One option row under the caption: an icon, what the option is, and what it is set to.
+ *
+ * Every capability beyond the caption is a row like this one, so a plain post stays as quick as it
+ * always was and the extras never crowd the media.
+ */
+function OptionRow({
+  icon,
+  label,
+  value,
+  onClick,
+  disabled = false,
+  hint,
+  testId,
+}: {
+  icon: string;
+  label: string;
+  value: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  hint?: string;
+  testId: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+      style={{
+        appearance: 'none',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '15px 0',
+        background: 'none',
+        border: 'none',
+        borderBottom: `1px solid ${v.border}`,
+        textAlign: 'left',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.55 : 1,
+      }}
+    >
+      <LxIcon name={icon} size={20} color={v.ink2} />
+      <span style={{ flex: 1, fontFamily: v.fontBody, fontSize: 15, color: v.ink }}>{label}</span>
+      <span
+        style={{
+          fontFamily: v.fontBody,
+          fontSize: 13,
+          color: disabled ? v.ink3 : v.ink2,
+          maxWidth: '55%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {disabled && hint ? hint : value}
+      </span>
+      <LxIcon name="chevronRight" size={16} color={v.ink3} />
+    </button>
+  );
+}
+
+/**
+ * Turns a refused post into a sentence the author can act on.
+ *
+ * A refusal caused by someone's tag setting is stated; a block is never revealed, because the
+ * backend answers a block exactly as it answers an account that does not exist.
+ */
+const describePostError = (error: unknown) => {
+  switch (getApiErrorCode(error)) {
+    case 'POST_PLACE_UNAVAILABLE':
+      return 'That place is not available. Remove it or choose another to continue.';
+    case 'POST_TAG_NOT_ALLOWED':
+      return 'Someone you tagged does not allow tags. Remove their tag to continue.';
+    case 'POST_TAG_LIMIT_REACHED':
+      return 'A photo holds at most 20 tags. Remove some to continue.';
+    case 'POST_COLLABORATOR_LIMIT_REACHED':
+      return 'A post can have at most three co-authors.';
+    case 'POST_DRAFT_LIMIT_REACHED':
+      return 'You have reached the limit of drafts and scheduled posts. Delete one to save another.';
+    case 'POST_SCHEDULE_INVALID':
+      return 'Choose a time between a minute and 30 days from now.';
+    default:
+      return getErrorMessage(error, "We couldn't save your post. Try again.");
+  }
+};
+
+type ComposerDialog = 'alt' | 'place' | 'tags' | 'collaborators' | 'drafts' | null;
+
 export function ComposerScreen() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { viewport } = useLuvaxTweaks();
   const [caption, setCaption] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [items, setItems] = useState<ComposerAttachment[]>([]);
+  const [place, setPlace] = useState<PlaceSummaryResponse | null>(null);
+  const [peopleTags, setPeopleTags] = useState<ComposerTag[]>([]);
+  const [collaborators, setCollaborators] = useState<UserSummaryResponse[]>([]);
+  const [scheduleAt, setScheduleAt] = useState<Date | null>(null);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [dialog, setDialog] = useState<ComposerDialog>(null);
+  const [altKey, setAltKey] = useState('');
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [loadedStatus, setLoadedStatus] = useState<PostStatus | null>(null);
+  const [busy, setBusy] = useState<'draft' | 'publish' | null>(null);
   const [formError, setFormError] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const counts = useMyPostCounts();
 
   const { uploadMedia, getMediaMetadata } = useMediaUpload();
   const { constraints } = useMediaConstraints();
@@ -96,6 +225,7 @@ export function ComposerScreen() {
     progress: 0,
     assetId: null,
     error: null,
+    altText: '',
   });
 
   /**
@@ -149,9 +279,13 @@ export function ComposerScreen() {
   const removeItem = (id: string) => {
     setItems((current) => {
       const target = current.find((item) => item.id === id);
-      if (target) URL.revokeObjectURL(target.previewUrl);
+      // Only an item picked in this session has an object URL; one resumed from a draft shows its
+      // CDN address, which is not ours to revoke.
+      if (target?.file) URL.revokeObjectURL(target.previewUrl);
       return current.filter((item) => item.id !== id);
     });
+    // A tag belongs to its image, so removing the image removes its tags.
+    setPeopleTags((current) => current.filter((tag) => tag.attachmentId !== id));
     setFormError('');
   };
 
@@ -163,6 +297,8 @@ export function ComposerScreen() {
   };
 
   const uploadOne = async (item: ComposerAttachment) => {
+    // An item resumed from a draft is already uploaded and has no file to send again.
+    if (!item.file) return item.assetId;
     patchItem(item.id, { status: 'uploading', progress: 0, error: null });
     try {
       const asset = await uploadMedia(item.file, {
@@ -197,68 +333,164 @@ export function ComposerScreen() {
     }
   };
 
-  const createPostMutation = useCreatePost();
-
   const postType = derivePostType(items);
   const isUploading = items.some((item) => item.status === 'uploading');
 
-  const handlePost = async () => {
-    setFormError('');
-    if (createPostMutation.isPending || isUploading) return;
+  /**
+   * Uploads every attachment that is not uploaded yet and returns the asset id of each, keyed by
+   * attachment id, or null when one failed and the person has been told which to retry.
+   */
+  const resolveAssets = async (): Promise<Map<string, string | null> | null> => {
+    // Captured once, because this list is both the upload set and the order the post is created
+    // in. Submitting is blocked while uploads run, so it cannot change underneath this.
+    const assetIds = new Map<string, string | null>(
+      items.filter((item) => item.status === 'done').map((item) => [item.id, item.assetId] as const)
+    );
+    const pending = items.filter((item) => item.status !== 'done');
+    if (pending.length === 0) return assetIds;
 
-    // Captured once, because this list is both the upload set and the order
-    // the post is created in. Submitting is blocked while uploads run, so it
-    // cannot change underneath this.
-    const ordered = items;
+    const results = await Promise.all(
+      pending.map(async (item) => [item.id, await uploadOne(item)] as const)
+    );
+    results.forEach(([id, assetId]) => assetIds.set(id, assetId));
+
+    if (results.some(([, assetId]) => !assetId)) {
+      setFormError(
+        pending.length === 1
+          ? "that file didn't upload. retry it or remove it, then try again."
+          : "some files didn't upload. retry or remove them, then try again."
+      );
+      return null;
+    }
+    return assetIds;
+  };
+
+  const resetComposer = () => {
+    items.forEach((item) => {
+      if (item.file) URL.revokeObjectURL(item.previewUrl);
+    });
+    setCaption('');
+    setItems([]);
+    setSelectedTags([]);
+    setPlace(null);
+    setPeopleTags([]);
+    setCollaborators([]);
+    setScheduleAt(null);
+    setSchedulerOpen(false);
+    setDraftId(null);
+    setLoadedStatus(null);
+    setFormError('');
+  };
+
+  /**
+   * Saves the composer as a draft, or publishes or schedules it.
+   *
+   * A composer that is editing a stored post replaces that post's content first and then moves its
+   * status, so resuming a draft and posting it never creates a second post. Every outcome ends in
+   * the shared invalidation, because drafts, scheduled posts, the feed and the profile counts all
+   * depend on it.
+   */
+  const submit = async (target: 'draft' | 'publish') => {
+    setFormError('');
+    if (busy || isUploading) return;
+    // Captured once, so the attachments uploaded below and the content built from them agree.
     const trimmedCaption = caption.trim();
     if (postType === 'TEXT' && !trimmedCaption) {
       setFormError('text posts need something written first.');
       return;
     }
-    const assetIds = new Map(
-      ordered.filter((item) => item.status === 'done').map((item) => [item.id, item.assetId])
-    );
 
-    const pending = ordered.filter((item) => item.status !== 'done');
-    if (pending.length > 0) {
-      const results = await Promise.all(
-        pending.map(async (item) => [item.id, await uploadOne(item)] as const)
+    setBusy(target);
+    try {
+      const assetIds = await resolveAssets();
+      if (!assetIds) return;
+      const content = buildContentRequest(
+        { caption, items, place, tags: peopleTags, collaborators },
+        assetIds
       );
-      results.forEach(([id, assetId]) => assetIds.set(id, assetId));
+      if (!content) return;
 
-      if (results.some(([, assetId]) => !assetId)) {
-        setFormError(
-          pending.length === 1
-            ? "that file didn't upload. retry it or remove it, then post again."
-            : "some files didn't upload. retry or remove them, then post again."
-        );
+      const scheduling = target === 'publish' && scheduleAt !== null;
+      const scheduledAt = scheduling ? scheduleAt.toISOString() : null;
+      const wanted: PostStatus =
+        target === 'draft' ? 'draft' : scheduling ? 'scheduled' : 'published';
+
+      let savedId = draftId;
+      if (draftId) {
+        await postService.replacePostContent(draftId, content);
+        if (wanted !== 'draft' || loadedStatus === 'scheduled') {
+          await postService.updatePostStatus(draftId, wanted, scheduledAt);
+        }
+      } else {
+        const created = await postService.createPost({
+          ...content,
+          status: wanted,
+          ...(scheduledAt ? { scheduledAt } : {}),
+        });
+        savedId = created.data.id;
+      }
+      await invalidatePostAffectedQueries(queryClient, savedId);
+
+      if (target === 'draft') {
+        setDraftId(savedId);
+        setLoadedStatus('draft');
+        toast('draft saved');
         return;
       }
+      if (scheduling) toast(`scheduled for ${formatScheduleLabel(scheduleAt, new Date())}`);
+      resetComposer();
+      navigate(ROUTES.FEED);
+    } catch (error) {
+      setFormError(describePostError(error));
+    } finally {
+      setBusy(null);
     }
-
-    const mediaIds = ordered
-      .map((item) => assetIds.get(item.id))
-      .filter((id): id is string => Boolean(id));
-    const payload = {
-      caption: postType === 'TEXT' ? trimmedCaption : caption,
-      postType,
-      ...(mediaIds.length > 0 ? { mediaIds } : {}),
-    };
-
-    createPostMutation.mutate(payload, {
-      onSuccess: () => {
-        ordered.forEach((item) => URL.revokeObjectURL(item.previewUrl));
-        setCaption('');
-        setItems([]);
-        setSelectedTags([]);
-        setFormError('');
-        navigate(ROUTES.FEED);
-      },
-      onError: (error) => {
-        setFormError(error.message || "we couldn't publish your post. try again.");
-      },
-    });
   };
+
+  const handlePost = () => submit('publish');
+
+  /** Loads a stored draft or scheduled post into the composer. */
+  const loadPost = (post: PostResponse) => {
+    items.forEach((item) => {
+      if (item.file) URL.revokeObjectURL(item.previewUrl);
+    });
+    setCaption(post.caption ?? '');
+    setItems(attachmentsFromPost(post));
+    setPlace(post.place);
+    setPeopleTags(tagsFromPost(post));
+    setCollaborators(collaboratorsFromPost(post));
+    setScheduleAt(post.scheduledAt ? new Date(post.scheduledAt) : null);
+    setSchedulerOpen(false);
+    setSelectedTags([]);
+    setDraftId(post.id);
+    setLoadedStatus(post.status);
+    setFormError('');
+    setDialog(null);
+  };
+
+  // A link such as the one on a failed scheduled post opens its draft here. The parameter is
+  // dropped once read, so a reload does not reopen it over newer edits.
+  const requestedDraft = searchParams.get('draft');
+  useEffect(() => {
+    if (!requestedDraft) return undefined;
+    let cancelled = false;
+    postService
+      .getPostById(requestedDraft)
+      .then((response) => {
+        if (!cancelled) loadPost(response.data);
+      })
+      .catch(() => {
+        if (!cancelled) setFormError("We couldn't open that draft.");
+      })
+      .finally(() => {
+        if (!cancelled) setSearchParams({}, { replace: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // loadPost only writes composer state, so it is deliberately not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedDraft]);
 
   const insertTag = (tag: string) => {
     const regex = new RegExp(`#${tag}(?![A-Za-z0-9_])`, 'gi');
@@ -274,12 +506,19 @@ export function ComposerScreen() {
     handleCaptionChange(caption ? `${caption} #${tag}` : `#${tag}`);
   };
 
-  const isActionDisabled =
-    createPostMutation.isPending || isUploading || (postType === 'TEXT' && !caption.trim());
+  const isActionDisabled = busy !== null || isUploading || (postType === 'TEXT' && !caption.trim());
 
   const completedCount = items.filter((item) => item.status === 'done').length;
-  const submitLabel =
-    postType === 'CAROUSEL' ? `post carousel of ${items.length}` : SUBMIT_LABEL[postType];
+  const submitLabel = scheduleAt
+    ? 'schedule'
+    : postType === 'CAROUSEL'
+      ? `post carousel of ${items.length}`
+      : SUBMIT_LABEL[postType];
+
+  const authorUsername = useAuthStore((state) => state.user?.username);
+  const photoCount = items.filter((item) => !item.isVideo).length;
+  const taggedPhotos = new Set(peopleTags.map((tag) => tag.attachmentId)).size;
+  const heldCount = counts.data ? counts.data.data.draft + counts.data.data.scheduled : null;
 
   const isTablet = viewport === 'tablet';
   const tabletLeftLineInset = 150;
@@ -329,27 +568,83 @@ export function ComposerScreen() {
         >
           new post
         </span>
-        <button
-          onClick={handlePost}
-          disabled={isActionDisabled}
-          style={{
-            fontFamily: v.fontBody,
-            fontSize: 14,
-            fontWeight: 600,
-            background: isActionDisabled ? v.surfaceRaised : v.accent,
-            color: isActionDisabled ? v.ink3 : v.inkInverse,
-            border: 'none',
-            borderRadius: 999,
-            padding: '7px 16px',
-            cursor: isActionDisabled ? 'default' : 'pointer',
-          }}
-        >
-          {isUploading
-            ? `uploading ${completedCount} of ${items.length}`
-            : createPostMutation.isPending
-              ? 'posting...'
-              : submitLabel}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setDialog('drafts')}
+            data-testid="open-drafts"
+            style={{
+              fontFamily: v.fontBody,
+              fontSize: 13,
+              fontWeight: 500,
+              background: 'transparent',
+              color: v.ink,
+              border: `1px solid ${v.border}`,
+              borderRadius: 999,
+              padding: '6px 14px',
+              cursor: 'pointer',
+            }}
+          >
+            drafts
+            {heldCount !== null ? (
+              <span
+                style={{
+                  marginLeft: 8,
+                  fontFamily: v.fontMono,
+                  fontSize: 11,
+                  background: v.surface,
+                  borderRadius: 999,
+                  padding: '1px 7px',
+                }}
+              >
+                {heldCount}
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            onClick={() => submit('draft')}
+            disabled={isActionDisabled || (items.length === 0 && caption.trim().length === 0)}
+            data-testid="save-draft"
+            style={{
+              fontFamily: v.fontBody,
+              fontSize: 13,
+              fontWeight: 500,
+              background: 'transparent',
+              color: isActionDisabled ? v.ink3 : v.ink,
+              border: `1px solid ${v.border}`,
+              borderRadius: 999,
+              padding: '6px 14px',
+              cursor: isActionDisabled ? 'default' : 'pointer',
+            }}
+          >
+            {busy === 'draft' ? 'saving...' : 'save draft'}
+          </button>
+          <button
+            onClick={handlePost}
+            disabled={isActionDisabled}
+            data-testid="publish-post"
+            style={{
+              fontFamily: v.fontBody,
+              fontSize: 14,
+              fontWeight: 600,
+              background: isActionDisabled ? v.surfaceRaised : v.accent,
+              color: isActionDisabled ? v.ink3 : v.inkInverse,
+              border: 'none',
+              borderRadius: 999,
+              padding: '7px 16px',
+              cursor: isActionDisabled ? 'default' : 'pointer',
+            }}
+          >
+            {isUploading
+              ? `uploading ${completedCount} of ${items.length}`
+              : busy === 'publish'
+                ? scheduleAt
+                  ? 'scheduling...'
+                  : 'posting...'
+                : submitLabel}
+          </button>
+        </div>
         {isTablet ? (
           <div
             aria-hidden="true"
@@ -406,6 +701,10 @@ export function ComposerScreen() {
               onRemove={removeItem}
               onMove={moveAttachment}
               onRetry={retryItem}
+              onEditAlt={(id) => {
+                setAltKey(id);
+                setDialog('alt');
+              }}
             />
 
             {items.length === 0 ? (
@@ -575,7 +874,7 @@ export function ComposerScreen() {
                 color: caption.length > MAX_CHARS * 0.9 ? v.error : v.ink3,
               }}
             >
-              {MAX_CHARS - caption.length}
+              {caption.length} / {MAX_CHARS}
             </span>
           </div>
         </div>
@@ -597,7 +896,108 @@ export function ComposerScreen() {
             ))}
           </div>
         ) : null}
+
+        <div
+          style={{
+            borderTop: `1px solid ${v.border}`,
+            padding: isTablet ? `0 ${tabletBodyPadRight}px 0 ${tabletBodyPadLeft}px` : '0 16px',
+          }}
+        >
+          <OptionRow
+            icon="mapPin"
+            label="add location"
+            testId="option-location"
+            value={place ? place.name : 'none'}
+            onClick={() => setDialog('place')}
+          />
+          <OptionRow
+            icon="tag"
+            label="tag people"
+            testId="option-tag-people"
+            value={
+              peopleTags.length > 0
+                ? `${peopleTags.length} ${peopleTags.length === 1 ? 'person' : 'people'} on ${taggedPhotos} ${taggedPhotos === 1 ? 'photo' : 'photos'}`
+                : 'none'
+            }
+            disabled={photoCount === 0}
+            hint="add a photo first"
+            onClick={() => setDialog('tags')}
+          />
+          <OptionRow
+            icon="users"
+            label="invite collaborators"
+            testId="option-collaborators"
+            value={
+              collaborators.length > 0
+                ? collaborators.map((user) => user.username).join(', ')
+                : 'none'
+            }
+            onClick={() => setDialog('collaborators')}
+          />
+          <OptionRow
+            icon="calendar"
+            label="schedule"
+            testId="option-schedule"
+            value={scheduleAt ? formatScheduleLabel(scheduleAt, new Date()) : 'post now'}
+            onClick={() => setSchedulerOpen((open) => !open)}
+          />
+          {schedulerOpen ? (
+            <SchedulePicker
+              value={scheduleAt}
+              onSet={(at) => {
+                setScheduleAt(at);
+                setSchedulerOpen(false);
+              }}
+              onClear={() => {
+                setScheduleAt(null);
+                setSchedulerOpen(false);
+              }}
+              onCancel={() => setSchedulerOpen(false)}
+            />
+          ) : null}
+        </div>
       </div>
+
+      {dialog === 'alt' && items.length > 0 ? (
+        <AltTextDialog
+          items={items.map((item) => ({
+            key: item.id,
+            src: item.previewUrl,
+            isVideo: item.isVideo,
+            altText: item.altText,
+          }))}
+          initialKey={altKey}
+          authorUsername={authorUsername}
+          onSave={(key, text) => patchItem(key, { altText: text })}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog === 'place' ? (
+        <PlacePicker
+          value={place}
+          onChoose={setPlace}
+          onRemove={() => setPlace(null)}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog === 'tags' ? (
+        <TagPeopleEditor
+          attachments={items}
+          tags={peopleTags}
+          onDone={setPeopleTags}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog === 'collaborators' ? (
+        <CollaboratorPicker
+          value={collaborators}
+          onDone={setCollaborators}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+      {dialog === 'drafts' ? (
+        <DraftsPanel onResume={loadPost} onClose={() => setDialog(null)} />
+      ) : null}
     </div>
   );
 }

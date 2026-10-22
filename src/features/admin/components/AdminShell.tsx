@@ -101,6 +101,13 @@ const NAV_SECTIONS: {
         roles: [ROLES.ADMIN],
       },
       {
+        key: 'places',
+        label: 'places',
+        icon: 'mapPin',
+        to: ROUTES.ADMIN_PLACES,
+        roles: [ROLES.ADMIN],
+      },
+      {
         key: 'hidden-words',
         label: 'hidden words',
         icon: 'eyeOff',

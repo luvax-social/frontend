@@ -36,6 +36,10 @@ export const ROUTES = {
   HASHTAG: '/app/tags/:name',
   HASHTAG_DEEP_LINK: '/tags/:name',
   COMPOSE: '/app/compose',
+  // The viewer's own unpublished and archived posts. The bare path is the Posts tab; ARCHIVE_TAB
+  // names a tab so a later phase can add its own entry to the tab registry without a new route.
+  ARCHIVE: '/app/archive',
+  ARCHIVE_TAB: '/app/archive/:tab',
   NOTIFICATIONS: '/app/notifications',
   MESSAGES: '/app/messages',
   // Settings is a group list beside a category. The bare path is the list with
@@ -54,6 +58,8 @@ export const ROUTES = {
   SETTINGS_MUTED: '/app/settings/muted',
   SETTINGS_HIDDEN_WORDS: '/app/settings/hidden-words',
   SETTINGS_LIMITS: '/app/settings/limits',
+  // Who may tag the viewer in a photo, whether tags wait for approval, and the tags waiting.
+  SETTINGS_TAGS: '/app/settings/tags',
   // Support is a settings category rather than a screen of its own. Every
   // surface it needs was built and none of them had an entry point: nothing in
   // the signed-in navigation reached /app/support, so the only support-shaped
@@ -112,6 +118,8 @@ export const ROUTES = {
   USER_FOLLOWERS: '/app/u/:userId/followers',
   USER_FOLLOWING: '/app/u/:userId/following',
   POST_DETAIL: '/app/p/:postId',
+  // The location page: the published posts tagged at one place.
+  PLACE: '/app/places/:placeId',
   STORY_VIEW: '/app/stories/:storyId',
 
   // The search results screen. Carries the term as `q` and the selected result
@@ -153,6 +161,8 @@ export const ROUTES = {
   // The platform-wide hidden word list. Administrator only: the backend answers a moderator with
   // 403, so the screen sits behind the second guard beside the hashtag registry.
   ADMIN_HIDDEN_WORDS: '/admin/hidden-words',
+  // The places registry. Administrator only, like the hashtag registry it is modelled on.
+  ADMIN_PLACES: '/admin/places',
   // Moderator-reachable, not administrator-only: verification is a discretionary grant rather than
   // an enforcement action, so it sits with reports rather than with the account list.
   // The staff support console. Verification review happens here, as one
@@ -189,6 +199,8 @@ export const routeTo = {
     withParams(ROUTES.USER_FOLLOWING, { userId }),
   postDetail: (postId: string | null | undefined) => withParams(ROUTES.POST_DETAIL, { postId }),
   hashtag: (name: string | null | undefined) => withParams(ROUTES.HASHTAG, { name }),
+  place: (placeId: string | null | undefined) => withParams(ROUTES.PLACE, { placeId }),
+  archiveTab: (tab: string | null | undefined) => withParams(ROUTES.ARCHIVE_TAB, { tab }),
   storyView: (storyId: string | null | undefined) => withParams(ROUTES.STORY_VIEW, { storyId }),
   adminReportDetail: (reportId: string | null | undefined) =>
     withParams(ROUTES.ADMIN_REPORT_DETAIL, { reportId }),
@@ -228,7 +240,10 @@ export const CHAR_LIMITS = {
   displayName: 100,
   username: 30,
   websiteUrl: 2048,
-  locationName: 255,
+  // Mirrors CreatePlaceRequest and the post place fields, @Size(max = 100).
+  placeName: 100,
+  // Mirrors UpdateAltTextRequest and PostMediaInput, @Size(max = 500).
+  altText: 500,
   reportDescription: 2000,
   // The warning note the warn endpoint accepts (AdminWarnUserRequest.note @Size
   // maxLength 2000). Required and non-blank; the client stops at this boundary.

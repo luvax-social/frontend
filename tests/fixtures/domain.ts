@@ -35,13 +35,15 @@ export const postFixture = (overrides: Partial<Post> = {}): Post => ({
   isSaved: false,
   hasReported: false,
   viewCount: 0,
-  locationName: null,
-  latitude: null,
-  longitude: null,
+  place: null,
   media: [],
   hashtags: [],
+  mentions: [],
+  collaborators: [],
+  viewerCollaboration: null,
   createdAt: '2026-09-01T00:00:00Z',
   updatedAt: '2026-09-01T00:00:00Z',
+  publishedAt: '2026-09-01T00:00:00Z',
   ...overrides,
 });
 

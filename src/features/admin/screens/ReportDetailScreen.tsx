@@ -210,7 +210,10 @@ export function ReportDetailScreen({
 
   const status = report.status;
   const targetType = target?.reportType;
-  const actionableType = targetType && targetType !== 'user' ? targetType : undefined;
+  // A user is acted on from the account screen and a place from the places registry, so neither
+  // offers the content remove and restore controls.
+  const actionableType =
+    targetType && targetType !== 'user' && targetType !== 'place' ? targetType : undefined;
   const isActionableTarget = target && ACTIONABLE_TARGET_TYPES.has(targetType ?? '');
 
   // Conditional controls: render, never disable-and-403.
@@ -436,6 +439,18 @@ export function ReportDetailScreen({
                 >
                   remove {contentNoun(targetType ?? 'content')}
                 </LxBtn>
+              ) : null}
+
+              {targetType === 'place' && isAdmin && target ? (
+                <Link
+                  to={`${ROUTES.ADMIN_PLACES}?q=${encodeURIComponent(target.text ?? '')}&place=${target.entityId}&report=${report.id}`}
+                  data-testid="open-places-registry"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <LxBtn variant="secondary" type="button">
+                    open in places registry
+                  </LxBtn>
+                </Link>
               ) : null}
 
               {canRestore ? (

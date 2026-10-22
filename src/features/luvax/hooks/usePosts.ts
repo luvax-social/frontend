@@ -17,6 +17,7 @@ import { recommendationService } from '@/services/recommendation.service';
 import { getNextCursor, dedupeInfinitePagesById } from '@/utils/helpers';
 import { STALE_TIME } from '@/config/constants';
 import { patchCachedPost, removeCachedPost } from './usePostLikeState';
+import { invalidatePostAffectedQueries } from '../utils/postCacheKeys';
 import { beginSelfPostLike, endSelfPostLike, noteSelfCommentLike } from './useLivePostUpdates';
 
 export const useFeed = (params: CursorParams = {}, { enabled = true } = {}) => {
@@ -170,12 +171,9 @@ export const useCreatePost = () => {
 
   return useMutation({
     mutationFn: (data: CreatePostRequest) => postService.createPost(data),
-    onSuccess: () => {
-      // Invalidate feed and userPosts so the new post appears everywhere
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-      queryClient.invalidateQueries({ queryKey: ['recommendedFeed'] });
-      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-    },
+    // A new post can be a draft, a scheduled post or a published one, and each moves counts and
+    // lists, so the shared helper clears every screen that can show it.
+    onSuccess: () => invalidatePostAffectedQueries(queryClient),
   });
 };
 
@@ -183,14 +181,16 @@ export const useUpdatePostStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ postId, status }: { postId: string; status: PostStatus }) =>
-      postService.updatePostStatus(postId, status),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['post', variables.postId] });
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-      queryClient.invalidateQueries({ queryKey: ['recommendedFeed'] });
-      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-    },
+    mutationFn: ({
+      postId,
+      status,
+      scheduledAt,
+    }: {
+      postId: string;
+      status: PostStatus;
+      scheduledAt?: string | null;
+    }) => postService.updatePostStatus(postId, status, scheduledAt),
+    onSuccess: (_data, variables) => invalidatePostAffectedQueries(queryClient, variables.postId),
   });
 };
 

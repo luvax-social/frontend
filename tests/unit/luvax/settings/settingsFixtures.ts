@@ -22,6 +22,8 @@ export const settingsFixture = (
   messagePermission: 'everyone',
   suggestible: true,
   hiddenWordsSystemEnabled: true,
+  tagPermission: 'everyone',
+  manualTagApproval: false,
   updatedAt: '2026-10-14T00:00:00Z',
   ...overrides,
 });

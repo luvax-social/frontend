@@ -16,3 +16,9 @@ export const getErrorHeader = (error: unknown, name: string) => {
   const headers = getErrorResponse(error)?.headers;
   return isRecord(headers) ? headers[name] : undefined;
 };
+
+/** Reads the backend error code, such as `POST_PLACE_UNAVAILABLE`, from the preserved envelope. */
+export const getApiErrorCode = (error: unknown): string | null => {
+  const code = getErrorData(error)?.code;
+  return typeof code === 'string' ? code : null;
+};

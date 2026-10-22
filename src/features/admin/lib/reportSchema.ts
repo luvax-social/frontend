@@ -44,6 +44,7 @@ export const REPORT_TYPES = [
   'story',
   'message',
   'message_reaction',
+  'place',
 ] as const;
 
 export const REPORT_STATUS_LABELS = {
@@ -61,6 +62,7 @@ export const REPORT_TYPE_LABELS = {
   story: 'story',
   message: 'message',
   message_reaction: 'message reaction',
+  place: 'place',
 };
 
 /**

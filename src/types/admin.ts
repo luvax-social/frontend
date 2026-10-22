@@ -1,6 +1,7 @@
 // Wire contracts mirror backend admin DTO records.
 import type {
   HashtagStatus,
+  PlaceStatus,
   ReportType,
   ReportReason,
   ReportStatus,
@@ -394,6 +395,15 @@ export interface AdminSuspendUserRequest {
 export interface AdminUpdateHashtagRequest {
   status: HashtagStatus;
   note: string;
+}
+
+// modules/admin/dto/request/AdminUpdatePlaceRequest.java
+export interface AdminUpdatePlaceRequest {
+  status: PlaceStatus;
+  /** Required when the status is banned or deleted; recorded on the place and the audit row. */
+  note?: string | null;
+  /** A report about this place that the action resolves in the same transaction. */
+  reportId?: string | null;
 }
 
 // modules/admin/dto/request/AdminWarnUserRequest.java

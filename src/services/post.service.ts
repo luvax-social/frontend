@@ -11,6 +11,11 @@ import type {
   CommentResponse,
   CommentDeletionScopeResponse,
   HiddenCommentResponse,
+  OwnerPostCountsResponse,
+  TagRequestResponse,
+  CollaborationInviteResponse,
+  PostTagInput,
+  UpdatePostContentRequest,
 } from '@/types/domain';
 import axiosInstance from './axiosInstance';
 
@@ -131,16 +136,229 @@ export const deletePost = async (postId: string) => {
 
 /**
  * Transitions the status of a post.
+ *
+ * Calls `PATCH /posts/{postId}/status`. `scheduledAt` is required when the target is `scheduled`
+ * and refused for any other target; the backend floors it to the minute and accepts a time between
+ * one minute and thirty days ahead.
  * @param {string|number} postId - The ID of the post.
- * @param {string} status - The target status: 'draft', 'published', 'archived' or 'removed'.
+ * @param {string} status - The target status: 'draft', 'scheduled', 'published', 'archived' or 'removed'.
+ * @param {string} [scheduledAt] - ISO instant the scheduled post is due.
  * @returns {Promise<Object>} The updated post.
  */
-export const updatePostStatus = async (postId: string, status: PostStatus) => {
+export const updatePostStatus = async (
+  postId: string,
+  status: PostStatus,
+  scheduledAt?: string | null
+) => {
   const response = await axiosInstance.patch<ApiResponse<PostResponse>>(
     `${POST_API_PATH}/${postId}/status`,
-    {
-      targetStatus: status,
-    }
+    scheduledAt ? { targetStatus: status, scheduledAt } : { targetStatus: status }
+  );
+  return response.data;
+};
+
+/**
+ * Replaces the whole content of a draft or scheduled post.
+ *
+ * Calls `PUT /posts/{postId}/content`. It is a replacement, not a patch: a field left out clears
+ * what the post carried, so the caller sends the complete composer state. Status and schedule
+ * change through {@link updatePostStatus}.
+ * @param {string} postId - The ID of the draft or scheduled post.
+ * @param {UpdatePostContentRequest} data - The full content.
+ * @returns {Promise<Object>} ApiResponse<PostResponse>.
+ */
+export const replacePostContent = async (postId: string, data: UpdatePostContentRequest) => {
+  const response = await axiosInstance.put<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}/content`,
+    data
+  );
+  return response.data;
+};
+
+/**
+ * Sets or clears the alt text of one media item.
+ *
+ * Calls `PATCH /posts/{postId}/media/{postMediaId}/alt-text`. Null or blank clears it. The owner
+ * can edit it on a post in any retained status.
+ * @returns {Promise<Object>} ApiResponse<PostResponse>.
+ */
+export const updateAltText = async (
+  postId: string,
+  postMediaId: string,
+  altText: string | null
+) => {
+  const response = await axiosInstance.patch<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}/media/${postMediaId}/alt-text`,
+    { altText }
+  );
+  return response.data;
+};
+
+/**
+ * Sets or clears the place of a post.
+ *
+ * Calls `PUT /posts/{postId}/place`. Send `placeId` for an existing place or `placeName` to create
+ * one; both empty clears the place. A banned or deleted place is refused.
+ * @returns {Promise<Object>} ApiResponse<PostResponse>.
+ */
+export const setPostPlace = async (
+  postId: string,
+  place: { placeId?: string | null; placeName?: string | null }
+) => {
+  const response = await axiosInstance.put<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}/place`,
+    place
+  );
+  return response.data;
+};
+
+/**
+ * Replaces the people tagged on a post.
+ *
+ * Calls `PUT /posts/{postId}/tags`. The body is the complete set, each tag naming its media item by
+ * position.
+ * @returns {Promise<Object>} ApiResponse<PostResponse>.
+ */
+export const replacePostTags = async (postId: string, tags: PostTagInput[]) => {
+  const response = await axiosInstance.put<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}/tags`,
+    { tags }
+  );
+  return response.data;
+};
+
+/**
+ * Approves a tag that is waiting for the tagged person.
+ *
+ * Calls `POST /posts/{postId}/tags/{tagId}/approve`; only the tagged person may.
+ * @returns {Promise<Object>} ApiResponse<void>.
+ */
+export const approveTag = async (postId: string, tagId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${POST_API_PATH}/${postId}/tags/${tagId}/approve`
+  );
+  return response.data;
+};
+
+/**
+ * Removes a tag. The post owner and the tagged person may, at any time.
+ *
+ * Calls `DELETE /posts/{postId}/tags/{tagId}`.
+ * @returns {Promise<Object>} ApiResponse<void>.
+ */
+export const removeTag = async (postId: string, tagId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(
+    `${POST_API_PATH}/${postId}/tags/${tagId}`
+  );
+  return response.data;
+};
+
+/**
+ * Replaces the invited co-authors of a post.
+ *
+ * Calls `PUT /posts/{postId}/collaborators`. The body is the complete set (at most three); an
+ * invitee left out of it has the invitation withdrawn.
+ * @returns {Promise<Object>} ApiResponse<PostResponse>.
+ */
+export const replaceCollaborators = async (postId: string, userIds: string[]) => {
+  const response = await axiosInstance.put<ApiResponse<PostResponse>>(
+    `${POST_API_PATH}/${postId}/collaborators`,
+    { userIds }
+  );
+  return response.data;
+};
+
+/** Accepts the viewer's invitation to co-author a published post: `POST .../collaboration/accept`. */
+export const acceptCollaboration = async (postId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${POST_API_PATH}/${postId}/collaboration/accept`
+  );
+  return response.data;
+};
+
+/** Declines the viewer's invitation: `POST .../collaboration/decline`. */
+export const declineCollaboration = async (postId: string) => {
+  const response = await axiosInstance.post<ApiResponse<null>>(
+    `${POST_API_PATH}/${postId}/collaboration/decline`
+  );
+  return response.data;
+};
+
+/** Leaves a post the viewer co-authors: `DELETE .../collaboration`. */
+export const leaveCollaboration = async (postId: string) => {
+  const response = await axiosInstance.delete<ApiResponse<null>>(
+    `${POST_API_PATH}/${postId}/collaboration`
+  );
+  return response.data;
+};
+
+/**
+ * Lists the viewer's own posts in one non-published state.
+ *
+ * Calls `GET /users/me/posts?status=`. Drafts and archived posts page by most recently updated;
+ * scheduled posts page by the time they are due, soonest first.
+ * @returns {Promise<Object>} ApiResponse<CursorPageResponse<PostResponse>>.
+ */
+export const getMyPosts = async ({
+  signal,
+  status,
+  ...params
+}: CursorParams & { status: 'draft' | 'scheduled' | 'archived' }) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<PostResponse>>>(
+    '/users/me/posts',
+    { params: { ...params, status }, signal }
+  );
+  return response.data;
+};
+
+/**
+ * Counts the viewer's drafts, scheduled and archived posts and reports the cap on the first two.
+ *
+ * Calls `GET /users/me/posts/counts`.
+ * @returns {Promise<Object>} ApiResponse<OwnerPostCountsResponse>.
+ */
+export const getMyPostCounts = async (signal?: AbortSignal) => {
+  const response = await axiosInstance.get<ApiResponse<OwnerPostCountsResponse>>(
+    '/users/me/posts/counts',
+    { signal }
+  );
+  return response.data;
+};
+
+/**
+ * Lists the tags waiting for the viewer's approval: `GET /users/me/tags/pending`.
+ * @returns {Promise<Object>} ApiResponse<CursorPageResponse<TagRequestResponse>>.
+ */
+export const getPendingTagRequests = async ({ signal, ...params }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<TagRequestResponse>>>(
+    '/users/me/tags/pending',
+    { params, signal }
+  );
+  return response.data;
+};
+
+/**
+ * Lists the invitations to co-author a post that the viewer has not answered:
+ * `GET /users/me/collaboration-invites`.
+ * @returns {Promise<Object>} ApiResponse<CursorPageResponse<CollaborationInviteResponse>>.
+ */
+export const getCollaborationInvites = async ({ signal, ...params }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<CollaborationInviteResponse>>>(
+    '/users/me/collaboration-invites',
+    { params, signal }
+  );
+  return response.data;
+};
+
+/**
+ * Lists the published posts a user is tagged in, as the viewer may see them:
+ * `GET /users/{userId}/tagged-posts`. Only approved tags count.
+ * @returns {Promise<Object>} ApiResponse<CursorPageResponse<PostResponse>>.
+ */
+export const getTaggedPosts = async (userId: string, { signal, ...params }: CursorParams = {}) => {
+  const response = await axiosInstance.get<ApiResponse<CursorPage<PostResponse>>>(
+    `/users/${userId}/tagged-posts`,
+    { params, signal }
   );
   return response.data;
 };
@@ -397,6 +615,21 @@ export const postService = {
   updatePost,
   deletePost,
   updatePostStatus,
+  replacePostContent,
+  updateAltText,
+  setPostPlace,
+  replacePostTags,
+  approveTag,
+  removeTag,
+  replaceCollaborators,
+  acceptCollaboration,
+  declineCollaboration,
+  leaveCollaboration,
+  getMyPosts,
+  getMyPostCounts,
+  getPendingTagRequests,
+  getCollaborationInvites,
+  getTaggedPosts,
   getExplorePosts,
   likePost,
   unlikePost,

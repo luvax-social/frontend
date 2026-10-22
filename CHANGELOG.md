@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- The composer gains option rows for location, tagging people, inviting collaborators and scheduling, a per-image alt text editor, a save draft button and a drafts drawer that lists drafts and scheduled posts against the shared limit.
+- An archive screen lists archived posts with unarchive and undo, built from a tab registry so a later tab is one more entry, and it is reached from the profile.
+- A location page lists the published posts at a place and offers a report; a post line links to it.
+- A tagged tab on every profile, tag markers on photos with a tags toggle, and "remove me from this post" for a tagged person.
+- A tags settings page sets who can tag you and whether tags wait for review, and lists the tags waiting for you with approve and remove.
+- Posts show every accepted co-author in the byline, and co-authors can leave from the post menu; the owner can edit alt text and manage tags and collaborators after publishing.
+- Stored mentions in captions render as links to the current username, and any other @name stays plain text.
+- Notification rows for tags, tag requests, collaboration invitations, accepted invitations and a scheduled post that returned to drafts, with approve, remove, accept, decline and open draft actions.
+- An administrator places registry with search, status filters and a reason on every action, and place reports link to it.
+- Every post image, thumbnail and preview carries the author's alt text or a neutral label such as "Photo 2 of 4 by @name".
 - Post menus offer "not interested" and, on For You and Explore, "show fewer from this account", and the post collapses in place into an undo row that restores it.
 - Muting an account asks for posts and stories as two independent switches in one dialog, and turning both off is the unmute; Settings gains a muted accounts list with the same controls.
 - Settings gains hidden words, where each phrase shows the normalised form it will match, a system word filter switch, and a list capped at the server's limit.
@@ -70,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Reply and comment notifications now deep-link by address, so the target survives a reload or a link shared outside the app, and resolve a nested reply or a comment on a later page through the same thread the post detail screen already reads.
 
 ### Changed
+- The post type and the composer no longer carry free-form location text or coordinates, and the caption limit is the server's 2200 characters.
 - Reply quotes now render from the server's preview of the replied-to message, labelling photos, videos and shares, and reading "message unavailable" when the original is gone; the loaded history is used only when no preview is sent.
 - Frontend source and tests now use TypeScript throughout; removed migration-only JS allowance and updated documentation, structural tooling and supported configuration/script paths.
 - Post interactions, realtime cache updates, media rendering and composer utilities now use typed query data and browser events.
@@ -222,6 +233,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-row unread background tint on the notifications screen, replaced by a trailing dot.
 
 ### Tests
+- Unit tests cover the schedule time rules, composer content building, mention rendering, alt text labels, tag geometry, the shared place name vectors, drafts, place and collaborator pickers, tag editing, optimistic rollbacks and the new notification rows.
 - The live end-to-end specs for this work are named for the behavior they cover, and the feature documentation maps each requirement identifier to its behavior and spec.
 - The live end-to-end suite now covers message reactions, reply quotes, message requests, the inbox live topic and the two message send fixes against the running stack.
 - Live-stack end-to-end specs cover not interested, show fewer, mute, hidden words, limit interactions, the interaction policy and hidden comment review against the real backend; run them with `npm run test:e2e:live` while the stack is up and seeded.

@@ -28,7 +28,13 @@ export interface PostMediaRow {
   altText: string | null;
   cdnUrl: string;
   mediaType: 'image' | 'video';
-  tags: { id: string; user: { id: string; username: string }; status: string }[];
+  tags: {
+    id: string;
+    user: { id: string; username: string };
+    status: string;
+    x: number;
+    y: number;
+  }[];
 }
 
 export interface PostRow {
@@ -100,4 +106,25 @@ export async function notificationsOf(api: Api, limit = 30) {
   const result = await api.call<unknown>('GET', `/notifications?limit=${limit}`);
   expect(result.status).toBe(200);
   return itemsOf<{ id: string; type: string; target: { postId: string | null } }>(result.data);
+}
+
+export interface TagSettings {
+  tagPermission: 'everyone' | 'following' | 'nobody';
+  manualTagApproval: boolean;
+}
+
+/** The tag settings of `api`'s own account. */
+export async function readTagSettings(api: Api): Promise<TagSettings> {
+  const result = await api.call<TagSettings>('GET', '/users/me/settings');
+  expect(result.status).toBe(200);
+  return {
+    tagPermission: result.data.tagPermission,
+    manualTagApproval: result.data.manualTagApproval,
+  };
+}
+
+/** Changes the tag settings of `api`'s own account; a spec restores what it read first. */
+export async function setTagSettings(api: Api, settings: Partial<TagSettings>): Promise<void> {
+  const result = await api.call('PATCH', '/users/me/settings', settings);
+  expect(result.status, `set tag settings: ${result.code}`).toBe(200);
 }

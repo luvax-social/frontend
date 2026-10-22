@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A tagged tab on every profile, tag markers on photos with a tags toggle, and "remove me from this post" for a tagged person.
 - A tags settings page sets who can tag you and whether tags wait for review, and lists the tags waiting for you with approve and remove.
 - Posts show every accepted co-author in the byline, and co-authors can leave from the post menu; the owner can edit alt text and manage tags and collaborators after publishing.
-- Stored mentions in captions render as links to the current username, and any other @name stays plain text.
+- Stored mentions in captions and comments render as links to the current username, and any other @name stays plain text.
 - Notification rows for tags, tag requests, collaboration invitations, accepted invitations and a scheduled post that returned to drafts, with approve, remove, accept, decline and open draft actions.
 - An administrator places registry with search, status filters and a reason on every action, and place reports link to it.
 - Every post image, thumbnail and preview carries the author's alt text or a neutral label such as "Photo 2 of 4 by @name".

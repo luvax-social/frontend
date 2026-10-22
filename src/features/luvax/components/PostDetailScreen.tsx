@@ -471,7 +471,7 @@ function CommentRow({
                   wordBreak: 'break-word',
                 }}
               >
-                {comment.content}
+                <CaptionText text={comment.content} mentions={comment.mentions} hashtags={false} />
               </span>
             )}
           </div>

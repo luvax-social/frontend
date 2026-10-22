@@ -18,6 +18,19 @@ const renderCaption = (text: string, stored: PostMentionResponse[] = mentions) =
     </MemoryRouter>
   );
 
+const renderComment = (text: string) =>
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route
+          path="/"
+          element={<CaptionText text={text} mentions={mentions} hashtags={false} />}
+        />
+        <Route path="/app/u/:userId" element={<p>profile page</p>} />
+      </Routes>
+    </MemoryRouter>
+  );
+
 describe('CaptionText', () => {
   it('renders a stored mention as a link to the account by id', () => {
     renderCaption('Morning with @an.pham #danang');
@@ -46,5 +59,20 @@ describe('CaptionText', () => {
     fireEvent.click(screen.getByRole('button', { name: '#danang' }));
 
     expect(screen.getByText('tag page')).toBeInTheDocument();
+  });
+
+  it('links only stored mentions in a comment and leaves a #word as plain text', () => {
+    renderComment('thanks @an.pham, see #danang');
+
+    fireEvent.click(screen.getByRole('button', { name: '@an.pham' }));
+
+    expect(screen.getByText('profile page')).toBeInTheDocument();
+  });
+
+  it('does not turn a #word in a comment into a link', () => {
+    renderComment('nice #danang');
+
+    expect(screen.queryByRole('button', { name: '#danang' })).toBeNull();
+    expect(screen.getByText('nice #danang')).toBeInTheDocument();
   });
 });

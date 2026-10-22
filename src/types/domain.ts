@@ -265,6 +265,8 @@ export interface CommentResponse {
   updatedAt: string;
   editedAt: string | null;
   pinned: boolean;
+  /** The mentions stored with the comment; absent on a response from before they existed. */
+  mentions?: PostMentionResponse[];
 }
 
 // modules/comment/dto/response/HiddenCommentResponse.java

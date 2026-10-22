@@ -31,14 +31,19 @@ const hashtagPattern = () => /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,100})/gu;
  * An `@name` is a link only when `mentions` lists it, because the server stores a mention by
  * account id and a bare `@name` in text might belong to nobody. The link goes to the account by id
  * and shows its current username, so a rename never leaves a stale link.
- * @param {{text: string, mentions?: PostMentionResponse[]}} props
+ *
+ * A comment passes `hashtags={false}`: it has always shown a `#word` as plain text, and only its
+ * stored mentions are links.
+ * @param {{text: string, mentions?: PostMentionResponse[], hashtags?: boolean}} props
  */
 export function CaptionText({
   text,
   mentions,
+  hashtags = true,
 }: {
   text?: string | null;
   mentions?: readonly PostMentionResponse[] | null;
+  hashtags?: boolean;
 }) {
   const navigate = useNavigate();
   if (!text) return null;
@@ -71,6 +76,8 @@ export function CaptionText({
         segment.text
       )
     );
+
+  if (!hashtags) return <>{withMentions(text, 'c')}</>;
 
   const nodes: ReactNode[] = [];
   let lastIndex = 0;

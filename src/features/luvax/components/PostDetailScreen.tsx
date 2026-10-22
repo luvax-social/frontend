@@ -42,7 +42,9 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useNotInterested, useShowFewer } from '../hooks/useFeedPreferences';
 import { useBlock, useFollow, useFollowing, useUnfollow } from '../hooks/useSocial';
 import { useUserProfile } from '../hooks/useUsers';
-import { useRelativeTime } from '../hooks/useRelativeTime';
+import { formatRelativeTime, useRelativeTime } from '../hooks/useRelativeTime';
+import { PostByline } from './PostByline';
+import { usePostCreationActions } from './usePostCreationActions';
 import { useViewport } from '../hooks/useViewport';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -1099,6 +1101,8 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
     window.requestAnimationFrame(() => commentInputRef.current?.focus());
   };
 
+  const creation = usePostCreationActions(post as Post);
+
   const menuItems = useMemo(
     () => [
       { id: 'like', icon: 'heart', label: liked ? 'Unlike' : 'Like', onClick: handleLikeToggle },
@@ -1117,6 +1121,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
             .then(() => toast('link copied'))
             .catch(() => {}),
       },
+      ...creation.items,
       ...(isSelf
         ? [
             {
@@ -1217,6 +1222,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       authorAvatarUrl,
       authorHandle,
       authorName,
+      creation.items,
       feedSurface,
       follow.isPending,
       following,
@@ -1303,26 +1309,16 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 14px 8px' }}>
-        <div
-          onClick={() => targetUserId && navigate(routeTo.userProfile(targetUserId))}
-          style={{ cursor: targetUserId ? 'pointer' : 'default', display: 'flex' }}
-        >
-          <LxAvatar size={32} src={authorAvatarUrl} />
-        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <LxVerifiedName
-            name={authorName}
-            verified={author.isVerified}
-            category={author.verifiedCategory}
-            size={14}
-            onClick={targetUserId ? () => navigate(routeTo.userProfile(targetUserId)) : undefined}
-            textStyle={{
-              fontFamily: v.fontBody,
-              fontSize: 13.5,
-              fontWeight: 600,
-              color: v.ink,
-              lineHeight: 1.15,
-            }}
+          <PostByline
+            post={post as Post}
+            avatarSize={32}
+            nameSize={13.5}
+            meta={
+              (post.collaborators ?? []).some((entry) => entry.status === 'accepted')
+                ? `co-authors, ${formatRelativeTime(post.publishedAt ?? post.createdAt)}`
+                : undefined
+            }
           />
         </div>
         <button
@@ -1381,7 +1377,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
             wordBreak: 'break-word',
           }}
         >
-          <CaptionText text={post.caption} />
+          <CaptionText text={post.caption} mentions={post.mentions} />
         </div>
         {tags.length > 0 ? (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
@@ -2157,6 +2153,7 @@ export function PostDetailScreen({ overlay = false }: { overlay?: boolean }) {
 
       <ReportModal target={postReportTarget} onClose={() => setPostReportTarget(null)} />
       <PostShareDialog open={shareOpen} postId={postId} onClose={() => setShareOpen(false)} />
+      {creation.dialogs}
     </>
   );
 }

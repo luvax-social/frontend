@@ -15,6 +15,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 
 import { v } from '@/config/tokens';
+import { mediaAltLabel } from '@/utils/mediaAlt';
 import { ROUTES, routeTo, CHAR_LIMITS } from '@/config/constants';
 import {
   canViewerSeePost,
@@ -447,6 +448,12 @@ export function SearchScreen() {
                           <div
                             key={post.id}
                             onClick={() => openOverlay(routeTo.postDetail(post.id))}
+                            role={mediaUrl ? 'img' : undefined}
+                            aria-label={
+                              mediaUrl
+                                ? mediaAltLabel(post.media[0], 0, post.media.length, post.author)
+                                : undefined
+                            }
                             style={{
                               background: mediaUrl
                                 ? `url(${mediaUrl}) center/cover no-repeat`
@@ -516,6 +523,12 @@ export function SearchScreen() {
                           <div
                             key={post.id}
                             onClick={() => openOverlay(routeTo.postDetail(post.id))}
+                            role={mediaUrl ? 'img' : undefined}
+                            aria-label={
+                              mediaUrl
+                                ? mediaAltLabel(post.media[0], 0, post.media.length, post.author)
+                                : undefined
+                            }
                             style={{
                               background: mediaUrl
                                 ? `url(${mediaUrl}) center/cover no-repeat`
@@ -584,6 +597,12 @@ export function SearchScreen() {
                       <div
                         key={post.id}
                         onClick={() => openOverlay(routeTo.postDetail(post.id))}
+                        role={mediaUrl ? 'img' : undefined}
+                        aria-label={
+                          mediaUrl
+                            ? mediaAltLabel(post.media[0], 0, post.media.length, post.author)
+                            : undefined
+                        }
                         style={{
                           background: mediaUrl
                             ? `url(${mediaUrl}) center/cover no-repeat`

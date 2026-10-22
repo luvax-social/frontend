@@ -110,7 +110,7 @@ export function MediaPlaceholder({ item, large = false, onClick }: Props) {
         ) : (
           <img
             src={src}
-            alt=""
+            alt={item?.altText?.trim() || ''}
             onError={() => setFailedSrc(src)}
             style={{
               width: '100%',

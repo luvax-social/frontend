@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import type { PostMentionResponse } from '@/types/domain';
 import { v } from '@/config/tokens';
 import { routeTo } from '@/config/constants';
+import { splitMentions } from '../utils/mentionRender';
 
 /**
  * Splits on a `#` that starts a token, so `#dev` matches and the `#` in `C#` or in a URL fragment
@@ -25,11 +27,50 @@ const hashtagPattern = () => /(^|[^\p{L}\p{N}_#])#([\p{L}\p{N}_]{1,100})/gu;
  * page is what tells the reader it is unavailable. Hiding or unlinking it here would need a
  * per-token status lookup on every caption render, and the hashtag rules are explicit that banning
  * hides the tag from discovery surfaces, not from the posts that used it.
- * @param {{text: string}} props
+ *
+ * An `@name` is a link only when `mentions` lists it, because the server stores a mention by
+ * account id and a bare `@name` in text might belong to nobody. The link goes to the account by id
+ * and shows its current username, so a rename never leaves a stale link.
+ * @param {{text: string, mentions?: PostMentionResponse[]}} props
  */
-export function CaptionText({ text }: { text?: string | null }) {
+export function CaptionText({
+  text,
+  mentions,
+}: {
+  text?: string | null;
+  mentions?: readonly PostMentionResponse[] | null;
+}) {
   const navigate = useNavigate();
   if (!text) return null;
+
+  const withMentions = (run: string, keyPrefix: string): ReactNode[] =>
+    splitMentions(run, mentions).map((segment, index) =>
+      segment.mention ? (
+        <button
+          key={`${keyPrefix}-m${index}`}
+          type="button"
+          data-mention={segment.mention.username}
+          onClick={(event) => {
+            event.stopPropagation();
+            navigate(routeTo.userProfile(segment.mention?.userId));
+          }}
+          style={{
+            appearance: 'none',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            font: 'inherit',
+            color: v.accent,
+            cursor: 'pointer',
+          }}
+        >
+          @{segment.mention.username}
+        </button>
+      ) : (
+        segment.text
+      )
+    );
 
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
@@ -42,7 +83,7 @@ export function CaptionText({ text }: { text?: string | null }) {
     const [whole, prefix, tag] = match;
     const tagStart = match.index + prefix.length;
     if (tagStart > lastIndex) {
-      nodes.push(text.slice(lastIndex, tagStart));
+      nodes.push(...withMentions(text.slice(lastIndex, tagStart), `t${lastIndex}`));
     }
     nodes.push(
       <button
@@ -72,7 +113,7 @@ export function CaptionText({ text }: { text?: string | null }) {
   }
 
   if (lastIndex < text.length) {
-    nodes.push(text.slice(lastIndex));
+    nodes.push(...withMentions(text.slice(lastIndex), `t${lastIndex}`));
   }
   return <>{nodes}</>;
 }

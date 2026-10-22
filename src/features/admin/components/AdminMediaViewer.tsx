@@ -262,7 +262,11 @@ export function AdminMediaGrid({
             {isVideo(url) ? (
               <video src={url} muted preload="metadata" />
             ) : (
-              <img src={url} alt="" loading="lazy" />
+              <img
+                src={url}
+                alt={`${label}, item ${index + 1} of ${safeUrls.length}`}
+                loading="lazy"
+              />
             )}
           </button>
         ))}

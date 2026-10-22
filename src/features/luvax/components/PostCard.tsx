@@ -10,15 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { v } from '@/config/tokens';
 import { CaptionText } from './CaptionText';
 import { copyPostLink, extractPageContent, getDisplayName, getUserSummary } from '@/utils/helpers';
-import {
-  LxAvatar,
-  LxBottomSheet,
-  LxBtn,
-  LxDropdownMenu,
-  LxIcon,
-  LxModal,
-  LxTag,
-} from './primitives';
+import { LxBottomSheet, LxBtn, LxDropdownMenu, LxIcon, LxModal, LxTag } from './primitives';
 import { PostMedia } from './PostMedia';
 import { ConfirmModal } from '@/components/common/ConfirmModal';
 import { useDeletePost, useLikePost, useSavePost, useUpdatePost } from '../hooks/usePosts';
@@ -36,7 +28,8 @@ import { PostShareDialog } from './PostShareDialog';
 import { viewerFollowsAuthor } from '../utils/relationship';
 import { offersShowFewer } from '../utils/feedSurface';
 import { useMuteDialogStore } from '../store/useMuteDialogStore';
-import { LxVerifiedName } from '@/components/ui/lx-verified-badge';
+import { PostByline } from './PostByline';
+import { usePostCreationActions } from './usePostCreationActions';
 
 const HEART_COLOR = 'var(--lx-error)';
 
@@ -244,6 +237,8 @@ export function PostCard({
     });
   }, [author.displayName, authorHandle, avatarUrl, targetUserId]);
 
+  const creation = usePostCreationActions(post);
+
   const menuItems = useMemo(
     () => [
       {
@@ -279,6 +274,7 @@ export function PostCard({
             onClick: handleEditOpen,
           }
         : null,
+      ...creation.items,
       isOwner
         ? {
             id: 'delete',
@@ -384,6 +380,7 @@ export function PostCard({
       authorHandle,
       authorName,
       avatarUrl,
+      creation.items,
       feedSurface,
       follow.isPending,
       following,
@@ -435,44 +432,33 @@ export function PostCard({
       {/* The uploader's avatar and info lead the post, then the media, then the
           caption and actions. */}
       <div style={{ padding: isMobile ? '0 14px 10px' : '0 4px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div
-            data-lxtap="1"
-            onClick={() => targetUserId && navigate(routeTo.userProfile(targetUserId))}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-          >
-            <LxAvatar size={26} src={avatarUrl} />
-            <LxVerifiedName
-              name={authorName}
-              verified={author.isVerified}
-              category={author.verifiedCategory}
-              size={13}
-              textStyle={{ fontFamily: v.fontBody, fontSize: 13, fontWeight: 600, color: v.ink }}
-            />
-          </div>
-          <button
-            ref={menuButtonRef}
-            type="button"
-            data-lxtap="1"
-            aria-label="post options"
-            onClick={() => setMenuOpen((open) => !open)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              width: 20,
-              height: 20,
-              cursor: 'pointer',
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: v.ink3,
-              padding: 0,
-            }}
-          >
-            <LxIcon name="more" size={15} color={v.ink3} />
-          </button>
-        </div>
+        <PostByline
+          post={post}
+          trailing={
+            <button
+              ref={menuButtonRef}
+              type="button"
+              data-lxtap="1"
+              aria-label="post options"
+              onClick={() => setMenuOpen((open) => !open)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                width: 20,
+                height: 20,
+                cursor: 'pointer',
+                marginLeft: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: v.ink3,
+                padding: 0,
+              }}
+            >
+              <LxIcon name="more" size={15} color={v.ink3} />
+            </button>
+          }
+        />
       </div>
 
       {/* The photo carries its own rounded frame on wide viewports and runs edge
@@ -500,7 +486,7 @@ export function PostCard({
             whiteSpace: 'pre-wrap',
           }}
         >
-          <CaptionText text={post.caption} />
+          <CaptionText text={post.caption} mentions={post.mentions} />
         </p>
 
         {showTags && tags.length > 0 ? (
@@ -604,6 +590,7 @@ export function PostCard({
 
         <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />
         <PostShareDialog open={shareOpen} postId={post.id} onClose={() => setShareOpen(false)} />
+        {creation.dialogs}
 
         <LxBottomSheet
           open={editSheetOpen}

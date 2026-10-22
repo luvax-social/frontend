@@ -11,6 +11,8 @@ import { useEffect, useRef, useState } from 'react';
 import { v } from '@/config/tokens';
 import { getFrameRatio, getMediaList, isVideoMedia } from '@/utils/helpers';
 import { LxIcon } from './primitives';
+import { mediaAltLabel } from '@/utils/mediaAlt';
+import { PostTagOverlay } from './PostTagOverlay';
 
 // Derived, not from the design: the design defines no carousel and no control
 // that sits on top of a photograph. 26,24,22 is the design's own card shadow
@@ -53,10 +55,13 @@ function MediaFallback({ kind }: { kind: 'video' | 'image' }) {
 
 function MediaItem({
   media,
+  label,
   active,
   registerVideo,
 }: {
   media: RenderableMedia;
+  /** What a screen reader announces: the author's alt text, or a neutral generated label. */
+  label: string;
   active: boolean;
   registerVideo: RefCallback<HTMLVideoElement>;
 }) {
@@ -83,6 +88,7 @@ function MediaItem({
       <video
         ref={registerVideo}
         src={media.cdnUrl}
+        aria-label={label}
         style={fit}
         controls={active}
         muted
@@ -104,7 +110,7 @@ function MediaItem({
     // deferring the fetch cannot reintroduce the layout shift that box removed.
     <img
       src={media.cdnUrl}
-      alt={media.altText || ''}
+      alt={label}
       style={fit}
       loading="lazy"
       decoding="async"
@@ -297,11 +303,19 @@ export function PostMedia({
           >
             <MediaItem
               media={media}
+              label={mediaAltLabel(media, i, count, post.author)}
               active={i === safeIndex}
               registerVideo={(node) => {
                 videoRefs.current[i] = node;
               }}
             />
+            {media.tags && media.tags.length > 0 ? (
+              <PostTagOverlay
+                tags={media.tags}
+                ratio={media.width && media.height ? media.width / media.height : null}
+                active={i === safeIndex}
+              />
+            ) : null}
           </div>
         ))}
       </div>

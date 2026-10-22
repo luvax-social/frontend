@@ -34,6 +34,7 @@ const ENTITY_LABELS: Record<string, string> = {
   story: 'story',
   message: 'message',
   message_reaction: 'reaction',
+  place: 'place',
 };
 
 /**

@@ -10,6 +10,8 @@ import { NotificationPreview } from './NotificationPreview';
 import { NotificationActions } from './NotificationActions';
 import { hasNotificationAction } from './notificationActionKind';
 import { resolveNotificationTarget } from './notificationTarget';
+import { mediaAltLabel } from '@/utils/mediaAlt';
+import { scheduleFailureReason } from './scheduleFailureReason';
 
 /**
  * One notification row. A button-role element with a visible focus ring (D15, fixing the
@@ -29,6 +31,7 @@ export function NotificationRow({
   const timeStr = useRelativeTime(item.activityAt);
   const { isSystem, actors, othersCount, phrase } = notificationCopyParts(item);
   const { path, isNavigable } = resolveNotificationTarget(item);
+  const isScheduleFailure = item.type === 'scheduled_post_failed';
   // PreviewMediaResponse's field is "url" (the CDN URL, enough on its own to draw a
   // thumbnail) - not "thumbnailUrl", which this row never received a value under.
   const thumbnailUrl = item.preview?.media?.url;
@@ -67,7 +70,12 @@ export function NotificationRow({
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: v.fontBody, fontSize: 14, color: v.ink, lineHeight: 1.4 }}>
-          {isSystem ? (
+          {isScheduleFailure ? (
+            <span>
+              Your scheduled post went back to drafts because{' '}
+              {scheduleFailureReason(item.moderation?.reason)}
+            </span>
+          ) : isSystem ? (
             <span style={{ fontWeight: 600 }}>Luvax</span>
           ) : (
             actors.map((actor, index) => (
@@ -91,8 +99,12 @@ export function NotificationRow({
               </span>
             ))
           )}
-          {othersCount > 0 ? ` and ${othersCount} others` : ''}{' '}
-          <span style={{ color: v.ink2 }}>{phrase}.</span>{' '}
+          {isScheduleFailure ? null : (
+            <>
+              {othersCount > 0 ? ` and ${othersCount} others` : ''}{' '}
+              <span style={{ color: v.ink2 }}>{phrase}.</span>
+            </>
+          )}{' '}
           <span
             style={{
               fontFamily: v.fontMono,
@@ -107,7 +119,7 @@ export function NotificationRow({
 
         <NotificationPreview target={item.target} preview={item.preview} />
 
-        {item.moderation?.reason ? (
+        {item.moderation?.reason && !isScheduleFailure ? (
           <div style={{ fontFamily: v.fontBody, fontSize: 12, color: v.ink2, marginTop: 4 }}>
             reason: {item.moderation.reason}
           </div>
@@ -125,6 +137,8 @@ export function NotificationRow({
 
       {thumbnailUrl ? (
         <div
+          role="img"
+          aria-label={mediaAltLabel(item.preview?.media, 0, 1)}
           style={{
             width: 44,
             height: 44,

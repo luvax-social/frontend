@@ -1,5 +1,5 @@
 import type { NotificationItemResponse } from '@/types/domain';
-import { routeTo } from '@/config/constants';
+import { ROUTES, routeTo } from '@/config/constants';
 import { appealPath } from '@/utils/appealEntry';
 
 /**
@@ -11,11 +11,18 @@ import { appealPath } from '@/utils/appealEntry';
  * @returns {{path: ?string, isNavigable: boolean}}
  */
 export function resolveNotificationTarget(
-  item: Pick<NotificationItemResponse, 'target' | 'moderation'>
+  item: Pick<NotificationItemResponse, 'target' | 'moderation'> &
+    Partial<Pick<NotificationItemResponse, 'type'>>
 ) {
   const target = item.target;
   if (!target || target.available === false) {
     return { path: null, isNavigable: false };
+  }
+
+  // A scheduled post that failed is a draft again, so the row opens it in the composer rather than
+  // on a post page the draft does not have.
+  if (item.type === 'scheduled_post_failed' && target.postId) {
+    return { path: `${ROUTES.COMPOSE}?draft=${target.postId}`, isNavigable: true };
   }
 
   if (target.kind === 'comment' && target.postId && target.commentId) {

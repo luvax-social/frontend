@@ -12,6 +12,10 @@ const TYPE_PHRASE: Record<string, string> = {
   mention_post: 'mentioned you in a post',
   mention_comment: 'mentioned you in a comment',
   story_view: 'viewed your story',
+  post_tag: 'tagged you in a post',
+  post_tag_request: 'wants to tag you in a post',
+  post_collaboration_invite: 'invited you to be a co-author of a post',
+  post_collaboration_accepted: 'accepted your invitation to co-author a post',
 };
 
 /**
@@ -30,6 +34,7 @@ const SYSTEM_PHRASE: Record<string, string> = {
   post_restored: 'restored your post',
   report_dismissed: 'reviewed your report and took no action',
   support_ticket_update: 'responded to your support ticket',
+  scheduled_post_failed: 'sent your scheduled post back to drafts',
 };
 
 /**

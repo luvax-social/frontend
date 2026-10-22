@@ -61,6 +61,8 @@ export function LxAppBar({ screen, navigate }: { screen: string; navigate: Navig
   const subpages: Record<string, string> = {
     post: 'post',
     settings: 'settings',
+    archive: 'archive',
+    place: 'location',
   };
   const isSubpage = Boolean(subpages[screen]);
   const subpageLabel = subpages[screen];

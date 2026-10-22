@@ -18,6 +18,7 @@ import { v } from '@/config/tokens';
 import { extractPageContent, formatCount } from '@/utils/helpers';
 import { LxBtn, LxDropdownMenu, LxIcon } from './primitives';
 import { MediaThumb } from './MediaThumb';
+import { useTaggedPosts, useWaitingInvolvement } from '../hooks/usePostPeople';
 import { ReportModal } from './ReportModal';
 import { REPORT_TYPES } from '@/services/report.service';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -227,8 +228,13 @@ export function ProfileScreen() {
   };
 
   const showLikedTab = isSelf;
-  const tabs = showLikedTab ? ['photos', 'posts', 'liked'] : ['photos', 'posts'];
+  // The tagged tab is shown to everyone, because it lists the posts a person is tagged in as the
+  // viewer may see them. The liked tab is the viewer's own likes only.
+  const tabs = showLikedTab
+    ? ['photos', 'posts', 'tagged', 'liked']
+    : ['photos', 'posts', 'tagged'];
   const isLikedTab = tab === 'liked' && showLikedTab;
+  const isTaggedTab = tab === 'tagged';
 
   // Switching tabs changes the type filter, and the filter is part of the
   // query key, so React Query starts the new tab from a null cursor. A cursor
@@ -236,10 +242,12 @@ export function ProfileScreen() {
   // makes replaying one across a tab switch impossible rather than merely
   // unlikely.
   const postsQuery = useUserPosts(user?.id, tab === 'photos' ? PHOTO_TYPES : [], {
-    enabled: isReadable && !isLikedTab,
+    enabled: isReadable && !isLikedTab && !isTaggedTab,
   });
   const likedQuery = useLikedPosts(isLikedTab);
-  const active = isLikedTab ? likedQuery : postsQuery;
+  const taggedQuery = useTaggedPosts(user?.id, { enabled: isReadable && isTaggedTab });
+  const active = isLikedTab ? likedQuery : isTaggedTab ? taggedQuery : postsQuery;
+  const waiting = useWaitingInvolvement({ enabled: isSelf });
 
   const { ref, inView } = useInView();
   useEffect(() => {
@@ -505,16 +513,22 @@ export function ProfileScreen() {
   } else if (active.isError) {
     body = notice('alert', "we couldn't load these posts.", 'check your connection and try again.');
   } else if (active.isLoading || isDraining) {
-    body = notice(isLikedTab ? 'heart' : 'image', 'loading posts...');
+    body = notice(isLikedTab ? 'heart' : isTaggedTab ? 'tag' : 'image', 'loading posts...');
   } else if (posts.length === 0) {
     body = notice(
-      isLikedTab ? 'heart' : 'image',
+      isLikedTab ? 'heart' : isTaggedTab ? 'tag' : 'image',
       isLikedTab
         ? 'nothing liked yet.'
-        : tab === 'photos'
-          ? 'no photo posts yet.'
-          : 'no posts yet.',
-      isLikedTab ? 'posts you like are kept here.' : undefined
+        : isTaggedTab
+          ? 'no tagged posts yet.'
+          : tab === 'photos'
+            ? 'no photo posts yet.'
+            : 'no posts yet.',
+      isLikedTab
+        ? 'posts you like are kept here.'
+        : isTaggedTab
+          ? 'posts that tag this account appear here once the tag is approved.'
+          : undefined
     );
   } else {
     body = (
@@ -713,6 +727,9 @@ export function ProfileScreen() {
                   panel
                 </LxBtn>
               )}
+              <LxBtn variant="secondary" size="sm" onClick={() => navigate(ROUTES.ARCHIVE)}>
+                archive
+              </LxBtn>
               <LxBtn variant="secondary" size="sm" onClick={() => navigate(ROUTES.SETTINGS)}>
                 settings
               </LxBtn>
@@ -814,6 +831,51 @@ export function ProfileScreen() {
             );
           })}
         </div>
+
+        {isSelf && waiting.tagRequests + waiting.invitations > 0 ? (
+          <div
+            data-testid="waiting-involvement"
+            style={{
+              margin: '12px 16px 0',
+              padding: '10px 14px',
+              background: v.accentDim,
+              borderRadius: 8,
+              fontFamily: v.fontBody,
+              fontSize: 13,
+              color: v.ink2,
+            }}
+          >
+            {[
+              waiting.tagRequests > 0
+                ? `${waiting.tagRequests} tag ${waiting.tagRequests === 1 ? 'request' : 'requests'}`
+                : null,
+              waiting.invitations > 0
+                ? `${waiting.invitations} collaboration ${waiting.invitations === 1 ? 'invitation' : 'invitations'}`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' and ')}{' '}
+            {waiting.tagRequests + waiting.invitations === 1 ? 'is' : 'are'} waiting.{' '}
+            <button
+              type="button"
+              onClick={() =>
+                navigate(waiting.tagRequests > 0 ? ROUTES.SETTINGS_TAGS : ROUTES.NOTIFICATIONS)
+              }
+              style={{
+                appearance: 'none',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                font: 'inherit',
+                fontWeight: 600,
+                color: v.ink,
+                cursor: 'pointer',
+              }}
+            >
+              review
+            </button>
+          </div>
+        ) : null}
 
         {/* Tabs.
             The liked tab is the viewer's own likes and the endpoint takes no

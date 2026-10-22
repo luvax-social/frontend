@@ -25,7 +25,11 @@ const envelope = <T,>(data: T) => ({
 });
 
 const page = <T,>(content: T[]) =>
-  envelope({ content, pageInfo: { hasNextPage: false, hasPreviousPage: false } });
+  envelope({
+    content,
+    pageInfo: { hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null },
+    degraded: false,
+  });
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>

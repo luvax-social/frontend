@@ -95,6 +95,8 @@ export function FeedHashtagCard({
               <span
                 data-testid={`preview-${row.hashtagId}`}
                 data-fallback={row.previewUrl ? 'false' : 'true'}
+                role={row.previewUrl ? 'img' : undefined}
+                aria-label={row.previewUrl ? `A post tagged #${row.name}` : undefined}
                 style={{
                   width: 58,
                   height: 58,

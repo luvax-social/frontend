@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { normalizePhrase, tokens } from '@/utils/textMatch';
+import { normalizeName, normalizePhrase, tokens } from '@/utils/textMatch';
 import vectors from './fixtures/text-match-vectors.json';
+import placeVectors from './fixtures/place-name-vectors.json';
 
 describe('tokens', () => {
   it.each(vectors)('tokenises $raw as the shared contract vector', ({ raw, tokens: expected }) => {
@@ -32,4 +33,14 @@ describe('normalizePhrase', () => {
       expect(normalizePhrase(raw)).toBe('');
     }
   );
+});
+
+describe('normalizeName', () => {
+  it.each(placeVectors)('keys $raw as the shared place name vector', ({ raw, name }) => {
+    expect(normalizeName(raw)).toBe(name);
+  });
+
+  it.each([null, undefined])('returns an empty string for %j', (raw) => {
+    expect(normalizeName(raw)).toBe('');
+  });
 });

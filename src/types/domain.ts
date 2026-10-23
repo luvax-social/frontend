@@ -15,13 +15,20 @@ export interface PostResponse {
   isSaved: boolean;
   hasReported: boolean;
   viewCount: number;
-  locationName: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  /** Null when the post has no place, and when an administrator removed the place. */
+  place: PlaceSummaryResponse | null;
   media: PostMediaResponse[];
   hashtags: HashtagSummaryResponse[];
+  /** Link an @handle only when it is listed here; every other @name stays plain text. */
+  mentions: PostMentionResponse[];
+  collaborators: PostCollaboratorResponse[];
+  viewerCollaboration: CollaborationStatus | null;
   createdAt: string;
   updatedAt: string;
+  /** Null while the post has never been published; every ordering of posts uses this. */
+  publishedAt: string | null;
+  /** Present for the owner of a scheduled post only. */
+  scheduledAt?: string | null;
 }
 
 // common/response/UserSummaryResponse.java
@@ -36,7 +43,94 @@ export interface UserSummaryResponse {
 
 export type PostType = 'image' | 'video' | 'carousel' | 'text';
 
-export type PostStatus = 'draft' | 'published' | 'archived' | 'removed';
+export type PostStatus = 'draft' | 'scheduled' | 'published' | 'archived' | 'removed';
+
+// modules/post/enums/CollaborationStatus.java
+export type CollaborationStatus = 'invited' | 'accepted' | 'declined' | 'left' | 'removed';
+
+// modules/post/enums/TagStatus.java
+export type TagStatus = 'pending' | 'approved';
+
+// modules/post/dto/response/PostMentionResponse.java
+export interface PostMentionResponse {
+  /** The text as typed, without the @. */
+  handle: string;
+  userId: string;
+  /** The account's current username, which the link points to. */
+  username: string;
+}
+
+// modules/post/dto/response/PostCollaboratorResponse.java
+export interface PostCollaboratorResponse {
+  user: UserSummaryResponse;
+  status: CollaborationStatus;
+}
+
+// modules/post/dto/response/PostMediaTagResponse.java
+export interface PostMediaTagResponse {
+  id: string;
+  user: UserSummaryResponse;
+  /** Fraction of the item width, 0 to 1. */
+  x: number;
+  /** Fraction of the item height, 0 to 1. */
+  y: number;
+  status: TagStatus;
+}
+
+// modules/post/place/dto/response/PlaceSummaryResponse.java
+export interface PlaceSummaryResponse {
+  id: string;
+  name: string;
+}
+
+// modules/post/place/dto/response/PlaceResponse.java
+export interface PlaceResponse {
+  id: string;
+  name: string;
+  postCount: number;
+}
+
+export type PlaceStatus = 'active' | 'banned' | 'deleted';
+
+// modules/post/place/dto/response/PlaceAdminResponse.java
+export interface PlaceAdminResponse {
+  id: string;
+  name: string;
+  normalizedName: string;
+  status: PlaceStatus;
+  statusNote: string | null;
+  statusAt: string | null;
+  statusBy: string | null;
+  createdBy: string | null;
+  postCount: number;
+  createdAt: string;
+}
+
+// modules/post/dto/response/OwnerPostCountsResponse.java
+export interface OwnerPostCountsResponse {
+  draft: number;
+  scheduled: number;
+  archived: number;
+  /** The most drafts and scheduled posts one account can hold together. */
+  limit: number;
+}
+
+// modules/post/dto/response/TagRequestResponse.java
+export interface TagRequestResponse {
+  tagId: string;
+  postId: string;
+  requestedBy: UserSummaryResponse | null;
+  media: PreviewMediaResponse | null;
+  createdAt: string;
+}
+
+// modules/post/dto/response/CollaborationInviteResponse.java
+export interface CollaborationInviteResponse {
+  postId: string;
+  invitedBy: UserSummaryResponse | null;
+  media: PreviewMediaResponse | null;
+  invitedAt: string;
+}
 
 // modules/post/dto/response/PostMediaResponse.java
 export interface PostMediaResponse {
@@ -49,6 +143,8 @@ export interface PostMediaResponse {
   width: number | null;
   height: number | null;
   blurhash: string | null;
+  /** People tagged on this item as the viewer may see them. */
+  tags: PostMediaTagResponse[];
 }
 
 export type MediaType = 'image' | 'video';
@@ -73,13 +169,15 @@ export interface FeedPostResponse {
   isSaved: boolean;
   hasReported: boolean;
   viewCount: number;
-  locationName: string | null;
-  latitude: number | null;
-  longitude: number | null;
+  place: PlaceSummaryResponse | null;
   media: PostMediaResponse[];
   hashtags: HashtagSummaryResponse[];
+  mentions: PostMentionResponse[];
+  collaborators: PostCollaboratorResponse[];
+  viewerCollaboration: CollaborationStatus | null;
   createdAt: string;
   updatedAt: string;
+  publishedAt: string | null;
   rankingScore: number | null;
 }
 
@@ -106,11 +204,43 @@ export interface LikeActionResponse {
 export interface CreatePostRequest {
   caption?: string | null;
   postType: PostType | Uppercase<PostType>;
+  /** Legacy form with no alt text; send either this or `media`, never both. */
   mediaIds?: string[] | null;
+  media?: PostMediaInput[] | null;
   status?: PostStatus | Uppercase<PostStatus> | null;
-  locationName?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  /** Required for `scheduled`, refused for any other status. */
+  scheduledAt?: string | null;
+  placeId?: string | null;
+  placeName?: string | null;
+  tags?: PostTagInput[] | null;
+  collaboratorIds?: string[] | null;
+}
+
+// modules/post/dto/request/PostMediaInput.java
+export interface PostMediaInput {
+  mediaId: string;
+  altText?: string | null;
+}
+
+// modules/post/dto/request/PostTagInput.java
+export interface PostTagInput {
+  /** Position of the item in the `media` list of the same request. */
+  mediaPosition: number;
+  userId: string;
+  x: number;
+  y: number;
+}
+
+// modules/post/dto/request/UpdatePostContentRequest.java
+export interface UpdatePostContentRequest {
+  caption?: string | null;
+  postType: PostType | Uppercase<PostType>;
+  mediaIds?: string[] | null;
+  media?: PostMediaInput[] | null;
+  placeId?: string | null;
+  placeName?: string | null;
+  tags?: PostTagInput[] | null;
+  collaboratorIds?: string[] | null;
 }
 
 // modules/post/dto/request/UpdatePostCaptionRequest.java
@@ -135,6 +265,8 @@ export interface CommentResponse {
   updatedAt: string;
   editedAt: string | null;
   pinned: boolean;
+  /** The mentions stored with the comment; absent on a response from before they existed. */
+  mentions?: PostMentionResponse[];
 }
 
 // modules/comment/dto/response/HiddenCommentResponse.java
@@ -233,10 +365,15 @@ export interface UserSettingsResponse {
   messagePermission: MessagePermission;
   suggestible: boolean;
   hiddenWordsSystemEnabled: boolean;
+  tagPermission: TagPermission;
+  manualTagApproval: boolean;
   updatedAt: string;
 }
 
 export type MessagePermission = 'everyone' | 'following' | 'nobody';
+
+// modules/users/enums/TagPermission.java
+export type TagPermission = 'everyone' | 'following' | 'nobody';
 
 // modules/users/dto/request/UpdateProfileRequest.java
 export interface UpdateProfileRequest {
@@ -261,6 +398,8 @@ export interface UpdateSettingsRequest {
   messagePermission?: MessagePermission | null;
   suggestible?: boolean | null;
   hiddenWordsSystemEnabled?: boolean | null;
+  tagPermission?: TagPermission | null;
+  manualTagApproval?: boolean | null;
 }
 
 // modules/social/dto/response/HiddenWordEntryResponse.java
@@ -375,7 +514,12 @@ export type NotificationType =
   | 'reaction_removed'
   | 'report_post_removed'
   | 'post_restored'
-  | 'report_dismissed';
+  | 'report_dismissed'
+  | 'post_tag'
+  | 'post_tag_request'
+  | 'post_collaboration_invite'
+  | 'post_collaboration_accepted'
+  | 'scheduled_post_failed';
 
 export type NotificationCategory =
   | 'like'
@@ -412,6 +556,8 @@ export interface PreviewMediaResponse {
   mediaType: string;
   width: number | null;
   height: number | null;
+  /** The alt text the author wrote for this item; null for stories and for items with none. */
+  altText?: string | null;
 }
 
 // modules/notification/dto/response/NotificationModerationResponse.java
@@ -641,7 +787,14 @@ export interface CreateReportRequest {
   turnstileToken: string;
 }
 
-export type ReportType = 'post' | 'comment' | 'user' | 'story' | 'message' | 'message_reaction';
+export type ReportType =
+  | 'post'
+  | 'comment'
+  | 'user'
+  | 'story'
+  | 'message'
+  | 'message_reaction'
+  | 'place';
 
 export type ReportReason =
   | 'spam'

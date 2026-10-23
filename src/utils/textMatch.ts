@@ -48,3 +48,22 @@ export function tokens(raw: string | null | undefined): string[] {
 export function normalizePhrase(raw: string | null | undefined): string {
   return tokens(raw).join(' ');
 }
+
+/**
+ * The key a place name is deduplicated on, written to follow the backend `normalizeName` and the
+ * SQL function `fn_normalise_place_name`.
+ *
+ * Unlike {@link normalizePhrase} it never maps digits to letters, which would merge "B4 Cafe" with
+ * "Ba Cafe". `tests/unit/fixtures/place-name-vectors.json` holds the cases all three
+ * implementations are checked against. Returns an empty string when the name holds no letter or
+ * digit.
+ */
+export function normalizeName(raw: string | null | undefined): string {
+  if (!raw || !raw.trim()) return '';
+  const folded = raw
+    .normalize('NFD')
+    .replace(/\p{M}+/gu, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase();
+  return (folded.match(/[\p{L}\p{N}]+/gu) ?? []).join(' ');
+}

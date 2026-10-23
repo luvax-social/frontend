@@ -37,6 +37,7 @@ const STATUS_TONE: Record<string, keyof typeof TONES> = {
   pending: 'caution',
   reviewing: 'caution',
   draft: 'caution',
+  scheduled: 'attention',
   archived: 'caution',
   suspended: 'caution',
   // Taken out of service.

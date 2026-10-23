@@ -52,11 +52,11 @@ export const isVideoFile = (file: Pick<File, 'type'> | null | undefined) =>
  * confirmed it accepts including when images and video are combined.
  */
 export const derivePostType = (
-  items: { file: Pick<File, 'type'> }[] | null | undefined
+  items: { isVideo: boolean }[] | null | undefined
 ): 'TEXT' | 'CAROUSEL' | 'VIDEO' | 'IMAGE' => {
   if (!items || items.length === 0) return 'TEXT';
   if (items.length > 1) return 'CAROUSEL';
-  return isVideoFile(items[0].file) ? 'VIDEO' : 'IMAGE';
+  return items[0].isVideo ? 'VIDEO' : 'IMAGE';
 };
 
 /**

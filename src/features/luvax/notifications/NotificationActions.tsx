@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { NotificationItemResponse } from '@/types/domain';
 import type { NavigateFunction } from 'react-router-dom';
 import { v } from '@/config/tokens';
@@ -5,6 +6,14 @@ import { LxBtn } from '../components/primitives';
 import { useFollow } from '../hooks/useSocial';
 import { appealPath } from '@/utils/appealEntry';
 import { toast } from '../components/Toast';
+import { ROUTES } from '@/config/constants';
+import {
+  useApproveTag,
+  useCollaborationInvites,
+  useRemoveTag,
+  useRespondToCollaboration,
+  useTagRequests,
+} from '../hooks/usePostPeople';
 
 /**
  * Inline row actions: "follow" for a follow row the viewer does not yet follow, or
@@ -21,6 +30,154 @@ export function NotificationActions({
   navigate: NavigateFunction;
 }) {
   const follow = useFollow();
+  const postId = item.target?.postId ?? null;
+  // The answer is read from the viewer's own waiting lists, so a request already answered from
+  // another screen shows no buttons here instead of offering a second answer.
+  const tagRequests = useTagRequests({ enabled: item.type === 'post_tag_request' });
+  const invites = useCollaborationInvites({ enabled: item.type === 'post_collaboration_invite' });
+  const approveTag = useApproveTag();
+  const removeTag = useRemoveTag();
+  const respond = useRespondToCollaboration();
+
+  // A row older than the first twenty waiting items would otherwise show no buttons, so the lists
+  // keep loading pages until the row's post is among them or there are no more.
+  const tagFound = (tagRequests.data?.pages ?? []).some((page) =>
+    page.data.content.some((row) => row.postId === postId)
+  );
+  const inviteFound = (invites.data?.pages ?? []).some((page) =>
+    page.data.content.some((row) => row.postId === postId)
+  );
+  const { hasNextPage: moreTags, isFetchingNextPage: fetchingTags } = tagRequests;
+  const { hasNextPage: moreInvites, isFetchingNextPage: fetchingInvites } = invites;
+  const { fetchNextPage: fetchMoreTags } = tagRequests;
+  const { fetchNextPage: fetchMoreInvites } = invites;
+  useEffect(() => {
+    if (item.type === 'post_tag_request' && !tagFound && moreTags && !fetchingTags) {
+      fetchMoreTags();
+    }
+  }, [item.type, tagFound, moreTags, fetchingTags, fetchMoreTags]);
+  useEffect(() => {
+    if (
+      item.type === 'post_collaboration_invite' &&
+      !inviteFound &&
+      moreInvites &&
+      !fetchingInvites
+    ) {
+      fetchMoreInvites();
+    }
+  }, [item.type, inviteFound, moreInvites, fetchingInvites, fetchMoreInvites]);
+
+  if (item.type === 'scheduled_post_failed' && postId) {
+    return (
+      <button
+        type="button"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          minHeight: 44,
+          padding: 0,
+          border: 'none',
+          background: 'none',
+          fontFamily: v.fontBody,
+          fontSize: 12,
+          color: v.accentText,
+          textDecoration: 'underline',
+          textUnderlineOffset: 3,
+          cursor: 'pointer',
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          navigate(`${ROUTES.COMPOSE}?draft=${postId}`);
+        }}
+      >
+        open draft
+      </button>
+    );
+  }
+
+  if (item.type === 'post_tag_request' && postId) {
+    const waiting = (tagRequests.data?.pages ?? [])
+      .flatMap((page) => page.data.content)
+      .filter((row) => row.postId === postId);
+    if (waiting.length === 0) return null;
+    const busy = approveTag.isPending || removeTag.isPending;
+    return (
+      <div style={{ display: 'flex', gap: 8 }}>
+        <LxBtn
+          type="button"
+          size="sm"
+          disabled={busy}
+          onClick={(event) => {
+            event.stopPropagation();
+            waiting.forEach((row) =>
+              approveTag.mutate(
+                { postId, tagId: row.tagId },
+                { onError: () => toast("couldn't approve that tag. try again.") }
+              )
+            );
+          }}
+        >
+          approve
+        </LxBtn>
+        <LxBtn
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={busy}
+          onClick={(event) => {
+            event.stopPropagation();
+            waiting.forEach((row) =>
+              removeTag.mutate(
+                { postId, tagId: row.tagId },
+                { onError: () => toast("couldn't remove that tag. try again.") }
+              )
+            );
+          }}
+        >
+          remove
+        </LxBtn>
+      </div>
+    );
+  }
+
+  if (item.type === 'post_collaboration_invite' && postId) {
+    const stillWaiting = (invites.data?.pages ?? [])
+      .flatMap((page) => page.data.content)
+      .some((row) => row.postId === postId);
+    if (!stillWaiting) return null;
+    const answer = (action: 'accept' | 'decline') =>
+      respond.mutate(
+        { postId, action },
+        { onError: () => toast("couldn't send your answer. try again.") }
+      );
+    return (
+      <div style={{ display: 'flex', gap: 8 }}>
+        <LxBtn
+          type="button"
+          size="sm"
+          disabled={respond.isPending}
+          onClick={(event) => {
+            event.stopPropagation();
+            answer('accept');
+          }}
+        >
+          accept
+        </LxBtn>
+        <LxBtn
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={respond.isPending}
+          onClick={(event) => {
+            event.stopPropagation();
+            answer('decline');
+          }}
+        >
+          decline
+        </LxBtn>
+      </div>
+    );
+  }
 
   if (item.type === 'follow' && item.relationship?.isFollowing === false) {
     return (

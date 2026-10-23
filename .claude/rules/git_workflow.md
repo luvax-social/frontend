@@ -163,6 +163,7 @@ Split large PRs proactively: keep feature PRs under `size/M` (≤ 1000 lines) as
 - [ ] Each commit is one logical, compiling, test-passing unit — no mega-commits, no broken intermediate commits
 - [ ] `npm run lint` and `npm run test` both pass
 - [ ] PR template author checklist completed
+- [ ] CodeRabbit review finished and every actionable finding fixed or answered (workspace `GLOBAL_RULES.md` section 11)
 - [ ] PR title matches commit format (pr-lint will block merge otherwise)
 - [ ] At least one CODEOWNERS-assigned reviewer has approved
 

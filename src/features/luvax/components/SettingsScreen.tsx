@@ -24,6 +24,7 @@ import {
 } from './settingsCategories';
 import { HiddenWordsCategory } from './settings/HiddenWordsCategory';
 import { InteractionLimitsCategory } from './settings/InteractionLimitsCategory';
+import { TagsCategory } from './settings/TagsCategory';
 import { MutedAccountsCategory } from './settings/MutedAccountsCategory';
 import { SETTINGS_CSS } from './settingsStyles';
 
@@ -38,6 +39,7 @@ const CATEGORY_VIEWS: Record<string, ComponentType> = {
   muted: MutedAccountsCategory,
   'hidden-words': HiddenWordsCategory,
   limits: InteractionLimitsCategory,
+  tags: TagsCategory,
   account: AccountCategory,
   support: SupportCenter,
 };

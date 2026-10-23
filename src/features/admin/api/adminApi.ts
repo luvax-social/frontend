@@ -25,7 +25,9 @@ import type {
   AdminCreateHashtagRequest,
   AdminUpdateHashtagRequest,
   AdminDeleteHashtagRequest,
+  AdminUpdatePlaceRequest,
 } from '@/types/admin';
+import type { PlaceAdminResponse } from '@/types/domain';
 import { axiosClient } from '@/api/axiosClient';
 
 import { buildBody, pickParams } from '@/utils/requestContract';
@@ -71,6 +73,9 @@ const USER_SEARCH_QUERY_KEYS = ['q', 'cursor', 'limit'];
 // See accounts-contract-verification.md 3.4.
 const HASHTAGS_QUERY_KEYS = ['status', 'cursor', 'limit'];
 const HASHTAG_SEARCH_QUERY_KEYS = ['q', 'status', 'cursor', 'limit'];
+// The places registry declares the same parameters as the hashtag registry.
+const PLACES_QUERY_KEYS = ['status', 'cursor', 'limit'];
+const PLACE_SEARCH_QUERY_KEYS = ['q', 'status', 'cursor', 'limit'];
 // The timeseries declares exactly these four. There is no cursor and no limit:
 // the endpoint is not paginated, it returns the whole window in one response.
 // See observability-contract-verification.md 1.4.
@@ -720,6 +725,55 @@ export const adminApi = {
       {
         data: buildBody({ reason }),
       }
+    );
+    return unwrap(res);
+  },
+
+  /**
+   * One page of the places registry. Administrator only. Declares a `status` filter
+   * (`active`/`banned`/`deleted`); rows are `PlaceAdminResponse` and span every status.
+   */
+  async getPlaces({
+    status,
+    cursor,
+    limit,
+  }: { status?: string | null; cursor?: string | null; limit?: number } = {}) {
+    const params = pickParams({ status, cursor, limit }, PLACES_QUERY_KEYS);
+    const res = await axiosClient.get<ApiResponse<CursorPage<PlaceAdminResponse>>>(
+      '/admin/places',
+      { params }
+    );
+    return unwrap(res);
+  },
+
+  /**
+   * One page of a place search. Administrator only. `q` is required and an optional `status`
+   * narrows it.
+   */
+  async searchPlaces({
+    q,
+    status,
+    cursor,
+    limit,
+  }: { q?: string | null; status?: string | null; cursor?: string | null; limit?: number } = {}) {
+    const params = pickParams({ q, status, cursor, limit }, PLACE_SEARCH_QUERY_KEYS);
+    const res = await axiosClient.get<ApiResponse<CursorPage<PlaceAdminResponse>>>(
+      '/admin/places/search',
+      { params }
+    );
+    return unwrap(res);
+  },
+
+  /**
+   * Move a place to `active`, `banned` or `deleted`. Body is `status`, a `note` that bans and
+   * deletions require, and an optional `reportId` the action resolves. Returns the audit
+   * `AdminActionResponse`. Unbanning brings a deleted place back as well, so the registry needs no
+   * separate restore.
+   */
+  async updatePlace(placeId: string, { status, note, reportId }: AdminUpdatePlaceRequest) {
+    const res = await axiosClient.patch<ApiResponse<AdminActionResponse>>(
+      `/admin/places/${placeId}`,
+      buildBody({ status, note, reportId })
     );
     return unwrap(res);
   },

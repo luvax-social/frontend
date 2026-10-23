@@ -331,6 +331,49 @@ const ICONS = {
       <circle cx="18.4" cy="13.4" r="1.05" />
     </>
   ),
+  tag: (
+    <>
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+      <circle cx="7.5" cy="7.5" r="1.2" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3" y="4.5" width="18" height="16.5" rx="2.5" />
+      <path d="M3 9.5h18" />
+      <path d="M8 2.5v4" />
+      <path d="M16 2.5v4" />
+    </>
+  ),
+  archive: (
+    <>
+      <rect x="2.5" y="3.5" width="19" height="5" rx="1.5" />
+      <path d="M4.5 8.5V19a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V8.5" />
+      <path d="M10 12.5h4" />
+    </>
+  ),
+  users: (
+    <>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9.5" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
+  mapPin: (
+    <>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </>
+  ),
+  alt: (
+    <>
+      <rect x="2.5" y="5" width="19" height="14" rx="3" />
+      <path d="M7 15l2.5-6 2.5 6" />
+      <path d="M7.9 13h3.2" />
+      <path d="M15 9v6h2.5" />
+    </>
+  ),
 };
 
 // Filled variants are distinct artwork, not the outline paths with a fill added. Each shape sets

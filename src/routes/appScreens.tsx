@@ -100,6 +100,12 @@ const StoryViewScreen = lazy(() =>
 const MessagesScreen = lazy(() =>
   import('@/features/messages/MessagesScreen').then((m) => ({ default: m.MessagesScreen }))
 );
+const ArchiveScreen = lazy(() =>
+  import('@/features/luvax/components/ArchiveScreen').then((m) => ({ default: m.ArchiveScreen }))
+);
+const PlaceScreen = lazy(() =>
+  import('@/features/luvax/components/PlaceScreen').then((m) => ({ default: m.PlaceScreen }))
+);
 
 /**
  * Every screen reachable inside the authenticated shell.
@@ -167,6 +173,19 @@ export const APP_SCREENS: AppScreen[] = [
     rightRail: true,
   },
   { screen: 'compose', path: ROUTES.COMPOSE, element: <ComposerScreen />, chrome: 'shell' },
+  // The archive is the viewer's own and has no right rail. The tab is in the path so a tab can be
+  // linked; the bare address opens the first tab.
+  { screen: 'archive', path: ROUTES.ARCHIVE, element: <ArchiveScreen />, chrome: 'shell' },
+  { screen: 'archive', path: ROUTES.ARCHIVE_TAB, element: <ArchiveScreen />, chrome: 'shell' },
+  // Carries the right rail like the hashtag page it is modelled on: a location is a discovery
+  // surface, and trending hashtags are the natural next place to look.
+  {
+    screen: 'place',
+    path: ROUTES.PLACE,
+    element: <PlaceScreen />,
+    chrome: 'shell',
+    rightRail: true,
+  },
   {
     screen: 'notifications',
     path: ROUTES.NOTIFICATIONS,

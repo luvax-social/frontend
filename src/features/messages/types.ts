@@ -20,6 +20,8 @@ export interface MessageMedia {
   contentType?: string;
   url?: string;
   label?: string;
+  /** Alt text of a shared post media item; absent on message attachments. */
+  altText?: string | null;
 }
 export type PreviewMedia = Partial<MessageMedia> & { label?: string; id?: string; title?: string };
 export interface PendingAttachment {

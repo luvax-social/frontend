@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { v } from '@/config/tokens';
 import { getMediaList, isVideoMedia } from '@/utils/helpers';
 import { LxIcon } from './primitives';
+import { mediaAltLabel } from '@/utils/mediaAlt';
 
 // Same scrim as the carousel, so a badge on a tile and a control on a frame read
 // as the same family. 26,24,22 is the design's own card shadow colour.
@@ -44,6 +45,7 @@ export function MediaThumb({ post, radius = 0 }: { post: PostMediaSource; radius
   const items = getMediaList(post);
   const first = items[0] || null;
   const isVideo = first ? isVideoMedia(first) : false;
+  const label = mediaAltLabel(first, 0, items.length, post.author);
 
   const frame: CSSProperties = {
     position: 'relative',
@@ -66,7 +68,11 @@ export function MediaThumb({ post, radius = 0 }: { post: PostMediaSource; radius
 
   if (!first || !first.cdnUrl || failed) {
     return (
-      <div style={{ ...frame, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        role="img"
+        aria-label={label}
+        style={{ ...frame, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
         <LxIcon name={isVideo ? 'video' : 'image'} size={18} color={v.ink3} />
       </div>
     );
@@ -80,6 +86,7 @@ export function MediaThumb({ post, radius = 0 }: { post: PostMediaSource; radius
         // something instead of staying blank, which is what a CSS background did.
         <video
           src={`${first.cdnUrl}#t=0.1`}
+          aria-label={label}
           style={fit}
           muted
           playsInline
@@ -89,7 +96,7 @@ export function MediaThumb({ post, radius = 0 }: { post: PostMediaSource; radius
       ) : (
         <img
           src={first.cdnUrl}
-          alt={first.altText || ''}
+          alt={label}
           loading="lazy"
           decoding="async"
           style={fit}

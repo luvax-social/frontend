@@ -24,6 +24,8 @@ const POST_LIST_PREFIXES = [
   ['userPosts'],
   ['savedPosts'],
   ['likedPosts'],
+  ['place'],
+  ['taggedPosts'],
 ];
 
 const applyToPost =

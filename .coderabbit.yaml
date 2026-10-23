@@ -1,0 +1,215 @@
+# CodeRabbit review configuration for the frontend.
+# Reference: https://docs.coderabbit.ai/reference/configuration
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+tone_instructions: >-
+  Professional and concise. Cite the file and line, state the concrete failure scenario, and skip
+  style points that Prettier, ESLint or the type checker already enforce.
+early_access: false
+enable_free_tier: true
+
+reviews:
+  # chill keeps the inline comments to defects a maintainer would act on, so the review-and-fix
+  # loop converges instead of chasing nitpicks.
+  profile: chill
+  # The review requests changes while findings are open and approves once they are resolved,
+  # which is the signal an author or agent uses to know the pull request is ready to finalise.
+  request_changes_workflow: true
+  # The author's own approval never counts, so the review stays a second pair of eyes.
+  allow_author_approval: false
+  high_level_summary: true
+  review_status: true
+  review_details: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  poem: false
+  in_progress_fortune: false
+  # Labels and reviewers are already managed by the pr-size workflow and CODEOWNERS.
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  # Adds a copy-paste instruction block to each finding so a coding agent can apply the fix.
+  enable_prompt_for_ai_agents: true
+  abort_on_close: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    # Fix commits pushed during review must be re-reviewed, so the pause is turned off.
+    auto_pause_after_reviewed_commits: 0
+    base_branches:
+      - "^develop$"
+      - "^main$"
+    ignore_title_keywords:
+      - "wip"
+      - "do not merge"
+
+  # Generated, binary and capture content is verified by its own tooling and only adds noise here.
+  path_filters:
+    - "!package-lock.json"
+    - "!docs/**/screenshots/**"
+    - "!docs/**/wireframes/png/**"
+    - "!docs/admin-panel/openapi.json"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.jpeg"
+    - "!**/*.svg"
+    - "!dist/**"
+    - "!test-results/**"
+    - "!playwright-report/**"
+    - "!.workspace/**"
+
+  path_instructions:
+    - path: "src/features/**"
+      instructions: |
+        Feature-first slices: business logic and UI live in src/features/<feature>, and a feature
+        never imports another feature's internal modules; shared code moves to src/components,
+        src/hooks, src/services, src/store or src/utils first. Server state goes through TanStack
+        Query, global client state through Zustand, and component-local state through useState.
+        Do not copy server data into Zustand.
+    - path: "src/**/hooks/**"
+      instructions: |
+        An optimistic update must snapshot the previous cache value in onMutate and restore exactly
+        that value in onError; flag any mutation that changes the cache before the request settles
+        without a rollback. Denormalised counters (likes, comments, followers, saves, post counts)
+        are shown from API responses and never computed or patched on the client. Check query keys
+        for stale-cache bugs, missing invalidation after a write, and effects with dependency
+        arrays that are narrower or wider than they look.
+    - path: "src/services/**"
+      instructions: |
+        Every call goes through src/api/axiosClient.ts (authenticated) or publicClient (public);
+        never fetch or axios.create directly. A service function unwraps the ApiResponse<T>
+        envelope and documents the endpoint it calls. The base URL comes from VITE_API_URL only.
+    - path: "src/**/*.{ts,tsx}"
+      instructions: |
+        TypeScript is strict: flag blanket any, non-null assertions that hide a real null case,
+        and file-wide suppressions. IDs are opaque strings with no ordering or numeric
+        assumptions. Timestamps are displayed in the viewer's local time zone. Paths come from
+        ROUTES in src/config/constants.ts, never hard-coded strings. Access tokens are never
+        written to localStorage or sessionStorage and nothing sensitive is logged. Comments are
+        English, explain why rather than what, and carry no section dividers, commented-out code,
+        attribution or TODO without an issue reference.
+    - path: "src/**/*.tsx"
+      instructions: |
+        Colours, spacing, radii and typography come from the design tokens in src/config/tokens.ts
+        and DESIGN.md, not literals. Interactive elements are reachable by keyboard, have an
+        accessible name, and an icon-only control has an aria-label. Images have alt text or a
+        neutral label. Check that a dialog traps focus and restores it, and that nothing relies on
+        hover alone.
+    - path: "tests/unit/**"
+      instructions: |
+        Tests assert behaviour the title names and would fail without the change. Time-dependent
+        code uses fake timers or an injected clock, and the suite passes with TZ=UTC and the
+        en-US locale.
+    - path: "tests/e2e-live/**"
+      instructions: |
+        Live specs run against the real stack and must clean up what they create. They never
+        upload to real object storage, reuse assets an account already owns, and name the
+        requirement they cover in the test title. Prefer role and test-id locators; a button name
+        that is a substring of a row's accessible text needs exact: true.
+    - path: "docs/**"
+      instructions: |
+        Documentation is written for a future maintainer who has not seen the conversation: no
+        references to prompts, tasks or untracked local files, and the requirement-to-spec tables
+        must name specs and screenshots that exist.
+    - path: ".github/workflows/**"
+      instructions: |
+        Pin third-party actions to a version, grant the narrowest permissions the job needs, and
+        never echo secrets. Flag pull_request_target jobs that check out untrusted code.
+    - path: "**/Dockerfile"
+      instructions: |
+        Pin base image tags, run as a non-root user, and avoid copying secrets or .env files into
+        the image.
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits form type(scope): subject with a lowercase subject, a type from
+        feat, fix, refactor, test, chore, docs, perf or ci, a scope from the repository
+        allowlist, and at most 80 characters. The title must describe the change itself, not a
+        task number or an internal label.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: warning
+    custom_checks:
+      - name: "Optimistic updates roll back"
+        mode: error
+        instructions: |
+          Fail when a mutation under src changes a TanStack Query cache or Zustand state in
+          onMutate (or before the request resolves) without restoring the previous value in
+          onError. Pass when every optimistic change names its rollback.
+      - name: "No client side counters"
+        mode: warning
+        instructions: |
+          Fail when code under src increments, decrements or recomputes a server-owned counter
+          (likeCount, commentCount, followerCount, followingCount, saveCount, postCount,
+          viewCount) instead of showing the value from an API response or refetching it. Pass
+          otherwise.
+      - name: "No attribution in commits"
+        mode: warning
+        instructions: |
+          Fail when a commit message in the pull request contains a Co-Authored-By trailer, a
+          "Generated with" footer or an agent signature, or when a commit message has a body.
+          Pass when every commit is a single conventional line.
+
+  tools:
+    eslint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    osvScanner:
+      enabled: true
+    actionlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    hadolint:
+      enabled: true
+    yamllint:
+      enabled: true
+    # Prettier owns formatting and the repository writes Markdown one sentence per line.
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    biome:
+      enabled: false
+    stylelint:
+      enabled: false
+    checkov:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "AGENTS.md"
+      - "DESIGN.md"
+      - ".claude/rules/*.md"
+  learnings:
+    scope: local
+  pull_requests:
+    scope: local

@@ -103,8 +103,8 @@ TypeScript is the target language for application code and tests.
 - Commit format: `<type>(<scope>): <subject>` — same Conventional Commits convention as BE.
 - Allowed scopes are FE-specific; see `git_workflow.md` beside this file for the full allowlist,
   which is kept in step with `.github/workflows/pr-lint.yml`.
-- A CHANGELOG.md entry is required after every completed task — see `changelog_rule.md` beside
-  this file.
+- A CHANGELOG.md entry is required after every completed task — see `CHANGELOG_RULE.md` in the
+  workspace root rules (`.claude/rules`, mirrored in `.agents/rules`).
 - Comments: English only. No decorative dividers. No commented-out code in commits.
 
 ---
